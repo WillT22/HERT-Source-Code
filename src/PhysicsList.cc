@@ -11,7 +11,7 @@
 #include "G4EmStandardPhysics.hh"
 //#include "G4QStoppingPhysics.hh"
 #include "G4EmExtraPhysics.hh"
-
+#include "G4EmProcessOptions.hh"
 #include "G4SystemOfUnits.hh"
 
 

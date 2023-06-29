@@ -35,11 +35,7 @@ G4String EventAction::ftSnam[] = {"R1Sens","R2Sens"};
 
 G4String EventAction::ftGnam[] = {"R1Gard","R2Gard"};   
 
-G4String EventAction::shlnam[] = {"solid_alHousing","solid_TaColl",
-	                                  "solid_TaTooth","solid_WFr1","solid_WFr2","solid_WFr3","solid_WFr4","solid_WFr5","solid_WFr6","solid_WFr7",
-                                       "solid_AlFrShim","solid_WFrIn1","solid_WFrIn2","solid_WFrIn3","solid_AlChShim1","solid_AlChShim2","solid_AlChShim3","solid_AlChShim4",
-	                                  "solid_BackW","solid_AlBkShim1","solid_AlBkShim2",
-	                                  "solid_AlBkPlate"};
+G4String EventAction::shlnam[] = {"solid_alHousing","solid_TaColl", "solid_TaTooth","solid_WFr1","solid_WFr2","solid_WFr3","solid_WFr4","solid_WFr5","solid_WFr6","solid_WFr7", "solid_AlFrShim","solid_WFrIn1","solid_WFrIn2","solid_WFrIn3","solid_AlChShim1","solid_AlChShim2","solid_AlChShim3","solid_AlChShim4", "solid_BackW","solid_AlBkShim1","solid_AlBkShim2", "solid_AlBkPlate"};
 
 G4String EventAction::detName[]= {"detector_1","detector_2",
     "detector_3","detector_4","detector_5","detector_6","detector_7","detector_8", "detector_9", "Al","W","Be"};
@@ -64,7 +60,7 @@ G4String EventAction::BeName = "solid_BeWin";
   G4String collNm1 = "/shieldColl" ;  
   G4String collNm2 = "/BeDiscColl" ;                       	    
   for(int i=0; i<9; i++){
-    SiSensID[i] = G4SDManager::GetSDMpointer()->GetCollectionID(bkSnam[i]+collNam);
+      SiSensID[i] = G4SDManager::GetSDMpointer()->GetCollectionID(bkSnam[i]+collNam);
 
   // 	G4cout << " SiSensID[i] " << SiSensID[i] << 
     //	 "bkSnam[i]+collNam "<< bkSnam[i]+collNam << G4endl;     
@@ -73,11 +69,11 @@ G4String EventAction::BeName = "solid_BeWin";
 //    	G4cout << " backGardID[i] " << backGardID[i] << 
 //    	 "bkGnam[i]+collNm1 "<< bkGnam[i]+collNam << G4endl;     
           
-   //for(int i=0; i<10 ; i++){ 
-   	//shieldID[i] = G4SDManager::GetSDMpointer()->GetCollectionID(shlnam[i]+collNm1);
+   for(int i=0; i<10 ; i++){ 
+       shieldID[i] = G4SDManager::GetSDMpointer()->GetCollectionID(shlnam[i]);// +collNm1);
    	//G4cout << " shieldID[i] " << shieldID[i] << 
 	//	"shlnam[i]+collNm1 "<< shlnam[i]+collNm1 << G4endl;
-    //}
+    }
 	
     
  //    BeDiscID = G4SDManager::GetSDMpointer()->GetCollectionID(BeName+collNm2);	 
