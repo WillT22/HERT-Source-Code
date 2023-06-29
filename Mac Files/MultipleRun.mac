@@ -1,0 +1,17 @@
+#######################################
+# Updated by LYK (Mar 9, 2020)
+# For beginner's practice version, get rid of some layer of codes (less loop)
+# Purpose: To run loop 
+# Revised by H. Zhao (Aug 12, 2020)
+
+##### Test Track ############
+
+/control/shell del *.txt
+/control/alias startEnergy 0.5 #MeV
+/control/alias stepEnergy 0.1 #MeV
+/control/alias endEnergy 1.0  #MeV
+/control/alias number 2000000  #Number of run
+
+/control/loop SingleRun.mac eKin {startEnergy} {endEnergy} {stepEnergy} number {number}
+
+exit

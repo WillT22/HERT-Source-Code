@@ -1,0 +1,50 @@
+# revised by H. Zhao 08/17/2020
+/control/verbose 2
+/run/initialize
+#
+# use /gps/ instead of /gun/
+#
+#/gun/particle alpha
+#/gun/particle e-
+/gps/particle e-
+#/gun/particle mu-
+
+/gps/energy 4 MeV
+/gps/direction 0 0.0 10.0 mm
+/gps/position 0.0 0.0 -100. mm
+# 
+# write heprep
+#
+/vis/open HepRepFile
+#
+# Create a new empty scene
+#
+/vis/scene/create
+#
+# Declare that the world volume should be added to the scene
+#
+/vis/scene/add/volume
+#
+# Attach scene to scenehandler
+#
+/vis/sceneHandler/attach
+#
+# Draw a picture that has just the detector (no trajectories or hits).
+#
+/vis/viewer/flush
+#
+# Declare that trajectories and hits should be added to the scene
+#
+/vis/scene/add/trajectories
+/vis/scene/add/hits
+/vis/scene/endOfEventAction accumulate 5
+#
+# Store particle trajectories for visualization
+#
+/tracking/storeTrajectory 1
+#
+#
+#
+/run/beamOn 5
+
+exit
