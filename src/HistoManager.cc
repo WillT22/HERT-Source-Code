@@ -59,7 +59,7 @@ void HistoManager::Book()
   //
   
   G4AnalysisManager* analysis = G4AnalysisManager::Instance();
-  
+  analysis->SetDefaultFileType("root");
   analysis->SetFileName(fFileName);
   analysis->SetVerboseLevel(1);
   analysis->SetActivation(true);     //enable inactivation of histos, nTuples
