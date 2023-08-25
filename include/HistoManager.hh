@@ -35,6 +35,7 @@
 #define HistoManager_h 1
 
 #include "globals.hh"
+
 #include "G4AnalysisManager.hh"
 //#include "g4xml.hh"
 
