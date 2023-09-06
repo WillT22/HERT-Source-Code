@@ -1,15 +1,16 @@
-%%HERT: mainForMultipleEED.m
+%%HERT: mainForMultipleEED.mfiletype
 % Last modified: 5/8/2023
 
 
 % This script is the main code for converting Geant4 results to derived
 % count rate and geometric factor
+% Requires MatPlotLib Perceptually Uniform Colormaps
 
 %Resets all variables and values in MATLAB
 clear;
 close all;
 clc;
-addpath 'D:\HERT\MATLAB Main'
+addpath 'E:\HERT\MATLAB Main'
 
 %% Geometric Factor- Theory
 % This section solves for the theorectical geometric factor of the instrument
@@ -216,7 +217,7 @@ G2_inner = 0.5*(pi^2)*((r_coll^2+rI(8)^2+(l_coll+L_inner(1,8))^2)-(((r_coll^2+rI
 
 %% Calculate GEANT4 Results
 %read files from ./Result folder stores into 1*C array
-cd 'D:\HERT\MATLAB Main\Result'; %Main Result Directory
+cd 'E:\HERT\MATLAB Main\Result'; %Main Result Directory
 
 % Get Folder Names for User
 % (Source:https://www.mathworks.com/matlabcentral/answers/166629-is-there-...
@@ -394,10 +395,9 @@ while choice ~= 1
                 EngLegend(i) = append(num2str(round(energy_channels(i,1),2)),'-',num2str(round(energy_channels(i,2),2)),' MeV');
             end
             
-            %Creates n x 3 matrix for plot colors. This will give each
-            %energy channel its own color on the plot.
+            %Creates n x 3 matrix for plot colors. This will give each energy channel its own color on the plot.
             %n = number of energy channels
-            Effplotcolor = plasma(size_EC(1));
+            Effplotcolor = plasma(size_EC(1)); %requires MatPlotLib Perceptually Uniform Colormaps
             
             %One file selected
             if size(filename,1)==1
@@ -422,8 +422,8 @@ while choice ~= 1
                 end
                 
                 
-                save('output_singleParticaleArray.mat','output0')
-                disp('output_singleParticaleArray.mat');
+                save('output_singleParticleArray.mat','output0')
+                disp('output_singleParticleArray.mat');
                 x= linspace(1.0,7.0,length(energy_channels));
                 y_whole = output0' ;
                 figure
@@ -513,9 +513,9 @@ while choice ~= 1
                 
                 %% Save Results
                 %Goes to Result directory and outputs final_matrix
-                cd 'D:\HERT\MATLAB Main\Result'
-                save('output_MultipleParticaleMatrix.mat','final_Matrix')
-                disp('output_MultipleParticaleMatrix.mat');
+                cd 'E:\HERT\MATLAB Main\Result'
+                save('output_MultipleParticleMatrix.mat','final_Matrix')
+                disp('output_MultipleParticleMatrix.mat');
                 cd ..
                 
                 %Goes to Efficiency_Curves Directory in prep to save

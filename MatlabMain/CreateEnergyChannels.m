@@ -85,7 +85,7 @@ Resolution
 
 %% Write to Text File
 
-fileID = fopen('electron_channels_v8.txt','w');
+fileID = fopen('electron_channels_v1.txt','w');
 for i = 1:size(Channels,1)
 fprintf(fileID,'%6.3f,%6.3f \n',Channels(i,:));
 end
