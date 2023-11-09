@@ -10,7 +10,7 @@
 clear;
 close all;
 clc;
-addpath 'E:\HERT\MATLAB Main'
+addpath 'E:\HERT_Drive\MATLAB Main'
 
 %% Geometric Factor- Theory
 % This section solves for the theorectical geometric factor of the instrument
@@ -88,9 +88,9 @@ else
 end
 
 %% Assuming the Collimator Knife Edge Stops No Particles (Max GeoFactor)
-% Disc 1: First Detector
-% Disc 2: Last Collimator Tooth at Knife Edge Base
-% Disc 3: First Collimator Tooth at Knife Edge Base
+% Disc 1: First Collimator Tooth
+% Disc 2: Last Collimator Tooth
+% Disc 3: First Detector
 
 L_12 = 6.0;%cm distance between first and last collimator teeth
 L_23 = 0.3; %cm distance between last collimator tooth and first detector
@@ -204,7 +204,7 @@ G2_inner = 0.5*(pi^2)*((r_coll^2+rI(8)^2+(l_coll+L_inner(1,8))^2)-(((r_coll^2+rI
 
 %% Calculate GEANT4 Results
 %read files from ./Result folder stores into 1*C array
-cd 'E:\HERT\MATLAB Main\Result'; %Main Result Directory
+cd 'E:\HERT_Drive\MATLAB Main\Result'; %Main Result Directory
 
 % Get Folder Names for User
 % (Source:https://www.mathworks.com/matlabcentral/answers/166629-is-there-...
@@ -219,7 +219,7 @@ subFolders = files(dirFlags); % A structure with extra info.
 % Get only the folder names into a cell array.
 subFolderNames = {subFolders(3:end).name}; % Start at 3 to skip . and ..
 
-FolderChoice = menu('HERT Loop: Choose a Folder where',subFolderNames{:});
+FolderChoice = menu('HERT Loop: Choose an input folder',subFolderNames{:});
 inputfolder = subFolderNames{FolderChoice};
 addin = inputfolder;
 %Menu to select spherical cap or full spherical
@@ -281,23 +281,6 @@ while choice ~= 1
                 disp(filename);
             end
             
-            
-            
-            %Menu to determine detector threshold
-            filetype_choice = menu('File Type','17 Detectors','9 Detectors');
-            switch filetype_choice
-                
-                case 1
-                    filetype = 0;
-                    fprintf('FileType: 17 Active Areas \n')
-                    
-                case 2
-                    filetype = 1;
-                    fprintf('FileType: 9 Active Areas \n')
-                    
-            end
-            
-            
             %Load all files
         case 3
             txt_files_All= menu('Choose all files','All .txt files');
@@ -308,21 +291,8 @@ while choice ~= 1
                     fprintf('Number of files loaded: %.0f',length(list_fileNames))
                     
             end
-            %Menu to determine detector threshold
-            filetype_choice = menu('File Type','17 Detectors','9 Detectors');
-            switch filetype_choice
-                
-                case 1
-                    filetype = 0;
-                    fprintf('FileType: 17 Active Areas \n')
-                    
-                case 2
-                    filetype = 1;
-                    fprintf('FileType: 9 Active Areas \n')
-                    
-            end
             
-            % Start Run
+        % Start Run
         case 4
             %Menu to determine runtype
             runtype_choice = menu('Outer Ring and Back Detector Limit','0 MeV','.1 MeV limit','0.01 MeV limit');
@@ -388,26 +358,12 @@ while choice ~= 1
             
             %One file selected
             if size(filename,1)==1
-                disp('Start the oneEnergyEffDist.m');
-                
-                if filetype ==0
+                disp('Start the oneEnergyEffDist.m');  
+                %Runs oneEnergyEffDistWhole for the one .txt file
+                [output_Mult,output_energy,output_number,hits_log,count_back_whole,detector_energy_whole,hits_detectors_whole]...
+                    = oneEnergyEffDistWhole(filename,energy_channels,outer_limit,inputfolder,detector_threshold);
                     
-                    %Runs oneEnergyEffDistInner for the one .txt file
-                    [output_Mult,output_Inner,output_energy,output_number,hits_log,hits_log_inner,count_back_inner,count_back_whole,count_outer_inner,detector_energy_whole,detector_energy_inner,hits_detectors_whole,hits_detectors_inner]...
-                        = oneEnergyEffDistInner(filename,energy_channels,outer_limit,inputfolder,detector_threshold);
-                    
-                    
-                    
-                elseif filetype ==1
-                    %Runs oneEnergyEffDistWhole for the one .txt file
-                    [output_Mult,output_energy,output_number,hits_log,count_back_whole,detector_energy_whole,hits_detectors_whole]...
-                        = oneEnergyEffDistWhole(filename,energy_channels,outer_limit,inputfolder,detector_threshold);
-                    
-                    hits_whole = sum(output0.*hits_whole);
-                else
-                    erorr('INCORRECT FILETYPE')
-                end
-                
+                hits_whole = sum(output0.*hits_whole);
                 
                 save('output_singleParticleArray.mat','output0')
                 disp('output_singleParticleArray.mat');
@@ -437,70 +393,36 @@ while choice ~= 1
                 %Nested For loops to create final matrix 1 and 2
                 for i = 1: C
                     tic
-                    if filetype ==0
-                        %For every .txt file in Results, it will run
-                        %oneEnergyEffDist and add the results to finalMatrix
-                        %and finalMatrix2
-                        [output_Mult,output_Inner,output_energy,output_number,hits_log,hits_log_inner,count_back_inner,count_back_whole,count_outer_inner,detector_energy_whole,detector_energy_inner,hits_detectors_whole,hits_detectors_inner]...
-                            = oneEnergyEffDistInner(filename{i},energy_channels,outer_limit,inputfolder,detector_threshold);
+                    %For every .txt file in Results, it will run
+                    %oneEnergyEffDist and add the results to finalMatrix
+                    %and finalMatrix2
+                    [output_Mult,output_energy,output_number,hits_log,count_back_whole,detector_energy_whole,hits_detectors_whole]...
+                        = oneEnergyEffDistWhole(filename{i},energy_channels,outer_limit,inputfolder,detector_threshold);
                         
-                        
-                        %Final_matrix2 is the efficiency data in each energy
-                        %channel
-                        %Each row is an energy channel
-                        %Each column is a different .txt file
-                        % This will be Y in our plot
-                        final_Matrix2(:,i)= output_Mult;
-                        
-                        %final_matrix is a matrix with
-                        %Energy Channel x number of different energy levels tested
-                        % This will be X in our plot
-                        final_Matrix(:,i) = output_energy;
-                        final_Matrix3(:,i) = output_number;
-                        final_Matrix4(:,i) = output_Inner;
-                        final_Matrix5(i) = count_back_inner;
-                        final_Matrix6(i) = count_back_whole;
-                        final_Matrix7(i) = count_outer_inner;
-                        final_Matrix8(:,i) = detector_energy_whole;
-                        final_Matrix9(:,i) = detector_energy_inner;
-                        final_Matrix10(:,i) = hits_detectors_whole;
-                        final_Matrix11(:,i) = hits_detectors_inner;
-                        
-                    elseif filetype == 1
-                        
-                        %For every .txt file in Results, it will run
-                        %oneEnergyEffDist and add the results to finalMatrix
-                        %and finalMatrix2
-                        [output_Mult,output_energy,output_number,hits_log,count_back_whole,detector_energy_whole,hits_detectors_whole]...
-                            = oneEnergyEffDistWhole(filename{i},energy_channels,outer_limit,inputfolder,detector_threshold);
-                        
-                        % This will be Y in our plot
-                        final_Matrix2(:,i)= output_Mult;
-                        
-                        %final_matrix is a matrix with
-                        %Energy Channel x number of different energy levels tested
-                        % This will be X in our plot
-                        final_Matrix(:,i) = output_energy;
-                        final_Matrix3(:,i) = output_number;
-                        final_Matrix4(:,i) = zeros(length(energy_channels),1);
-                        final_Matrix5(i) = zeros(1,1);
-                        final_Matrix6(i) = count_back_whole;
-                        final_Matrix7(i) = zeros(1,1);
-                        final_Matrix8(:,i) = detector_energy_whole;
-                        final_Matrix9(:,i) = zeros(17,1);
-                        final_Matrix10(:,i) = hits_detectors_whole;
-                        final_Matrix11(:,i) = zeros(17,1);
-                        
-                    else
-                        error('FILETYPE INCORRECT')
-                        
-                    end
+                    % This will be Y in our plot
+                    final_Matrix2(:,i)= output_Mult;
+                    
+                    %final_matrix is a matrix with
+                    %Energy Channel x number of different energy levels tested
+                    % This will be X in our plot
+                    final_Matrix(:,i) = output_energy;
+                    final_Matrix3(:,i) = output_number;
+                    final_Matrix4(:,i) = zeros(length(energy_channels),1);
+                    final_Matrix5(i) = zeros(1,1);
+                    final_Matrix6(i) = count_back_whole;
+                    final_Matrix7(i) = zeros(1,1);
+                    final_Matrix8(:,i) = detector_energy_whole;
+                    final_Matrix9(:,i) = zeros(17,1);
+                    final_Matrix10(:,i) = hits_detectors_whole;
+                    final_Matrix11(:,i) = zeros(17,1);
+                    
+                                         
                     toc
                 end
                 
                 %% Save Results
                 %Goes to Result directory and outputs final_matrix
-                cd 'E:\HERT\MATLAB Main\Result'
+                cd 'E:\HERT_Drive\MATLAB Main\Result'
                 save('output_MultipleParticleMatrix.mat','final_Matrix')
                 disp('output_MultipleParticleMatrix.mat');
                 cd ..
@@ -631,12 +553,6 @@ while choice ~= 1
                 f1 = gcf;
                 f1.Position = [0 0 2000 840];
                 
-                if filetype==0
-                    G_inner_plot = ((G2_inner-G1_inner)/(6))*x(:,1) + G1_inner;
-                    if energy_channel_choice == 2
-                        G_inner_plot = (G2_inner-G1_inner)/(60)*x(:,1) + G1_inner;
-                    end
-                end
                 hold on
                 % Plot Theory Bands
                 plot([x(1),x(end)],[G3_whole,G3_whole],'--g','LineWidth',line_width)
@@ -783,36 +699,7 @@ while choice ~= 1
                 %Saving the figure as a jpg then returning to main directory
                 effsave = append('Geometric Factor Whole by EC_',date(),addin,'.jpg');
                 saveas(f3,effsave)
-                
-                %% Inner Ring Geometric Factor by Energy Channel
-                if filetype==0
-                    geo_EC_inner(geo_EC_inner==0)=10^-31;
-                    set(gca,'FontSize',textsize)
-                    line_width =2;
-                    f4 = figure;
-                    f4.Position = [0 0 2000 840];
-                    hold on
-                    set(gca, 'YScale', 'log')
-                    ylim([10^-4, 10^0])
-                    for i = 1:width(x)
-                        plot(x(:,i),geo_EC_inner(:,i),'Color',Effplotcolor(i,:),'LineWidth',line_width)
-                        
-                    end
-                    %plot([x(1),x(end)],[0.1,0.1],'--k','LineWidth',line_width)
-                    hold off
-                    titlestr_inner = append(sprintf('Geometric Factor Inner %.2f MeV - %.2f MeV ',min(final_Matrix(1,:)),max(final_Matrix(1,:))),addin);
-                    %title(titlestr_inner,'FontSize',20)
-                    ylabel('Geometric Factor (cm^2 sr)','FontSize',20)
-                    xlabel('Energy (MeV)','FontSize',20)
-                    
-                    %legend(EngLegend,'Location', 'southoutside','NumColumns',8)
-                    
-                    %Saving the figure as a jpg then returning to main directory
-                    effsave = append('Geometric Factor Inner by EC',date(),'.jpg');
-                    saveas(f4,effsave)
-                    
-                end
-                
+             
                 %% Efficiency
                 line_width =1;
                 %Create figure at a certain positon and size
@@ -917,139 +804,8 @@ while choice ~= 1
                 saveas(gcf,histsave)
                 cd ..
                 cd ..
-                
-                
-                
-                
-                %% FWHM-Inner
-                %Begins calculating FWHM values
-                if filetype ==0
-                    fprintf('\nFull Width at Half Max Values:\n')
-                    fwhm_inner = zeros(1,width(x));
-                    for u = 1:width(x)
-                        %Using X and Y from above, calculates FWHM value for
-                        %each energy channel
-                        [fwhm_inner(u),xr_inner(u),xl_inner(u)] = findFWHM(x(:,u),geo_EC_inner(:,u));
-                        % Print full width half max values into command window
-                        fprintf('%.2f - %.2f MeV: %.4f\n',energy_channels(u,1),energy_channels(u,2),fwhm_inner(u))
-                    end
-                    
-                    
-                    %Exports .txt file with the FWHM values
-                    cd FWHM_values
-                    exportname_inner = append('Inner ',inputfolder,'_',addin,'_',num2str(length(energy_channels)));
-                    plotsave = append(exportname_inner,'.txt');
-                    writematrix(fwhm_inner,plotsave)
-                    cd ..
-                    
-                    %Creates figure of a certain size for showing the FWHM
-                    %values
-                    b = figure;
-                    b.Position = [0 0 2000 840];
-                    hold on
-                    %Plots each energy channel FWHM value in the same colo as
-                    %the Eff. Curve
-                    for i = 1:length(energy_channels)
-                        bar((energy_channels(i,1)+energy_channels(i,2))/2,fwhm_inner(i),(energy_channels(i,2)-energy_channels(i,1)),'EdgeColor','k','FaceColor',Effplotcolor(i,:))
-                        
-                    end
-                    hold off
-                    
-                    %Lables the Bar Graph
-                    title(titlestr_inner)
-                    legend(EngLegend,'Location', 'southoutside','NumColumns',8)
-                    ylabel('Full Width at Half Max')
-                    xlabel('Energy (MeV)')
-                    %Saves the Bar Graph as .jpg
-                    cd Plots/Histograms
-                    histsave = append(exportname_inner,'.jpg');
-                    saveas(gcf,histsave)
-                    cd ..
-                    cd ..
-                    
-                end
-                
-                %% Exports Results data as an Excel File
-                f =0;
-                buildtable(energy_channels,fwhm_whole,exportname_whole)
-                
-                
-                % Saves variables for later graph making
-                Var_String = append('OutputVariables',addin,'.mat');
-                save(Var_String)
-                
             end
     end
-    
-    
-    
     choice = menu('Choose an option', 'Exit Program', 'Load one file','Load all files','Start Run');
     
 end
-
-
-
-%% Compare GF profiles
-% This section is used to compare multiple GF calculations to each other
-
-
-
-% load('OutputVariables electron_channels_v8 0.1 MeV OTR HERT-CAD Full Spherical FS  0.1 MeV DT .mat')
-% close all
-% x_FS=x(3:end,1);
-% geo_EL_FS=geo_EL(3:end);
-%
-% load('OutputVariables electron_channels_v8_1 0.1 MeV OTR HERT-CAD Full Spherical FS  0.1 MeV DT .mat')
-% close all
-% x_FS_38 = x(5:end,1);
-% geo_EL_FS_38=geo_EL(5:end);
-%
-% load('OutputVariables electron_channels_v8_1 0.1 MeV OTR HERT-Cad Spherical Cap Electrons SC  0.1 MeV DT .mat')
-% close all
-% x_EL_38=x(:,1);
-% geo_EL_38=geo_EL;
-%
-% load('OutputVariables electron_channels_v8 0.1 MeV OTR HERT-Cad Spherical Cap Electrons SC  0.1 MeV DT .mat')
-% close all
-%
-% line_width =2;
-% textsize = 28;
-% figure
-% f1 = gcf;
-% f1.Position = [0 0 2000 840];
-% hold on
-% % Plot Theory Bands
-% plot([x(1),x(end)],[G3_whole,G3_whole],'--g','LineWidth',line_width)
-% plot([x(1),x(end)],[G3_whole_max,G3_whole_max],'--b','LineWidth',line_width)
-% %plot(x(:,1),G_inner_plot,'--r','LineWidth',line_width)
-% %errorbar(x(:,1),geo_EL,omega_G_whole,'b','LineWidth',line_width)
-%
-% %Plot Simulation Value
-% plot(x(:,1),geo_EL,'k','LineWidth',line_width)
-% plot(x_FS,geo_EL_FS,'om','LineWidth',line_width,'MarkerFaceColor','m')
-% %plot(x_EL_38,geo_EL_38,'y','LineWidth',line_width)
-% %plot(x_FS_38,geo_EL_FS_38,'or','LineWidth',line_width,'MarkerFaceColor','r')
-%
-%
-% %errorbar(x(:,1),geo_EL_inner,omega_G_inner,'m','LineWidth',line_width)
-% %plot(x(:,1),geo_EL_inner,'m','LineWidth',line_width)
-%
-%
-% %Sets yaxis to log scale. Comment out to keep plot linear
-% set(gca, 'YScale', 'log')
-% ylim([10^-4, 10^0])
-% set(gca,'FontSize',textsize)
-% xlim([0 8.5])
-%
-%
-% titlestr = append(sprintf('Total GF: %.2f MeV - %.2f MeV ',min(final_Matrix(1,:)),max(final_Matrix(1,:))),addin);
-% %title(titlestr,'FontSize',20)
-% ylabel('Geometric Factor (cm^2 sr)','FontSize',textsize)
-% xlabel('Incident Energy (MeV)','FontSize',textsize)
-% legend('Theoretical-Min','Theoretical-Max','Simulated Cap','Simulated Sphere','FontSize',20,'Location','southeast' )
-% %,'Simulated Cap (>0.5 MeV)','Simulated Sphere (>0.5 MeV)'
-%
-% hold off
-%
-% %Saving the figure as a jpg then returning to main directory
-% saveas(gcf,'Total Geometric Factor Comparision.jpg')

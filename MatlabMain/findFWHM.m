@@ -6,7 +6,6 @@ function [FWHM,xr,xl] = findFWHM(x, fx)
 if max(abs(fx)) == 0
     FWHM = 0;
 else
-    
     [m, n] = max(fx);		%	Find maximum value and index
     ind = find(fx>=m/2);	%	Find indicies where I>=max(I)/2
     nl = min(ind);			%	Leftmost index
