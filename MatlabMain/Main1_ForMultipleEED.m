@@ -1,5 +1,5 @@
 %%HERT: mainForMultipleEED.mfiletype
-% Last modified: 5/8/2023
+% Last modified: 11/9/2023
 
 
 % This script is the main code for converting Geant4 results to derived
@@ -18,11 +18,11 @@ addpath 'E:\HERT_Drive\MATLAB Main'
 % Calculation dervied from Sullivan 1971 paper:
 % https://www.sciencedirect.com/science/article/abs/pii/0029554X71900334
 
-%% Assuming the Collimator Knife Edge Stops All Particles (Min GeoFactor)
 % Disc 1: First Collimator Tooth
 % Disc 2: Last Collimator Tooth
 % Disc 3: First Detector
 
+% Assuming the Collimator Knife Edge Stops All Particles (Min GeoFactor)
 L_12 = 6.0;%cm distance between first and last collimator teeth
 L_23 = 0.3; %cm distance between last collimator tooth and first detector
 r1 = 0.9; %cm radius of first collimator tooth
@@ -31,67 +31,9 @@ r3 = 1.0; %cm radius of first detector
 
 L_13 = L_12+L_23;
 
-%Creating angles for simplifying criteria Eq. 14 in Sullivan
-%Angles of incidence such that circles project onto each other depending on location of incidence of the particles
-%maximum angle that the particle will always hit within both circles
-theta_c_12 = atan(abs(r1-r2)/L_12); %first to last collimator tooth
-theta_c_13 = atan(abs(r1-r3)/L_13); %first tooth to first detector
-theta_c_23 = atan(abs(r2-r3)/L_23); %last tooth to detector
+G3_whole_min = findG3whole(L_12,L_23,L_13,r1,r2,r3)
 
-%maximum angle such that particles may hit both circles depending on incidence location
-theta_m_12 = atan((r1+r2)/L_12); %first to last collimator tooth
-theta_m_13 = atan((r1+r3)/L_13); %first tooth to first detector
-theta_m_23 = atan((r2+r3)/L_23); %last tooth to detector
-
-%geometric factor of first collimator tooth and first detector (high E particles)
-G13 = 0.5*(pi^2)*((r1^2+r3^2+L_13^2)-(((r1^2+r3^2+L_13^2)^2-4*(r1^2)*(r3^2))^0.5));
-%geometric factor of last collimator tooth and first detector (low E particles)
-G12 = 0.5*(pi^2)*((r1^2+r2^2+L_12^2)-((r1^2+r2^2+L_12^2)^2-4*(r1^2)*(r2^2))^0.5); 
-%geometric factor of first to last collimator tooth
-G23 = 0.5*(pi^2)*((r2^2+r3^2+L_23^2)-((r2^2+r3^2+L_23^2)^2-4*(r2^2)*(r3^2))^0.5); 
-
-%Apply Simlifying Criteria
-%if the 'always hits' critical angle is defined from the first tooth and the detector
-if theta_c_12 >= theta_c_13
-    G13 = 0.5*(pi^2)*((r1^2+r3^2+L_13^2)-(((r1^2+r3^2+L_13^2)^2-4*(r1^2)*(r3^2))^0.5));
-    G3_whole = G13; %geometric factor is defined by the first tooth and first detector
-    fprintf('Geometric_Factor_13 (First Tooth to First Detector)= %7.5f  cm^2 sr\n \n',G13)
-    FOV = 2*theta_m_13*180/pi;
-
-%otherwise, if the 'can hit' critical angle is defined by the collimator
-elseif theta_m_13 >= theta_m_12
-    G12 = 0.5*(pi^2)*((r1^2+r2^2+L_12^2)-((r1^2+r2^2+L_12^2)^2-4*(r1^2)*(r2^2))^0.5);
-    G3_whole = G12; %geometric factor is defined by the collimator
-    fprintf('Geometric_Factor_12 (First Tooth to Last Tooth) = %7.5f  cm^2 sr\n \n',G12)
-    FOV = 2*theta_m_12*180/pi;
-    
-%otherwise, if the 'can hit' critical angle is defined by the last tooth and the detector
-elseif theta_c_12 >= theta_m_13
-    G23 = 0.5*(pi^2)*((r2^2+r3^2+L_23^2)-((r2^2+r3^2+L_23^2)^2-4*(r2^2)*(r3^2))^0.5);
-    G3_whole = G23; %geometric factor is defined by the last tooth and first detector
-    fprintf('Geometric_Factor_23 (Last Tooth to First Detector) = %7.5f  cm^2 sr\n \n',G23)
-
-%otherwise, the geometric factor is defined by all three components
-else
-    theta_a = atan(((L_23*r1^2+L_12*r3^2-L_13*r2^2)^0.5)/(L_12*L_23*L_13));
-    G13 = 0.5*(pi^2)*((r1^2+r3^2+L_13^2)-(((r1^2+r3^2+L_13^2)^2-4*(r1^2)*(r3^2))^0.5));
-    
-    %from Sullivan eq 16
-    Z12= Zij(theta_a,L_12,r1,r2,theta_c_12,theta_m_12,r2);
-    Z13= Zij(theta_a,L_13,r1,r3,theta_c_13,theta_m_13,r2);
-    Z23= Zij(theta_a,L_23,r2,r3,theta_c_23,theta_m_23,r2);
-    
-    G123=G13-pi^2*r2^2*sin(theta_a)^2+Z23+Z12-Z13; %Sullivan eq 15
-    G3_whole = G123;
-    fprintf('Geometric_Factor (Three Disc Telescope) = %7.5f  cm^2 sr\n \n',G123)
-    
-end
-
-%% Assuming the Collimator Knife Edge Stops No Particles (Max GeoFactor)
-% Disc 1: First Collimator Tooth
-% Disc 2: Last Collimator Tooth
-% Disc 3: First Detector
-
+% Assuming the Collimator Knife Edge Stops No Particles (Max GeoFactor)
 L_12 = 6.0;%cm distance between first and last collimator teeth
 L_23 = 0.3; %cm distance between last collimator tooth and first detector
 r1 = 1.0; %cm radius of first collimator tooth (larger than above)
@@ -100,107 +42,7 @@ r3 = 1.0; %cm radius of first detector
 
 L_13 = L_12+L_23;
 
-theta_c_12 = atan(abs(r1-r2)/L_12);
-theta_c_13 = atan(abs(r1-r3)/L_13);
-theta_c_23 = atan(abs(r2-r3)/L_23);
-
-theta_m_12 = atan((r1+r2)/L_12);
-theta_m_13 = atan((r1+r3)/L_13);
-theta_m_23 = atan((r2+r3)/L_23);
-
-G13 = 0.5*(pi^2)*((r1^2+r3^2+L_13^2)-(((r1^2+r3^2+L_13^2)^2-4*(r1^2)*(r3^2))^0.5));
-G12 = 0.5*(pi^2)*((r1^2+r2^2+L_12^2)-((r1^2+r2^2+L_12^2)^2-4*(r1^2)*(r2^2))^0.5);
-G23 = 0.5*(pi^2)*((r2^2+r3^2+L_23^2)-((r2^2+r3^2+L_23^2)^2-4*(r2^2)*(r3^2))^0.5);
-
-if theta_c_12 >= theta_c_13
-    G13 = 0.5*(pi^2)*((r1^2+r3^2+L_13^2)-(((r1^2+r3^2+L_13^2)^2-4*(r1^2)*(r3^2))^0.5));
-    G3_whole_max = G13;
-    fprintf('Geometric_Factor_13 (Front Tooth to First Detector)= %7.5f  cm^2 sr\n \n',G13)
-    FOV = 2*theta_m_13*180/pi
-    
-elseif theta_m_13 >= theta_m_12
-    
-    G12 = 0.5*(pi^2)*((r1^2+r2^2+L_12^2)-((r1^2+r2^2+L_12^2)^2-4*(r1^2)*(r2^2))^0.5);
-    G3_whole_max = G12;
-    fprintf('Geometric_Factor_12 (First Tooth to Last Tooth) = %7.5f  cm^2 sr\n \n',G12)
-    FOV = 2*theta_m_12*180/pi
-    
-elseif theta_c_12 >= theta_m_13
-    G23 = 0.5*(pi^2)*((r2^2+r3^2+L_23^2)-((r2^2+r3^2+L_23^2)^2-4*(r2^2)*(r3^2))^0.5);
-    G3_whole_max = G23;
-    fprintf('Geometric_Factor (Last Tooth to First Detector) = %7.5f  cm^2 sr\n \n',G23)
-    
-else
-    theta_a = atan(((L_23*r1^2+L_12*r3^2-L_13*r2^2)^0.5)/(L_12*L_23*L_13));
-    G13 = 0.5*(pi^2)*((r1^2+r3^2+L_13^2)-(((r1^2+r3^2+L_13^2)^2-4*(r1^2)*(r3^2))^0.5));
-    
-    Z12= Zij(theta_a,L_12,r1,r2,theta_c_12,theta_m_12,r2);
-    Z13= Zij(theta_a,L_13,r1,r3,theta_c_13,theta_m_13,r2);
-    Z23= Zij(theta_a,L_23,r2,r3,theta_c_23,theta_m_23,r2);
-    
-    G123=G13-pi^2*r2^2*sin(theta_a)^2+Z23+Z12-Z13;
-    G3_whole_max = G123;
-    fprintf('Geometric_Factor (Three Disc Telescope) = %7.5f  cm^2 sr\n \n',G123)
-    
-end
-
-%% Inner/Outer
-rI= zeros(1,8);
-theta_c_inner= zeros(length(rI));
-L_inner = zeros(length(rI));
-Length_inner = 0.25; %cm
-theta_m_inner= zeros(length(rI));
-r_coll=1;%cm
-l_coll=7.45;%cm
-%
-%Inner Ring Only
-for i = 1:8
-    rI(i)= 1; %cm
-end
-%
-%
-for i = 1:length(rI)
-    for j = 1:length(rI)
-        if i > j
-            L_inner(i,j) = 0/0;
-            theta_c_inner(i,j) = 0/0;
-            theta_m_inner(i,j) = 0/0;
-            
-        else
-            L_inner(i,j) = (j-i)*Length_inner;
-            theta_m_inner(i,j) = atand((rI(i)+rI(j))/L_inner(i,j));
-            theta_c_inner(i,j) = atand(abs((rI(i)-rI(j)))/L_inner(i,j));
-        end
-    end
-end
-
-
-for i = 1:length(rI)
-    theta_c_coll(i) = atand(abs((r_coll-rI(i)))/(l_coll+L_inner(1,i)));
-    theta_m_coll(i) = atand((r_coll+rI(i))/(l_coll+L_inner(1,i)));
-end
-
-if max(min(theta_c_inner,[],1)) == theta_c_inner(1,8)
-    Gtest = 0.5*(pi^2)*((rI(8)^2+rI(1)^2+L_inner(1,8)^2)-(((rI(8)^2+rI(1)^2+L_inner(1,8)^2)^2-4*(rI(8)^2)*(rI(1)^2))^0.5));
-    a_x = rI(8)^2+rI(1)^2+L_inner(1,8)^2;
-    b_y = 4*(rI(8)^2)*(rI(1)^2);
-    Gtest1_inner = 0.5*(pi^2)*(a_x-(a_x^2-b_y)^0.5);
-end
-%Gtest1_inner = Gtest *30/180
-G1_inner = 0.5*(pi^2)*((r_coll^2+rI(1)^2+l_coll^2)-(((r_coll^2+rI(1)^2+l_coll^2)^2-4*(r_coll^2)*(rI(1)^2))^0.5))
-G2_inner = 0.5*(pi^2)*((r_coll^2+rI(8)^2+(l_coll+L_inner(1,8))^2)-(((r_coll^2+rI(8)^2+(l_coll+L_inner(1,8))^2)^2-4*(r_coll^2)*(rI(8)^2))^0.5))
-%G3_whole = 0.5*(pi^2)*((r_coll^2+rI(1)^2+(l_coll)^2)-((r_coll^2+rI(1)^2+(l_coll)^2)^2-4*(r_coll^2)*(rI(1)^2))^0.5);
-%
-%
-% G3_test = 0.5*(pi^2)*((r_coll^2+r_coll^2+(l_coll)^2)-((r_coll^2+r_coll^2+(l_coll)^2)^2-4*(r_coll^2)*(r_coll^2))^0.5);
-% G3_whole = G3_test;
-% %fprintf('Geometric_Factor (Front Coll. to Detector 1) = %7.5f  cm^2 sr\n \n',G1_inner)
-% %fprintf('Geometric_Factor_Inner (Front Coll. to Detector 15)= %7.5f  cm^2 sr\n \n',G2_inner)
-% fprintf('Geometric_Factor_Whole (Front Coll. to First Detector)= %7.5f  cm^2 sr\n \n',G3_whole)
-%
-% fprintf('Geometric_Factor_Whole Test = %7.5f  cm^2 sr\n \n',G3_test)
-%
-
+G3_whole_max = findG3whole(L_12,L_23,L_13,r1,r2,r3)
 
 %% Calculate GEANT4 Results
 %read files from ./Result folder stores into 1*C array
@@ -555,7 +397,7 @@ while choice ~= 1
                 
                 hold on
                 % Plot Theory Bands
-                plot([x(1),x(end)],[G3_whole,G3_whole],'--g','LineWidth',line_width)
+                plot([x(1),x(end)],[G3_whole_min,G3_whole_min],'--g','LineWidth',line_width)
                 plot([x(1),x(end)],[G3_whole_max,G3_whole_max],'--b','LineWidth',line_width)
                 %plot(x(:,1),G_inner_plot,'--r','LineWidth',line_width)
                 %errorbar(x(:,1),geo_EL,omega_G_whole,'b','LineWidth',line_width)
