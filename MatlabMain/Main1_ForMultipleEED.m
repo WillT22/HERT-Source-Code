@@ -67,28 +67,22 @@ addin = inputfolder;
 %Menu to select spherical cap or full spherical
 simtype_choice = menu('Simulation Type','Spherical Cap (15 deg)','Full Sphere');
 switch simtype_choice
-    
     case 1
         sim_type = 0;
         fprintf('Sim Type: Spherical Cap (15 deg) \n')
-        addin = append(addin,' SC ');
-        
+        addin = append(addin,' SC ');   
     case 2
         sim_type = 1;
         fprintf('Sim Type: Full Sphere \n')
-        addin = append(addin,' FS ');
-        
+        addin = append(addin,' FS ');     
 end
 
 %Creates search string for result .txt files
 inputfiles = append(inputfolder,'/*.txt');
-
 %lists all .txt files in the Result folder
 list = dir(inputfiles);
-
 %Grabs all the names of the files in vector (nx1 matrix)
 list_fileNames = {list.name};
-
 %Gets number of rows and columns in file names. Columns will indicate
 %number of files that can be loaded
 [R,C] = size(list_fileNames);
@@ -96,22 +90,17 @@ list_fileNames = {list.name};
 % Display a menu and get a choice
 choice = menu('Choose an option', 'Exit Program', 'Load one file','Load all files');
 %Exit Program =1 Load one file = 2 Load all files =3 Start Run=4
-
-% Choice 1 is to exit the program
-while choice ~= 1
+while choice ~= 1 % Choice 1 is to exit the program
     switch choice
         case 0
             disp('Error - please choose one of the options.')
-            
-            %Load One File
-        case 2
+        case 2 %Load One File
             %Displays all the files that can be loaded
             txt_file_choice = menu('Choose a file',list_fileNames{:});
-            
             %If menu button is closed, it will recycle to inital menu
             if txt_file_choice == 0
                 disp('Please select a file')
-                %If user selects a file, it will change filename to reference that one file.
+            %If user selects a file, it will change filename to reference that one file.
             elseif txt_file_choice > 0
                 for i = 1:C
                     switch txt_file_choice
@@ -119,67 +108,55 @@ while choice ~= 1
                             filename = list_fileNames{i};
                     end
                 end
-                %Shows the file that was loaded
-                disp(filename);
+                disp(filename); %Shows the file that was loaded
             end
-            
-            %Load all files
-        case 3
+        case 3 %Load all files
             txt_files_All= menu('Choose all files','All .txt files');
             switch txt_files_All
                 case 1
                     %Loads all .txt files in Result folder
                     filename = list_fileNames';
-                    fprintf('Number of files loaded: %.0f',length(list_fileNames))
-                    
+                    fprintf('Number of files loaded: %.0f\n',length(list_fileNames))       
             end
-            
-        % Start Run
-        case 4
+        case 4 % Start Run
             %Menu to determine runtype
-            runtype_choice = menu('Outer Ring and Back Detector Limit','0 MeV','.1 MeV limit','0.01 MeV limit');
+            runtype_choice = menu('Set Back Detector Limit','0 MeV','0.01 MeV limit','0.1 MeV limit');
             switch runtype_choice
                 %Includes Outer Ring Hits
                 case 1
-                    outer_limit = 0;
-                    addin = append(' 0 MeV OTR ',addin);
-                    %Excludes Outer Ring Hits
-                case 2
-                    outer_limit = 0.1;
-                    addin = append(' 0.1 MeV OTR ',addin);
-                    %Sets 0.1 MeV Threshhold for Outer Ring
-                case 3
-                    outer_limit = 0.01;
-                    addin = append(' 0.01 MeV OTR ',addin);
+                    back_limit = 0;
+                    addin = append(' 0 MeV ',addin);
+                case 2 %Sets 0.01 MeV Threshhold for detectors
+                    back_limit = 0.01;
+                    addin = append(' 0.01 MeV ',addin);
+                case 3 %Sets 0.1 MeV Threshhold for Outer Ring
+                    back_limit = 0.1;
+                    addin = append(' 0.1 MeV ',addin);        
             end
             %Prints Outer_limit
-            fprintf('Outer_limit:%.2i\n',outer_limit)
+            fprintf('Back Detector Limit: %.2i\n',back_limit)
             
             %Menu to determine detector threshold
             detector_choice = menu('Detector Threshold','0 MeV','0.1 MeV');
             switch detector_choice
-                
                 case 1
                     detector_threshold = 0;
                     addin = append(addin,' 0 MeV DT ');
-                    
                 case 2
                     detector_threshold = 0.1; %MeV
                     addin = append(addin,' 0.1 MeV DT ');
             end
             %Prints Outer_limit
-            fprintf('Detector Threshold:%.2i MeV\n',detector_threshold)
+            fprintf('Detector Threshold: %.2i MeV\n',detector_threshold)
             
             %Menu to determine energy channels
-            %Finds all .txt files in Results directory. These txt files
-            %contain the energy channels
+            %Finds all .txt files in Results directory. These txt files contain the energy channels
             channels = dir('*.txt');
             
             %Produces menu for user to select while energy channels
             energy_channel_choice = menu('Choose Energy Channels',channels.name);
             
-            %Reads in selected energy channel file and prepares addin for result
-            %plots
+            %Reads in selected energy channel file and prepares addin for result plots
             energy_channels = readmatrix(channels(energy_channel_choice).name);
             Selected_Channel_name = channels(energy_channel_choice).name;
             size_EC = size(energy_channels);
@@ -188,7 +165,6 @@ while choice ~= 1
             
             %Preallocates EngLegend variable
             EngLegend = strings([1,length(energy_channels)]);
-            
             %Creates Str Array for Plot legend
             for i = 1:size_EC(1)
                 EngLegend(i) = append(num2str(round(energy_channels(i,1),2)),'-',num2str(round(energy_channels(i,2),2)),' MeV');
@@ -203,7 +179,7 @@ while choice ~= 1
                 disp('Start the oneEnergyEffDist.m');  
                 %Runs oneEnergyEffDistWhole for the one .txt file
                 [output_Mult,output_energy,output_number,hits_log,count_back_whole,detector_energy_whole,hits_detectors_whole]...
-                    = oneEnergyEffDistWhole(filename,energy_channels,outer_limit,inputfolder,detector_threshold);
+                    = oneEnergyEffDistWhole(filename,energy_channels,back_limit,inputfolder,detector_threshold);
                     
                 hits_whole = sum(output0.*hits_whole);
                 
@@ -239,7 +215,7 @@ while choice ~= 1
                     %oneEnergyEffDist and add the results to finalMatrix
                     %and finalMatrix2
                     [output_Mult,output_energy,output_number,hits_log,count_back_whole,detector_energy_whole,hits_detectors_whole]...
-                        = oneEnergyEffDistWhole(filename{i},energy_channels,outer_limit,inputfolder,detector_threshold);
+                        = oneEnergyEffDistWhole(filename{i},energy_channels,back_limit,inputfolder,detector_threshold);
                         
                     % This will be Y in our plot
                     final_Matrix2(:,i)= output_Mult;

@@ -6,22 +6,20 @@ Limits(1) = 0.5;
 MedLimits(1) = 1.0;
 High_Limits(1) = 2.5;
 
+% Excluded energy channels (below threshold)
 ExLownum = 2;
 x = 1:(ExLownum+1);
 
-DE = (log10(Limits(1))-log10(ExLimits(1)))/ExLownum;
-
+DE = (log10(Limits(1))-log10(ExLimits(1)))/ExLownum; %energy resolution
 
 for i = 1:(length(x)-1)
     ExLimits(i+1) = 10^(DE+log10(ExLimits(i)));
     
     ExLowChannels(i,1) = ExLimits(i);
     ExLowChannels(i,2) = ExLimits(i+1);
-    
-    
-    
 end
 
+% Low energy channels
 Lownum = 12;
 x = 1:(Lownum+1);
 
@@ -33,27 +31,22 @@ for i = 1:(length(x)-1)
     
     LowChannels(i,1) = Limits(i);
     LowChannels(i,2) = Limits(i+1);
-    
-    
-    
 end
 
+% Mid-range energy channels
 Mednum = 16;
 x_med = 1:(Mednum+1);
 
 DE_med = (log10(High_Limits(1))-log10(MedLimits(1)))/Mednum;
-
 
 for i = 1:(length(x_med)-1)
     MedLimits(i+1) = 10^(DE_med+log10(MedLimits(i)));
     
     MedChannels(i,1) = MedLimits(i);
     MedChannels(i,2) = MedLimits(i+1);
-    
-    
-    
 end
 
+% High energy channels
 Highnum = 10;
 x_high = 1:(Highnum+1);
 
@@ -65,23 +58,17 @@ for i = 1:(length(x_high)-1)
     
     HighChannels(i,1) = High_Limits(i);
     HighChannels(i,2) = High_Limits(i+1);
-    
-    
 end
 
-
-
+% Combining energy channels into one variable
 Channels = [ExLowChannels;LowChannels;MedChannels;HighChannels]
 NumChannels = length(Channels)
 
+% Combining enery resolution of each channel
 for i = 1:length(Channels)
-    
    Resolution(i,1) = 100*(-Channels(i,1)+Channels(i,2))/((Channels(i,1)+Channels(i,2))/2);
-    
 end
-
 Resolution
-
 
 %% Write to Text File
 
