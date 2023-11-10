@@ -87,6 +87,8 @@ list_fileNames = {list.name};
 %number of files that can be loaded
 file_number = size(list_fileNames,2);
 
+numDetect = 9;
+
 % Display a menu and get a choice
 choice = menu('Choose an option', 'Exit Program', 'Load one file','Load all files');
 %Exit Program =1 Load one file = 2 Load all files =3 Start Run=4
@@ -115,7 +117,7 @@ while choice ~= 1 % Choice 1 is to exit the program
             switch txt_files_All
                 case 1
                     %Loads all .txt files in Result folder
-                    filename = list_fileNames';
+                    filename = list_fileNames;
                     fprintf('Number of files loaded: %.0f\n',length(list_fileNames))       
             end
         case 4 % Start Run
@@ -175,7 +177,7 @@ while choice ~= 1 % Choice 1 is to exit the program
 
 %%THIS SECTION DOES NOT WORK, WHAT IS OUTPUT0           
             %One file selected
-            if size(filename,1)==1
+            if size(filename,2)==1
                 disp('Start the oneEnergyEffDist.m');  
                 %Runs oneEnergyEffDistWhole for the one .txt file
                 [output_Mult,output_energy,output_number,hits_log,count_back_whole,detector_energy_whole,hits_detectors_whole]...
@@ -191,14 +193,14 @@ while choice ~= 1 % Choice 1 is to exit the program
 
 %%THIS SECTION STARTS WORKING AGAIN                
             % More than one file selected
-            elseif size(filename,1) > 1
+            elseif size(filename,2) > 1
                 disp('Start to loop oneEnergyEffDist.m');
                 disp(addin);
                 
                 %Creates matrix to store data
-                M_output_energy = zeros(file_number,1);
+                M_output_energy = zeros(1,file_number);
                 M_output_Mult = zeros(length(energy_channels),file_number);
-                M_output_number = zeros(length(energy_channels),file_number);
+                M_output_number = zeros(1,file_number);
                 M_count_back_whole = zeros(1,file_number);
                 M_detector_energy_whole = zeros(9,file_number);
                 M_hits_detector_whole = zeros(9,file_number);
@@ -218,7 +220,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                     %Energy Channel x number of different energy levels tested
                     % This will be X in our plot
                     M_output_energy(i) = output_energy;
-                    M_output_number(:,i) = output_number;
+                    M_output_number(i) = output_number;
                     M_count_back_whole(i) = count_back_whole;
                     M_detector_energy_whole(:,i) = detector_energy_whole;
                     M_hits_detector_whole(:,i) = hits_detectors_whole;
@@ -252,15 +254,15 @@ while choice ~= 1 % Choice 1 is to exit the program
                 
                 if sim_type ==0
                     %Scales up simulated particles to total number of particles
-                    part_tot_EC = 2.*M_output_number'/(1-cosd(15));
-                    part_tot_EL = 2.*M_output_number(1,:)'/(1-cosd(15));
-                    part_tot = sum(sum(2.*M_output_number'/(1-cosd(15))));
+                    part_tot_EC = 2.*M_output_number/(1-cosd(15));
+                    part_tot_EL = 2.*M_output_number/(1-cosd(15));
+                    part_tot = sum(2.*M_output_number/(1-cosd(15))).*size(energy_channels,1);
                       
                 elseif sim_type ==1
                     %Full Spherical
-                    part_tot_EC = M_output_number';
-                    part_tot_EL = M_output_number(1,:)';
-                    part_tot = sum(sum(M_output_number,2));
+                    part_tot_EC = M_output_number;
+                    part_tot_EL = M_output_number;
+                    part_tot = sum(M_output_number).*size(energy_channels,1);
                     
                 else
                     error('Error on Sim Type')
@@ -272,26 +274,17 @@ while choice ~= 1 % Choice 1 is to exit the program
                 %geometric factor of each energy channel versus incident
                 %energy
                 geo = (hits_tot_whole/part_tot) *(4*(pi^2)*(r_source^2));
-                geo_EC = (hits_whole./part_tot_EC)*(4*(pi^2)*(r_source^2));
+                geo_EC = (hits_whole./(part_tot_EC'.*ones(size(hits_whole))))*(4*(pi^2)*(r_source^2));
                 geo_EL = sum(geo_EC,2);
                 
                 % Calculate Standard deviation and Error
                 omega_n_whole = (part_tot_EL.*(hits_EL_whole./part_tot_EL).*(1-(hits_EL_whole./part_tot_EL))).^0.5;
                 omega_G_whole = (4*(pi^2)*(8.2^2)).*(1-(hits_EL_whole./part_tot_EL)).*((hits_EL_whole./(part_tot_EL.^2))).^0.5;
                 
-                % MeV/s Conversion Term for each detector as a function of incident energy        
-                part_tot_EL_detect_whole = part_tot_EL.*ones(length(part_tot_EL),9);
-                
+                % MeV/s Conversion Term for each detector as a function of incident energy (UNUSED)        
+                part_tot_EL_detect_whole = part_tot_EL'.*ones(length(part_tot_EL),9);
                 whole_detector_energy = M_detector_energy_whole'./part_tot_EL_detect_whole;
-                
                 whole_detector_GEnergy = whole_detector_energy*(4*(pi^2)*(r_source^2)); 
-                
-                % MeV/s for each detector as a function of incident energy
-                part_tot_EL_detect_whole = part_tot_EL.*ones(length(part_tot_EL),9);
-                
-                whole_detector_AllCounts = M_hits_detector_whole'./part_tot_EL_detect_whole;
-                
-                whole_detector_GAllCounts = whole_detector_AllCounts*(4*(pi^2)*(r_source^2));
                 
                 % Saves variables for later graph making
                 Var_String = append('OutputVariables',addin,'.mat');
@@ -352,8 +345,8 @@ while choice ~= 1 % Choice 1 is to exit the program
                 plot(M_output_energy,100*Back_Hits_Whole./output_number,'DisplayName','Whole-Back Hits Removed','LineWidth',line_width)
                 legend
                 grid on
-                ylim([0 100])
-                yticks((0:5:100))
+                %ylim([0 100])
+                %yticks((0:5:100))
                 titlestr = append(sprintf('Hits %.2f MeV - %.2f MeV ',min(M_output_energy),max(M_output_energy)),addin);
                 title(titlestr)
                 ylabel('Percent of Hits')
@@ -429,10 +422,10 @@ while choice ~= 1 % Choice 1 is to exit the program
                 f7 = figure;
                 f7.Position = [0 0 2000 840];
                 hold on
-                hits_whole = hits_whole./(M_output_number');
+                hits_rate = hits_whole./(M_output_number');
                 %Plots each energy channel with a different color
                 for i = 1:size(energy_channels,1)
-                    plot(M_output_energy,hits_whole(:,i),'Color',Effplotcolor(i,:),'LineWidth',line_width)
+                    plot(M_output_energy,hits_rate(:,i),'Color',Effplotcolor(i,:),'LineWidth',line_width)
                 end
                 hold off
                 %Adds a legend to distingish each channel
