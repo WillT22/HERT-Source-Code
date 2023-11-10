@@ -85,7 +85,7 @@ list = dir(inputfiles);
 list_fileNames = {list.name};
 %Gets number of rows and columns in file names. Columns will indicate
 %number of files that can be loaded
-[R,C] = size(list_fileNames);
+file_number = size(list_fileNames,2);
 
 % Display a menu and get a choice
 choice = menu('Choose an option', 'Exit Program', 'Load one file','Load all files');
@@ -102,7 +102,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                 disp('Please select a file')
             %If user selects a file, it will change filename to reference that one file.
             elseif txt_file_choice > 0
-                for i = 1:C
+                for i = 1:file_number
                     switch txt_file_choice
                         case i
                             filename = list_fileNames{i};
@@ -196,20 +196,15 @@ while choice ~= 1 % Choice 1 is to exit the program
                 disp(addin);
                 
                 %Creates matrix to store data
-                M_output_energy = zeros(length(energy_channels),C);
-                M_output_Mult = zeros(length(energy_channels),C);
-                M_output_number = zeros(length(energy_channels),C);
-                final_Matrix4 = zeros(length(energy_channels),C);
-                final_Matrix5 = zeros(1,C);
-                M_count_back_whole = zeros(1,C);
-                final_Matrix7 = zeros(1,C);
-                M_detector_energy_whole = zeros(9,C);
-                final_Matrix9 = zeros(17,C);
-                M_hits_detector_whole = zeros(9,C);
-                final_Matrix11 = zeros(17,C);
+                M_output_energy = zeros(file_number,1);
+                M_output_Mult = zeros(length(energy_channels),file_number);
+                M_output_number = zeros(length(energy_channels),file_number);
+                M_count_back_whole = zeros(1,file_number);
+                M_detector_energy_whole = zeros(9,file_number);
+                M_hits_detector_whole = zeros(9,file_number);
                 
                 %Nested For loops to create final matrix 1 and 2
-                for i = 1: C
+                for i = 1: file_number
                     %For every .txt file in Results, it will run
                     %oneEnergyEffDist and add the results to finalMatrix
                     %and finalMatrix2
@@ -222,7 +217,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                     %final_matrix is a matrix with
                     %Energy Channel x number of different energy levels tested
                     % This will be X in our plot
-                    M_output_energy(:,i) = output_energy;
+                    M_output_energy(i) = output_energy;
                     M_output_number(:,i) = output_number;
                     M_count_back_whole(i) = count_back_whole;
                     M_detector_energy_whole(:,i) = detector_energy_whole;
@@ -242,27 +237,13 @@ while choice ~= 1 % Choice 1 is to exit the program
                 
                 %% Obtain Data for Plotting
                 r_source = 8.5; %8.5 cm for HERT-CAD
-                
-                % To  Set up  Plot data, we are combining the final+matrix
-                %and sorting the rows
-                % This is to sort the rows for plotting
-                graph_data = [M_output_energy',M_output_Mult',M_output_number'];
-                graph_data = sortrows(graph_data);
-                
-                graph_data2 = [M_output_energy(1,:)',M_count_back_whole'];
-                graph_data2 = sortrows(graph_data2);
-                %After sorting, we split the matrix back to make our X and Y for plotting
-                %X has a column for every energy channel and rows up to the
-                %number of .txt files
-                x = graph_data(:,1:size(M_output_energy,1));
-                
+
                 %Y has a column for every energy channel and rows up to
                 %the number of .txt. files
-                hits_whole = graph_data(:,size(M_output_energy,1)+1:size(M_output_energy,1)*2);
-                z = graph_data(:,size(M_output_energy,1)*2+1:size(M_output_energy,1)*3);
+                hits_whole = M_output_Mult';
                
                 % Sorts Out Outer Ring and Back Detector Hits
-                Back_Hits_Whole = graph_data2(:,2);
+                Back_Hits_Whole = M_count_back_whole';
                 
                 % Calculates total number of hits across energy level and
                 % energy channel for whole config.
@@ -271,16 +252,15 @@ while choice ~= 1 % Choice 1 is to exit the program
                 
                 if sim_type ==0
                     %Scales up simulated particles to total number of particles
-                    part_tot_EC = 2.*z(:,:)/(1-cosd(15));
-                    part_tot_EL = 2.*z(:,1)/(1-cosd(15));
-                    part_tot = sum(sum(2.*z(:,:)/(1-cosd(15))));
-                    
-                    
+                    part_tot_EC = 2.*M_output_number'/(1-cosd(15));
+                    part_tot_EL = 2.*M_output_number(1,:)'/(1-cosd(15));
+                    part_tot = sum(sum(2.*M_output_number'/(1-cosd(15))));
+                      
                 elseif sim_type ==1
                     %Full Spherical
-                    part_tot_EC = z(:,:);
-                    part_tot_EL = z(:,1);
-                    part_tot = sum(sum(z(:,:)));
+                    part_tot_EC = M_output_number';
+                    part_tot_EL = M_output_number(1,:)';
+                    part_tot = sum(sum(M_output_number,2));
                     
                 else
                     error('Error on Sim Type')
@@ -296,26 +276,20 @@ while choice ~= 1 % Choice 1 is to exit the program
                 geo_EL = sum(geo_EC,2);
                 
                 % Calculate Standard deviation and Error
-                omega_n_whole = (part_tot_EL(:,1).*(hits_EL_whole./part_tot_EL(:,1)).*(1-(hits_EL_whole./part_tot_EL(:,1)))).^0.5;
-                omega_G_whole = (4*(pi^2)*(8.2^2)).*(1-(hits_EL_whole./part_tot_EL(:,1))).*((hits_EL_whole./(part_tot_EL(:,1).^2))).^0.5;
+                omega_n_whole = (part_tot_EL.*(hits_EL_whole./part_tot_EL).*(1-(hits_EL_whole./part_tot_EL))).^0.5;
+                omega_G_whole = (4*(pi^2)*(8.2^2)).*(1-(hits_EL_whole./part_tot_EL)).*((hits_EL_whole./(part_tot_EL.^2))).^0.5;
                 
-                % MeV/s Conversion Term for each detector as a function of incident energy
-                graph_data3 = [M_output_energy(1,:)',M_detector_energy_whole',final_Matrix9'];
-                graph_data3 = sortrows(graph_data3);
-                
+                % MeV/s Conversion Term for each detector as a function of incident energy        
                 part_tot_EL_detect_whole = part_tot_EL.*ones(length(part_tot_EL),9);
                 
-                whole_detector_energy = graph_data3(:,2:10)./part_tot_EL_detect_whole;
+                whole_detector_energy = M_detector_energy_whole'./part_tot_EL_detect_whole;
                 
                 whole_detector_GEnergy = whole_detector_energy*(4*(pi^2)*(r_source^2)); 
                 
                 % MeV/s for each detector as a function of incident energy
-                graph_data4 = [M_output_energy(1,:)',M_hits_detector_whole',final_Matrix11'];
-                graph_data4 = sortrows(graph_data4);
-                
                 part_tot_EL_detect_whole = part_tot_EL.*ones(length(part_tot_EL),9);
                 
-                whole_detector_AllCounts = graph_data4(:,2:10)./part_tot_EL_detect_whole;
+                whole_detector_AllCounts = M_hits_detector_whole'./part_tot_EL_detect_whole;
                 
                 whole_detector_GAllCounts = whole_detector_AllCounts*(4*(pi^2)*(r_source^2));
                 
@@ -333,15 +307,11 @@ while choice ~= 1 % Choice 1 is to exit the program
                 
                 hold on
                 % Plot Theory Bands
-                plot([x(1),x(end)],[G3_whole_min,G3_whole_min],'--g','LineWidth',line_width)
-                plot([x(1),x(end)],[G3_whole_max,G3_whole_max],'--b','LineWidth',line_width)
-                %errorbar(x(:,1),geo_EL,omega_G_whole,'b','LineWidth',line_width)
-                
+                plot(M_output_energy,G3_whole_min*ones(length(M_output_energy)),'--g','LineWidth',line_width)
+                plot(M_output_energy,G3_whole_max*ones(length(M_output_energy)),'--b','LineWidth',line_width)
+
                 %Plot Simulation Value
-                plot(x(:,1),geo_EL,'-k','LineWidth',line_width)
-                
-                %plot(x(:,1),geo_EL,'ok','LineWidth',line_width,'MarkerFaceColor','k')
-                %plot(x_FS,geo_EL_FS,'om','LineWidth',line_width,'MarkerFaceColor','m')
+                plot(M_output_energy,geo_EL,'-k','LineWidth',line_width)
                  
                 %Sets yaxis to log scale. Comment out to keep plot linear
                 set(gca, 'YScale', 'log')
@@ -350,7 +320,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                 %ylim([0 1])
                 
                 
-                titlestr = append(sprintf('Total GF: %.2f MeV - %.2f MeV ',min(M_output_energy(1,:)),max(M_output_energy(1,:))),addin);
+                titlestr = append(sprintf('Total GF: %.2f MeV - %.2f MeV ',min(M_output_energy),max(M_output_energy)),addin);
                 title(titlestr,'FontSize',20)
                 ylabel('Geometric Factor (cm^2 sr)','FontSize',textsize)
                 xlabel('Incident Energy (MeV)','FontSize',textsize)
@@ -379,13 +349,12 @@ while choice ~= 1 % Choice 1 is to exit the program
                 f2.Position = [0 0 2000 840];
                 
                 hold on
-                %plot(x(:,1),hits_EL_whole,'DisplayName','Whole-Simulated','LineWidth',line_width)
-                plot(x(:,1),100*Back_Hits_Whole./output_number,'DisplayName','Whole-Back Hits Removed','LineWidth',line_width)
+                plot(M_output_energy,100*Back_Hits_Whole./output_number,'DisplayName','Whole-Back Hits Removed','LineWidth',line_width)
                 legend
                 grid on
                 ylim([0 100])
                 yticks((0:5:100))
-                titlestr = append(sprintf('Hits %.2f MeV - %.2f MeV ',min(M_output_energy(1,:)),max(M_output_energy(1,:))),addin);
+                titlestr = append(sprintf('Hits %.2f MeV - %.2f MeV ',min(M_output_energy),max(M_output_energy)),addin);
                 title(titlestr)
                 ylabel('Percent of Hits')
                 xlabel('Energy (MeV)')
@@ -421,37 +390,21 @@ while choice ~= 1 % Choice 1 is to exit the program
                 EC_plot_color = plasma(length(channel_select));
                 
                 hold on
-                for i = 1:width(x)
+                for i = 1:size(energy_channels,1)
                     if max(i == channel_select)
-                        plot(x(:,i),geo_EC(:,i),'Color',EC_plot_color(color_iter,:),'LineWidth',line_width);
+                        plot(M_output_energy,geo_EC(:,i),'Color',EC_plot_color(color_iter,:),'LineWidth',line_width);
                         EngLegend_EC(i) = append(sprintf('Channel #%.0f: ',i),EngLegend(i));
                         EngLegend_EC(i) = EngLegend(i);
                         color_iter = color_iter+1;
                     else
-                        plot(x(:,i),geo_EC(:,i),'Color',[0.75, 0.75, 0.75],'LineWidth',line_width);
+                        plot(M_output_energy(i)*ones(1,file_number),geo_EC(:,i),'Color',[0.75, 0.75, 0.75],'LineWidth',line_width);
                     end
                 end
-                %                 for i = 1:width(x)
-                %                     if max(i == channel_select)
-                %
-                %                         plot(x(:,i),geo_EC(:,i),'Color',[0,0,0],'LineWidth',line_width);
-                %                         %For plotting FWHM on EC plot, must calculate FWHM
-                %                         %values prior to running this line
-                %                         %plot([xl(i),xr(i)],[max(geo_EC(:,i))/2,max(geo_EC(:,i))/2],'-xb','LineWidth',line_width);
-                %                         EngLegend_EC(i) = append(sprintf('Channel #%.0f: ',i),EngLegend(i));
-                %                         EngLegend_EC(i) = EngLegend(i);
-                %                         color_iter = color_iter+1;
-                %                     else
-                %                         plot(x(:,i),geo_EC(:,i),'Color',[0.75, 0.75, 0.75],'LineWidth',line_width);
-                %                     end
-                
-                %end
                 hold off
                 
                 set(gca,'FontSize',textsize)
-                % plot([0,x(end)],[0.1,0.1],'--k','LineWidth',line_width)
                 hold off
-                titlestr_whole = append(sprintf('Geometric Factor by EC %.2f MeV - %.2f MeV ',min(M_output_energy(1,:)),max(M_output_energy(1,:))),addin);
+                titlestr_whole = append(sprintf('Geometric Factor by EC %.2f MeV - %.2f MeV ',min(M_output_energy),max(M_output_energy)),addin);
                 title(titlestr_whole,'FontSize',15)
                 %title('Geometric Response Functions per Energy Channel','FontSize',15)
                 ylabel('Geometric Factor (cm^2 sr)','FontSize',textsize)
@@ -476,17 +429,17 @@ while choice ~= 1 % Choice 1 is to exit the program
                 f7 = figure;
                 f7.Position = [0 0 2000 840];
                 hold on
-                hits_whole = hits_whole./z;
+                hits_whole = hits_whole./(M_output_number');
                 %Plots each energy channel with a different color
-                for i = 1:width(x)
-                    plot(x(:,i),hits_whole(:,i),'Color',Effplotcolor(i,:),'LineWidth',line_width)
+                for i = 1:size(energy_channels,1)
+                    plot(M_output_energy,hits_whole(:,i),'Color',Effplotcolor(i,:),'LineWidth',line_width)
                 end
                 hold off
                 %Adds a legend to distingish each channel
                 legend(EngLegend,'Location', 'southoutside','NumColumns',8)
                 
                 %Adding Titles and Axis Labels
-                titlestr = append(sprintf('%.2f MeV - %.2f MeV ',min(M_output_energy(1,:)),max(M_output_energy(1,:))),addin);
+                titlestr = append(sprintf('%.2f MeV - %.2f MeV ',min(M_output_energy),max(M_output_energy)),addin);
                 title(titlestr)
                 ylabel('Efficiency')
                 xlabel('Energy (MeV)')
@@ -505,8 +458,8 @@ while choice ~= 1 % Choice 1 is to exit the program
                     sidepenFig = figure;
                     sidepenFig.Position = [0 0 1600 800];
                     hold on
-                    plot(x(:,1),100*hits_EL_whole./output_number,'Color',[0 0.4470 0.7410],'LineWidth',2)
-                    plot(x(:,1),100*hits_EL_whole_1st./output_number,'Color',[0.5 0 0.7410],'LineWidth',2)
+                    plot(M_output_energy,100*hits_EL_whole./output_number,'Color',[0 0.4470 0.7410],'LineWidth',2)
+                    plot(M_output_energy,100*hits_EL_whole_1st./output_number,'Color',[0.5 0 0.7410],'LineWidth',2)
                     titlestr = addin;
                     %title(titlestr,'FontSize',10)
                     ylabel('Percentage of Hits (%)','FontSize',textsize)
@@ -532,11 +485,11 @@ while choice ~= 1 % Choice 1 is to exit the program
                 %Begins calculating FWHM values
                 
                 fprintf('\nWhole Configuration: Full Width at Half Max Values:\n')
-                fwhm_whole = zeros(1,width(x));
-                for u = 1:width(x)
+                fwhm_whole = zeros(size(energy_channels));
+                for u = 1:size(energy_channels,1)
                     %Using X and Y from above, calculates FWHM value for
                     %each energy channel
-                    [fwhm_whole(u),xr(u),xl(u)] = findFWHM(x(:,u),geo_EC(:,u));
+                    [fwhm_whole(u),xr(u),xl(u)] = findFWHM(M_output_energy,geo_EC(:,u));
                     % Print full width half max values into command window
                     fprintf('%.2f - %.2f MeV: %.4f\n',energy_channels(u,1),energy_channels(u,2),fwhm_whole(u))
                 end

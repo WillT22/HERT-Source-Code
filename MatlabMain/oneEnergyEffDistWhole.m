@@ -1,4 +1,4 @@
-function [singleMatrix_whole,energy_beam,beam_number,hits_log,count_back_whole,detector_energy_whole,hits_detectors_whole] = oneEnergyEffDistWhole(file_name,energy_channels,outer_limit,inputfolder,detector_threshold)
+function [singleMatrix_whole,energy_beam,beam_number,hits_log,count_back_whole,detector_energy_whole,hits_detectors_whole] = oneEnergyEffDistWhole(file_name,energy_channels,back_limit,inputfolder,detector_threshold)
 %Author:Yinbo Chen
 %Date: 6/15/2021
 %Modified by: Skyler Krantz
@@ -51,7 +51,6 @@ end
 
 
 %% Resets Counter
-count_outer_combined = 0;
 count_back_whole = 0;
 
 percentage = 0;
@@ -88,7 +87,7 @@ for i = 1:NumEnergyDeposit
     %Checks if the back detector has energy greater than threshold.
     %If so, it skips to next simulation
     %Changed to 100 for side pen tests
-    if Detector_Energy(numDetect) > outer_limit
+    if Detector_Energy(numDetect) > back_limit
         count_back_whole = count_back_whole +1;
     end
     
@@ -130,8 +129,7 @@ end
 %Prints the current energy level and how many particles hit the back wall
 %or detector
 fprintf('\n Energy Level:%.2i\n',energy_beam)
-fprintf('Whole Configuration: The number of beams hit the outer_ring=%i\nThe numbers of beams hit the back=%i\nThe numbers of beams hit =%i\n',count_outer_combined,count_back_whole,sum(singleMatrix_whole));
-% fprintf('Inner Ring: The number of beams hit the outer_ring=%i\nThe numbers of beams hit the back=%i\nThe numbers of beams hit =%i\n',count_outer_inner,count_back_inner,sum(singleMatrix_inner));
+fprintf('Whole Configuration: The numbers of beams hit the back= %i\nThe numbers of beams hit = %i\n',count_back_whole,sum(singleMatrix_whole));
 
 cd ..
 
