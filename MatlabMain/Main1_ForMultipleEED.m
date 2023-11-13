@@ -175,25 +175,9 @@ while choice ~= 1 % Choice 1 is to exit the program
             %n = number of energy channels
             Effplotcolor = plasma(size(energy_channels,1)); %requires MatPlotLib Perceptually Uniform Colormaps
 
-%%THIS SECTION DOES NOT WORK, WHAT IS OUTPUT0           
-            %One file selected
-            if size(filename,2)==1
-                disp('Start the oneEnergyEffDist.m');  
-                %Runs oneEnergyEffDistWhole for the one .txt file
-                [output_Mult,output_energy,output_number,hits_log,count_back_whole,detector_energy_whole,hits_detectors_whole]...
-                    = oneEnergyEffDistWhole(filename,energy_channels,back_limit,inputfolder,detector_threshold);
-                    
-                hits_whole = sum(output0.*hits_whole);
-                save('output_singleParticleArray.mat','output0')
-                disp('output_singleParticleArray.mat');
-                x= linspace(1.0,7.0,length(energy_channels));
-                hits_whole = output0';
-                figure
-                plot(x,hits_whole(:,:))
-
 %%THIS SECTION STARTS WORKING AGAIN                
             % More than one file selected
-            elseif size(filename,2) > 1
+            if iscell(filename)
                 disp('Start to loop oneEnergyEffDist.m');
                 disp(addin);
                 
@@ -300,8 +284,8 @@ while choice ~= 1 % Choice 1 is to exit the program
                 
                 hold on
                 % Plot Theory Bands
-                plot(M_output_energy,G3_whole_min*ones(length(M_output_energy)),'--g','LineWidth',line_width)
-                plot(M_output_energy,G3_whole_max*ones(length(M_output_energy)),'--b','LineWidth',line_width)
+                plot([min(M_output_energy),max(M_output_energy)],G3_whole_min*ones(2),'--g','LineWidth',line_width)
+                plot([min(M_output_energy),max(M_output_energy)],G3_whole_max*ones(2),'--b','LineWidth',line_width)
 
                 %Plot Simulation Value
                 plot(M_output_energy,geo_EL,'-k','LineWidth',line_width)
@@ -519,6 +503,20 @@ while choice ~= 1 % Choice 1 is to exit the program
                 saveas(gcf,histsave)
                 cd ..
                 cd ..
+
+            %Diagnostics for one file selected
+            else
+                disp('Start the oneEnergyEffDist.m');  
+                %Runs oneEnergyEffDistWhole for the one .txt file
+                [output_Mult,output_energy,output_number,hits_log,count_back_whole,detector_energy_whole,hits_detectors_whole]...
+                    = oneEnergyEffDistWhole(filename,energy_channels,back_limit,inputfolder,detector_threshold);
+
+                hits_whole = sum(output_Mult);
+                save('output_singleParticleArray.mat','output_Mult')
+                disp('output_singleParticleArray.mat');
+                x= linspace(min(output_Mult),max(output_Mult),length(energy_channels));
+                figure
+                plot(x,hits_whole(:,:))
             end
     end
     choice = menu('Choose an option', 'Exit Program', 'Load one file','Load all files','Start Run');
