@@ -128,8 +128,8 @@ end
 
 %Prints the current energy level and how many particles hit the back wall
 %or detector
-fprintf('\n Energy Level:%.2i\n',energy_beam)
-fprintf('Whole Configuration: The numbers of beams hit the back= %i\nThe numbers of beams hit = %i\n',count_back_whole,sum(singleMatrix_whole));
+fprintf('\nEnergy Level:%.2i\n',energy_beam)
+fprintf('Whole Configuration: \nNumber of back hits= %i\nTotal number of hits = %i\n',count_back_whole,sum(singleMatrix_whole));
 
 cd ..
 

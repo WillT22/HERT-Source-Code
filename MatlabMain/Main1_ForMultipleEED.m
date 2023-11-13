@@ -12,6 +12,10 @@ close all;
 clc;
 addpath 'E:\HERT_Drive\MATLAB Main'
 
+%Initialization of different values (I didn't know where else to put them) 
+numDetect = 9;
+textsize = 28;
+
 %% Geometric Factor- Theory
 % This section solves for the theorectical geometric factor of the instrument
 % assuming the collimator teeth are perfect.
@@ -87,9 +91,7 @@ list_fileNames = {list.name};
 %number of files that can be loaded
 file_number = size(list_fileNames,2);
 
-numDetect = 9;
-
-% Display a menu and get a choice
+%Display a menu and get a choice
 choice = menu('Choose an option', 'Exit Program', 'Load one file','Load all files');
 %Exit Program =1 Load one file = 2 Load all files =3 Start Run=4
 while choice ~= 1 % Choice 1 is to exit the program
@@ -174,8 +176,7 @@ while choice ~= 1 % Choice 1 is to exit the program
             %Creates n x 3 matrix for plot colors. This will give each energy channel its own color on the plot.
             %n = number of energy channels
             Effplotcolor = plasma(size(energy_channels,1)); %requires MatPlotLib Perceptually Uniform Colormaps
-
-%%THIS SECTION STARTS WORKING AGAIN                
+               
             % More than one file selected
             if iscell(filename)
                 disp('Start to loop oneEnergyEffDist.m');
@@ -277,7 +278,6 @@ while choice ~= 1 % Choice 1 is to exit the program
                 addin = regexprep(addin,'_',' ');
                 %% Total Geometric Factor Comparision
                 line_width =2;
-                textsize = 28;
                 %figure
                 f1 = gcf;
                 f1.Position = [0 0 2000 840];
@@ -514,9 +514,11 @@ while choice ~= 1 % Choice 1 is to exit the program
                 hits_whole = sum(output_Mult);
                 save('output_singleParticleArray.mat','output_Mult')
                 disp('output_singleParticleArray.mat');
-                x= linspace(min(output_Mult),max(output_Mult),length(energy_channels));
+                x= linspace(0,7.5,length(energy_channels));
                 figure
-                plot(x,hits_whole(:,:))
+                plot(x,output_Mult)
+                ylabel('Beam Counts')
+                xlabel('Incident Energy (MeV)')
             end
     end
     choice = menu('Choose an option', 'Exit Program', 'Load one file','Load all files','Start Run');
