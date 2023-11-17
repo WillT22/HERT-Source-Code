@@ -270,11 +270,11 @@ while choice ~= 1 % Choice 1 is to exit the program
                 
                 hold on
                 % Plot Theory Bands
-                plot([min(M_output_energy), max(M_output_energy)], G3_whole_min * ones(2), '--g', 'LineWidth', line_width)
-                plot([min(M_output_energy), max(M_output_energy)], G3_whole_max * ones(2), '--b', 'LineWidth', line_width)
+                plot([min(M_output_energy), max(M_output_energy)], [G3_whole_min * ones(1,2)], '--g', 'LineWidth', line_width);
+                plot([min(M_output_energy), max(M_output_energy)], [G3_whole_max * ones(1,2)], '--b', 'LineWidth', line_width);
                 
                 % Plot Simulation Value
-                plot(M_output_energy, geo_EL, '-k', 'LineWidth', line_width)
+                plot(M_output_energy, geo_EL, '-k', 'LineWidth', line_width);
                  
                 % Sets y-axis to log scale. Comment out to keep plot linear
                 set(gca, 'YScale', 'log')
@@ -285,13 +285,15 @@ while choice ~= 1 % Choice 1 is to exit the program
                 title(titlestr, 'FontSize', 20)
                 ylabel('Geometric Factor (cm^2 sr)', 'FontSize', textsize)
                 xlabel('Incident Energy (MeV)', 'FontSize', textsize)
-                
+
                 % Changes legend depending on the Sim_Type
                 if sim_type == 0
-                    legend('Theoretical Min', 'Theoretical Max', 'GEANT4 Cap', 'FontSize', 20, 'Location', 'southeast' )
+                    legend_entries = {'Theoretical Min', 'Theoretical Max', 'GEANT4 Cap'};
                 elseif sim_type == 1
-                    legend('Theoretical Min', 'Theoretical Max', 'GEANT4 Sphere', 'FontSize', 20, 'Location', 'southeast' )
+                    legend_entries = {'Theoretical Min', 'Theoretical Max', 'GEANT4 Sphere'};
                 end
+                
+                legend(legend_entries, 'FontSize', 20, 'Location', 'southeast');
                 
                 hold off
                 
@@ -436,6 +438,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                     hold off
                 end
                 
+                %{
                 %% FWHM-Whole
                 % Calculate Full Width at Half Max (FWHM) values for each energy channel
                 fprintf('\nWhole Configuration: Full Width at Half Max Values:\n')
@@ -477,9 +480,10 @@ while choice ~= 1 % Choice 1 is to exit the program
                 saveas(gcf,histsave)
                 cd ..
                 cd ..
-                
-                %Diagnostics for one file selected
-                else
+                %} 
+
+            %Diagnostics for one file selected
+            else
                     disp('Start the oneEnergyEffDist.m');  
                     % Runs oneEnergyEffDistWhole for the one .txt file
                     [output_Mult,output_energy,output_number,hits_log,count_back_whole,detector_energy_whole,hits_detectors_whole]...
@@ -493,7 +497,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                     plot(x,output_Mult)
                     ylabel('Beam Counts')
                     xlabel('Incident Energy (MeV)')
-                end
+            end
     end
     choice = menu('Choose an option', 'Exit Program', 'Load one file','Load all files','Start Run');
     
