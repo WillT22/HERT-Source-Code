@@ -214,16 +214,19 @@ while choice ~= 1 % Choice 1 is to exit the program
                 %% Obtain Data for Plotting
                 r_source = 8.5; % 8.5 cm for HERT-CAD
 
+                % Find the indices that would sort M_output_energy
+                [sorted_M_output_energy, sort_indices] = sort(M_output_energy);
+
                 % Y has a column for every energy channel and rows up to
                 % the number of .txt. files
-                hits_whole = M_output_Mult';
+                hits_whole = M_output_Mult;
                
                 % Sorts Out Outer Ring and Back Detector Hits
                 Back_Hits_Whole = M_count_back_whole';
                 
                 % Calculates total number of hits across energy level and
                 % energy channel for the whole config.
-                hits_EL_whole = sum(hits_whole, 2);
+                hits_EL_whole = sum(hits_whole, 1);
                 hits_tot_whole = sum(hits_EL_whole);
                 
                 if sim_type == 0
@@ -245,12 +248,12 @@ while choice ~= 1 % Choice 1 is to exit the program
                 % Calculates total geometric factor per energy level and
                 % geometric factor of each energy channel versus incident energy
                 geo = (hits_tot_whole / part_tot) * (4 * (pi^2) * (r_source^2));
-                geo_EC = (hits_whole ./ (part_tot_EC' .* ones(size(hits_whole)))) * (4 * (pi^2) * (r_source^2));
-                geo_EL = sum(geo_EC, 2);
+                geo_EC = (hits_whole ./ (part_tot_EC .* ones(size(hits_whole)))) * (4 * (pi^2) * (r_source^2));
+                geo_EL = sum(geo_EC, 1);
                 
                 % Calculate Standard deviation and Error
                 omega_n_whole = (part_tot_EL .* (hits_EL_whole ./ part_tot_EL) .* (1 - (hits_EL_whole ./ part_tot_EL))).^0.5;
-                omega_G_whole = (4 * (pi^2) * (8.2^2)) * (1 - (hits_EL_whole ./ part_tot_EL)) * ((hits_EL_whole ./ (part_tot_EL.^2))).^0.5;
+                omega_G_whole = (4 * (pi^2) * (8.2^2)) * (1 - (hits_EL_whole ./ part_tot_EL)) .* ((hits_EL_whole ./ (part_tot_EL.^2))).^0.5;
                 
                 % MeV/s Conversion Term for each detector as a function of incident energy (UNUSED)        
                 part_tot_EL_detect_whole = part_tot_EL' .* ones(length(part_tot_EL), 9);
@@ -270,11 +273,11 @@ while choice ~= 1 % Choice 1 is to exit the program
                 
                 hold on
                 % Plot Theory Bands
-                plot([min(M_output_energy), max(M_output_energy)], [G3_whole_min * ones(1,2)], '--g', 'LineWidth', line_width);
-                plot([min(M_output_energy), max(M_output_energy)], [G3_whole_max * ones(1,2)], '--b', 'LineWidth', line_width);
+                plot([min(M_output_energy), max(M_output_energy)], G3_whole_min * ones(1,2), '--g', 'LineWidth', line_width);
+                plot([min(M_output_energy), max(M_output_energy)], G3_whole_max * ones(1,2), '--b', 'LineWidth', line_width);
                 
                 % Plot Simulation Value
-                plot(M_output_energy, geo_EL, '-k', 'LineWidth', line_width);
+                plot(sorted_M_output_energy, geo_EL(sort_indices), '-k', 'LineWidth', line_width);
                  
                 % Sets y-axis to log scale. Comment out to keep plot linear
                 set(gca, 'YScale', 'log')
@@ -307,7 +310,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                 f2.Position = [0 0 2000 840];
                 
                 hold on
-                plot(M_output_energy, 100 * Back_Hits_Whole ./ output_number, 'DisplayName', 'Whole-Back Hits Removed', 'LineWidth', line_width)
+                plot(sorted_M_output_energy, 100 * Back_Hits_Whole(sort_indices) ./ output_number, 'DisplayName', 'Whole-Back Hits Removed', 'LineWidth', line_width)
                 legend
                 grid on
                 % ylim([0 100])
@@ -350,7 +353,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                 hold on
                 for i = 1:size(energy_channels, 1)
                     if max(i == channel_select)
-                        plot(M_output_energy, geo_EC(:, i), 'Color', EC_plot_color(color_iter, :), 'LineWidth', line_width);
+                        plot(sorted_M_output_energy, geo_EC(i, sort_indices), 'Color', EC_plot_color(color_iter, :), 'LineWidth', line_width);
                         EngLegend_EC(i) = append(sprintf('Channel #%.0f: ', i), EngLegend(i));
                         EngLegend_EC(i) = EngLegend(i);
                         color_iter = color_iter + 1;
@@ -384,10 +387,10 @@ while choice ~= 1 % Choice 1 is to exit the program
                 f7 = figure;
                 f7.Position = [0 0 2000 840];
                 hold on
-                hits_rate = hits_whole ./ (M_output_number');
+                hits_rate = hits_whole ./ (M_output_number);
                 % Plots each energy channel with a different color
                 for i = 1:size(energy_channels, 1)
-                    plot(M_output_energy, hits_rate(:, i), 'Color', Effplotcolor(i, :), 'LineWidth', line_width)
+                    plot(sorted_M_output_energy, hits_rate(i, sort_indices), 'Color', Effplotcolor(i, :), 'LineWidth', line_width)
                 end
                 hold off
                 
