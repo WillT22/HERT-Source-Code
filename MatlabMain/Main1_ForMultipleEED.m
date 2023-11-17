@@ -220,9 +220,6 @@ while choice ~= 1 % Choice 1 is to exit the program
                 % Y has a column for every energy channel and rows up to
                 % the number of .txt. files
                 hits_whole = M_output_Mult;
-               
-                % Sorts Out Outer Ring and Back Detector Hits
-                Back_Hits_Whole = M_count_back_whole';
                 
                 % Calculates total number of hits across energy level and
                 % energy channel for the whole config.
@@ -310,7 +307,8 @@ while choice ~= 1 % Choice 1 is to exit the program
                 f2.Position = [0 0 2000 840];
                 
                 hold on
-                plot(sorted_M_output_energy, 100 * Back_Hits_Whole(sort_indices) ./ output_number, 'DisplayName', 'Whole-Back Hits Removed', 'LineWidth', line_width)
+                plot(sorted_M_output_energy, 100 * hits_EL_whole(sort_indices) ./ M_output_number, 'DisplayName', 'Total Hits', 'LineWidth', line_width)
+                plot(sorted_M_output_energy, 100 * M_count_back_whole(sort_indices) ./ M_output_number, 'DisplayName', 'Back Hits Removed', 'LineWidth', line_width)
                 legend
                 grid on
                 % ylim([0 100])
@@ -358,7 +356,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                         EngLegend_EC(i) = EngLegend(i);
                         color_iter = color_iter + 1;
                     else
-                        plot(M_output_energy(i) * ones(1, file_number), geo_EC(:, i), 'Color', [0.75, 0.75, 0.75], 'LineWidth', line_width);
+                        plot(M_output_energy(i) * ones(1, file_number), geo_EC(i, sort_indices), 'Color', [0.75, 0.75, 0.75], 'LineWidth', line_width);
                     end
                 end
                 hold off
@@ -387,7 +385,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                 f7 = figure;
                 f7.Position = [0 0 2000 840];
                 hold on
-                hits_rate = hits_whole ./ (M_output_number);
+                hits_rate = hits_whole ./ M_output_number;
                 % Plots each energy channel with a different color
                 for i = 1:size(energy_channels, 1)
                     plot(sorted_M_output_energy, hits_rate(i, sort_indices), 'Color', Effplotcolor(i, :), 'LineWidth', line_width)
@@ -422,8 +420,8 @@ while choice ~= 1 % Choice 1 is to exit the program
                     
                     % Plot simulated hits for the middle and first detector
                     hold on
-                    plot(M_output_energy,100*hits_EL_whole./output_number,'Color',[0 0.4470 0.7410],'LineWidth',2)
-                    plot(M_output_energy,100*hits_EL_whole_1st./output_number,'Color',[0.5 0 0.7410],'LineWidth',2)
+                    plot(M_output_energy,100*hits_EL_whole./M_output_number,'Color',[0 0.4470 0.7410],'LineWidth',2)
+                    plot(M_output_energy,100*hits_EL_whole_1st./M_output_number,'Color',[0.5 0 0.7410],'LineWidth',2)
                     
                     % Set plot properties
                     titlestr = addin;

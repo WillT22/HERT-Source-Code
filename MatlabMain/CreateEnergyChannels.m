@@ -13,7 +13,7 @@ Max_Limit = 7;
 %% Protons
 %
 ExLimit = 0.1;
-Limit = 0.5;
+Limit = 1.0;
 MedLimit = 20.0;
 High_Limit = 60.0;
 Max_Limit = 100;
@@ -21,9 +21,9 @@ Max_Limit = 100;
 
 % Number of channels in each range:
 ExLownum = 2;
-Lownum = 6; %12
-Mednum = 6; %16
-Highnum = 6; %10
+Lownum = 12; %12
+Mednum = 16; %16
+Highnum = 10; %10
 
 % Excluded energy channels (below threshold)
 x = 1:(ExLownum+1);
