@@ -1,4 +1,4 @@
-function [singleMatrix_whole, energy_beam, beam_number, hits_log, count_back_whole, detector_energy_whole, hits_detectors_whole] = oneEnergyEffDistWhole(file_name, energy_channels, back_limit, inputfolder, detector_threshold)
+function [singleMatrix_whole, energy_beam, beam_number, hits_log, count_back_whole, detector_energy_whole, hits_detectors_whole, count_reject] = oneEnergyEffDistWhole(file_name, energy_channels, back_limit, inputfolder, detector_threshold)
 % Author: Yinbo Chen
 % Date: 6/15/2021
 % Modified by: Skyler Krantz, Will Teague
@@ -7,7 +7,7 @@ function [singleMatrix_whole, energy_beam, beam_number, hits_log, count_back_who
 numDetect = 9;
 
 % Initialize output variables
-singleMatrix_whole = zeros(length(energy_channels), 1);
+singleMatrix_whole = zeros(size(energy_channels,1), 1);
 hits_log = 0;
 hits_detectors_whole = zeros(numDetect, 1);
 detector_energy_whole = zeros(numDetect, 1);
@@ -51,9 +51,6 @@ for i = 1:NumEnergyDeposit
         percentage = percentage + 10;
         fprintf('%.0f ', percentage)
     end
-    
-    % Reset values for each iteration
-    reject_count = 0;
 
     % Preallocate variables
     Detector_Energy = zeros(numDetect, 1);
@@ -74,6 +71,9 @@ for i = 1:NumEnergyDeposit
     % Check if the back detector has energy greater than the threshold
     if Detector_Energy(numDetect) > back_limit
         count_back_whole = count_back_whole + 1;
+        reject_count = 1;
+    else
+        reject_count = 0;
     end
 
     % Zero out values below detector threshold for the whole configuration
@@ -84,7 +84,7 @@ for i = 1:NumEnergyDeposit
     end
 
     % Calculate the sum of energy deposits for the whole configuration
-    WholeSum = sum(Detector_Energy);
+    WholeSum = sum(Detector_Energy); 
 
     % Update singleMatrix for each energy channel
     if WholeSum > 0 && Detector_Energy(1) > detector_threshold && reject_count == 0
@@ -100,7 +100,7 @@ end
 
 % Display summary information after running through all simulations
 fprintf('\nEnergy Level:%.2i\n', energy_beam)
-fprintf('Whole Configuration: \nNumber of back hits= %i\nTotal number of hits = %i\n', count_back_whole, sum(singleMatrix_whole));
+fprintf('Whole Configuration: \nNumber of back hits= %i\nTotal number of hits = %i\n', count_back_whole,sum(singleMatrix_whole));
 
 % Change back to the original directory
 cd ..

@@ -7,14 +7,14 @@
 % Requires MatPlotLib Perceptually Uniform Colormaps
 
 % Resets all variables and values in MATLAB
-clear;
+clear all;
 close all;
 clc;
 addpath 'E:\HERT_Drive\MATLAB Main'
 
 % Initialization of different values (I didn't know where else to put them) 
 numDetect = 9;
-textsize = 28;
+textsize = 20;
 
 %% Geometric Factor- Theory
 % This section solves for the theoretical geometric factor of the instrument
@@ -173,7 +173,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                 
                 % Creates matrix to store data
                 M_output_energy = zeros(1, file_number);
-                M_output_Mult = zeros(length(energy_channels), file_number);
+                M_output_Mult = zeros(size(energy_channels,1), file_number);
                 M_output_number = zeros(1, file_number);
                 M_count_back_whole = zeros(1, file_number);
                 M_detector_energy_whole = zeros(9, file_number);
@@ -229,8 +229,8 @@ while choice ~= 1 % Choice 1 is to exit the program
                 if sim_type == 0
                     % Scales up simulated particles to the total number of particles
                     part_tot_EC = 2 .* M_output_number / (1 - cosd(15));
-                    part_tot_EL = 2 .* M_output_number / (1 - cosd(15));
-                    part_tot = sum(2 .* M_output_number / (1 - cosd(15))) .* size(energy_channels, 1);
+                    part_tot_EL = part_tot_EC(:,1);
+                    part_tot = sum(part_tot_EL) .* size(energy_channels, 1);
                       
                 elseif sim_type == 1
                     % Full Spherical
@@ -313,8 +313,9 @@ while choice ~= 1 % Choice 1 is to exit the program
                 grid on
                 % ylim([0 100])
                 % yticks((0:5:100))
+                set(gca, 'FontSize', textsize)
                 titlestr = append(sprintf('Hits %.2f MeV - %.2f MeV ', min(M_output_energy), max(M_output_energy)), addin);
-                title(titlestr)
+                title(titlestr, 'FontSize', 20)
                 ylabel('Percent of Hits')
                 xlabel('Energy (MeV)')
                 hold off
@@ -364,7 +365,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                 set(gca, 'FontSize', textsize)
                 hold off
                 titlestr_whole = append(sprintf('Geometric Factor by EC %.2f MeV - %.2f MeV ', min(M_output_energy), max(M_output_energy)), addin);
-                title(titlestr_whole, 'FontSize', 15)
+                title(titlestr_whole, 'FontSize', textsize)
                 ylabel('Geometric Factor (cm^2 sr)', 'FontSize', textsize)
                 xlabel('Incident Energy (MeV)', 'FontSize', textsize)
                 

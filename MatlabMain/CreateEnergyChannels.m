@@ -12,11 +12,11 @@ Max_Limit = 7;
 
 %% Protons
 %
-ExLimit = 0.1;
-Limit = 1.0;
-MedLimit = 20.0;
-High_Limit = 60.0;
-Max_Limit = 100;
+ExLimit = 15;
+Limit = 20;
+MedLimit = 30.0;
+High_Limit = 70.0;
+Max_Limit = 120;
 %
 
 % Number of channels in each range:
