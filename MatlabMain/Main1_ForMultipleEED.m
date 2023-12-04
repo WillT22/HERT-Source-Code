@@ -14,7 +14,7 @@ addpath 'E:\HERT_Drive\MATLAB Main'
 
 % Initialization of different values (I didn't know where else to put them) 
 numDetect = 9;
-textsize = 20;
+textsize = 24;
 
 %% Geometric Factor- Theory
 % This section solves for the theoretical geometric factor of the instrument
@@ -46,7 +46,18 @@ r3 = 1.0;   % cm radius of the first detector
 
 L_13 = L_12 + L_23;
 
-G3_whole_max = findG3whole(L_12, L_23, L_13, r1, r2, r3);
+%G3_whole_max = findG3whole(L_12, L_23, L_13, r1, r2, r3);
+
+% Protons penetrate entirety of collimator teeth
+L_12 = 6.0; % cm distance between first and last collimator teeth
+L_23 = 0.3; % cm distance between last collimator tooth and first detector
+r1 = 1.5;   % cm radius of the collimator tube interior
+r3 = 1.0;   % cm radius of the first detector
+
+L_13 = L_12 + L_23;
+
+G3_whole_max = 0.5*(pi^2)*((r1^2+r3^2+L_13^2)-(((r1^2+r3^2+L_13^2)^2-4*(r1^2)*(r3^2))^0.5));
+
 
 %% Calculate GEANT4 Results
 % Read files from ./Result folder and store into a 1*C array
@@ -266,7 +277,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                 %% Total Geometric Factor Comparison
                 line_width = 2;
                 f1 = gcf;
-                f1.Position = [0 0 2000 840];
+                f1.Position = [0 0 2048 1600];
                 
                 hold on
                 % Plot Theory Bands
@@ -300,15 +311,15 @@ while choice ~= 1 % Choice 1 is to exit the program
                 % Saving the figure as a jpg then returning to the main directory
                 effsave = append('Total GF_', string(datetime("today")), '_', addin, '.jpg');
                 saveas(gcf, effsave)
-                
+                               
                 %% Total Hits Comparison
                 line_width = 2;
                 f2 = figure;
-                f2.Position = [0 0 2000 840];
+                f2.Position = [0 0 2048 1600];
                 
                 hold on
-                plot(sorted_M_output_energy, 100 * hits_EL_whole(sort_indices) ./ M_output_number, 'DisplayName', 'Total Hits', 'LineWidth', line_width)
-                plot(sorted_M_output_energy, 100 * M_count_back_whole(sort_indices) ./ M_output_number, 'DisplayName', 'Back Hits Removed', 'LineWidth', line_width)
+                plot(sorted_M_output_energy, 100 * hits_EL_whole(sort_indices) ./ M_output_number, 'DisplayName', 'Counted Hits', 'LineWidth', line_width)
+                plot(sorted_M_output_energy, 100 * M_count_back_whole(sort_indices) ./ M_output_number, 'DisplayName', 'Last Detector Triggered', 'LineWidth', line_width)
                 legend
                 grid on
                 % ylim([0 100])
@@ -321,13 +332,12 @@ while choice ~= 1 % Choice 1 is to exit the program
                 hold off
                 
                 % Saving the figure as a jpg then returning to the main directory
-                effsave = append('Total Hits', string(datetime("today")), addin, '.jpg');
+                effsave = append('Counted Hits', string(datetime("today")), addin, '.jpg');
                 saveas(f2, effsave)
-                
+
                 %% Whole Ring Geometric Factor by Energy Channel
                 geo_EC(geo_EC == 0) = 10^-31;
                 line_width = 2;
-                textsize = 12;
                 y_label = round(max(max(geo_EC)), 2);
                 
                 if y_label < max(max(geo_EC))
@@ -335,7 +345,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                 end
                 
                 f3 = figure;
-                f3.Position = [0 0 2000 840];
+                f3.Position = [0 0 2000 1650];
                 EngLegend_EC = strings(1, length(energy_channels));
                 color_iter = 1;
                 hold on
@@ -360,6 +370,10 @@ while choice ~= 1 % Choice 1 is to exit the program
                         plot(M_output_energy(i) * ones(1, file_number), geo_EC(i, sort_indices), 'Color', [0.75, 0.75, 0.75], 'LineWidth', line_width);
                     end
                 end
+                % Put in Penetration Limits
+                xline([14,36,52,68],'--',{'Beryllium Window Penetration','Collimator Disk Penetration','Veto Detector Triggering','Collimator Side Penetration'}, ...
+                    'LineWidth', 1.5,'FontSize', 19,'LabelOrientation','horizontal')
+
                 hold off
                 
                 set(gca, 'FontSize', textsize)
@@ -380,6 +394,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                 effsave = append('Geometric Factor Whole by EC_', string(datetime("today")), addin, '.jpg');
                 saveas(f3, effsave)
                 
+%{
                 %% Efficiency
                 line_width = 1;
                 % Create figure at a certain position and size
@@ -407,7 +422,8 @@ while choice ~= 1 % Choice 1 is to exit the program
                 saveas(f7, effsave)
                 cd ..
                 cd ..
-                
+%}
+%{
                 %% Plots for Side Pen Tests
                 % Check if the selected energy channel name contains 'side pen'
                 if contains(lower(Selected_Channel_name),'side pen')
@@ -439,8 +455,8 @@ while choice ~= 1 % Choice 1 is to exit the program
                     % Release figure hold
                     hold off
                 end
-                
-                %{
+%}                
+%{
                 %% FWHM-Whole
                 % Calculate Full Width at Half Max (FWHM) values for each energy channel
                 fprintf('\nWhole Configuration: Full Width at Half Max Values:\n')
@@ -482,7 +498,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                 saveas(gcf,histsave)
                 cd ..
                 cd ..
-                %} 
+%} 
 
             %Diagnostics for one file selected
             else
@@ -491,14 +507,19 @@ while choice ~= 1 % Choice 1 is to exit the program
                     [output_Mult,output_energy,output_number,hits_log,count_back_whole,detector_energy_whole,hits_detectors_whole]...
                         = oneEnergyEffDistWhole(filename,energy_channels,back_limit,inputfolder,detector_threshold);
                 
-                    hits_whole = sum(output_Mult);
+                    hits_whole = output_Mult;
+                    r_source = 8.5; % 8.5 cm for HERT-CAD
+                    part_tot_EC = 2 .* output_number / (1 - cosd(15));
+                    geo_EC = (hits_whole ./ part_tot_EC) * (4 * (pi^2) * (r_source^2));
+                    %{
                     save('output_singleParticleArray.mat','output_Mult')
                     disp('output_singleParticleArray.mat');
-                    x= linspace(0,7.5,length(energy_channels));
+                    x= linspace(0,120,length(energy_channels));
                     figure
                     plot(x,output_Mult)
                     ylabel('Beam Counts')
                     xlabel('Incident Energy (MeV)')
+                    %}
             end
     end
     choice = menu('Choose an option', 'Exit Program', 'Load one file','Load all files','Start Run');

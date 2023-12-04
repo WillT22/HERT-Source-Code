@@ -3,7 +3,7 @@
 % Updated: Nov. 13th, 2023
 % Post Processing for GEANT4
 
-function [Output] = HERTPostProcessWhole(file_name, inputfolder, outputfolder)
+function [index_arr] = HERTPostProcessWhole(file_name, inputfolder, outputfolder)
 % HERTPostProcess Removes simulations with no energy deposited
 numDetect = 9;
 
@@ -35,9 +35,11 @@ if n ~= beam_number
 end
 
 %% Resets Counters
-HitsLog = 1;
+HitsLog = 0;
 NoEnergyDep = 0;
 percentage = 0;
+index_count = 1;
+index_arr = [];
 
 %% Starts Post Process Loop
 cd(outputfolder)
@@ -74,6 +76,8 @@ for i = 1:beam_number
         fprintf(fid, ' Edep (MeV)): \n');
         fprintf(fid, '%.7f \n', Detector_Energy);
         HitsLog = HitsLog + 1;
+        index_arr(index_count) = i; 
+        index_count = index_count + 1;
     end
 end
 
@@ -81,14 +85,11 @@ end
 fprintf(fid, ' Sims with No Energy Deposited: \n');
 fprintf(fid, '%.f \n', NoEnergyDep);
 fprintf(fid, ' Sims with Energy Deposited: \n');
-fprintf(fid, '%.f', (HitsLog - 1));
+fprintf(fid, '%.f', (HitsLog));
 fclose(fid);
-
-% Lets loop in Main0_HERTPostProcessLoop.m move to the next count
-Output = 1;
 
 % Return to MATLAB Main
 cd(inputfolder);
 cd ..
-fprintf('\n %.2f Complete \n', energy_beam);
+fprintf('\n %.2f Complete ', energy_beam);
 end
