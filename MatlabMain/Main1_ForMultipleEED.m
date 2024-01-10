@@ -37,28 +37,6 @@ L_13 = L_12 + L_23;
 
 G3_whole_min = findG3whole(L_12, L_23, L_13, r1, r2, r3);
 
-% Assuming the Collimator Knife Edge Stops No Particles (Max GeoFactor)
-L_12 = 6.0; % cm distance between first and last collimator teeth
-L_23 = 0.3; % cm distance between last collimator tooth and first detector
-r1 = 1.0;   % cm radius of the first collimator tooth (larger than above)
-r2 = 1.0;   % cm radius of the last collimator tooth (larger than above)
-r3 = 1.0;   % cm radius of the first detector
-
-L_13 = L_12 + L_23;
-
-%G3_whole_max = findG3whole(L_12, L_23, L_13, r1, r2, r3);
-
-% Protons penetrate entirety of collimator teeth
-L_12 = 6.0; % cm distance between first and last collimator teeth
-L_23 = 0.3; % cm distance between last collimator tooth and first detector
-r1 = 1.5;   % cm radius of the collimator tube interior
-r3 = 1.0;   % cm radius of the first detector
-
-L_13 = L_12 + L_23;
-
-G3_whole_max = 0.5*(pi^2)*((r1^2+r3^2+L_13^2)-(((r1^2+r3^2+L_13^2)^2-4*(r1^2)*(r3^2))^0.5));
-
-
 %% Calculate GEANT4 Results
 % Read files from ./Result folder and store into a 1*C array
 cd 'E:\HERT_Drive\MATLAB Main\Result'; % Main Result Directory
@@ -73,6 +51,37 @@ subFolderNames = {subFolders(3:end).name}; % Start at 3 to skip . and ..
 FolderChoice = menu('HERT Loop: Choose an input folder', subFolderNames{:});
 inputfolder = subFolderNames{FolderChoice};
 addin = inputfolder;
+
+% Menu to select particle type on which max geometric factor depends
+parttype_choice = menu('Particle Type', 'Electron', 'Proton');
+switch parttype_choice
+    case 1
+        sim_type = 0;
+        fprintf('Particle Type: Electron \n')
+        % Assuming the Collimator Knife Edge Stops No Particles (Max GeoFactor)
+        L_12 = 6.0; % cm distance between first and last collimator teeth
+        L_23 = 0.3; % cm distance between last collimator tooth and first detector
+        r1 = 1.0;   % cm radius of the first collimator tooth (larger than above)
+        r2 = 1.0;   % cm radius of the last collimator tooth (larger than above)
+        r3 = 1.0;   % cm radius of the first detector
+        
+        L_13 = L_12 + L_23;
+        
+        G3_whole_max = findG3whole(L_12, L_23, L_13, r1, r2, r3);
+    case 2
+        sim_type = 1;
+        fprintf('Particle Type: Proton \n')
+        % Protons penetrate entirety of collimator teeth
+        L_12 = 6.0; % cm distance between first and last collimator teeth
+        L_23 = 0.3; % cm distance between last collimator tooth and first detector
+        r1 = 1.5;   % cm radius of the collimator tube interior
+        r3 = 1.0;   % cm radius of the first detector
+        
+        L_13 = L_12 + L_23;
+        
+        G3_whole_max = 0.5*(pi^2)*((r1^2+r3^2+L_13^2)-(((r1^2+r3^2+L_13^2)^2-4*(r1^2)*(r3^2))^0.5));
+end
+
 % Menu to select spherical cap or full spherical
 simtype_choice = menu('Simulation Type', 'Spherical Cap (15 deg)', 'Full Sphere');
 switch simtype_choice
@@ -286,6 +295,10 @@ while choice ~= 1 % Choice 1 is to exit the program
                 
                 % Plot Simulation Value
                 plot(sorted_M_output_energy, geo_EL(sort_indices), '-k', 'LineWidth', line_width);
+
+                 % Put in Penetration Limits
+                xline([14,36,51],'--',{'Beryllium Window Penetration','Collimator Teeth Penetration','Veto Detector Triggering'}, ...
+                    'LineWidth', 1.5,'FontSize', 19,'LabelOrientation','horizontal')
                  
                 % Sets y-axis to log scale. Comment out to keep plot linear
                 set(gca, 'YScale', 'log')
@@ -320,7 +333,12 @@ while choice ~= 1 % Choice 1 is to exit the program
                 hold on
                 plot(sorted_M_output_energy, 100 * hits_EL_whole(sort_indices) ./ M_output_number, 'DisplayName', 'Counted Hits', 'LineWidth', line_width)
                 plot(sorted_M_output_energy, 100 * M_count_back_whole(sort_indices) ./ M_output_number, 'DisplayName', 'Last Detector Triggered', 'LineWidth', line_width)
-                legend
+                
+                 % Put in Penetration Limits
+                xline([14,35,51],'--',{'Beryllium Window Penetration','Collimator Teeth Penetration','Veto Detector Triggering'}, ...
+                    'LineWidth', 1.5,'FontSize', 19,'LabelOrientation','horizontal')
+
+                legend({'Counted Hits','Last Detector Triggered'})
                 grid on
                 % ylim([0 100])
                 % yticks((0:5:100))
@@ -371,7 +389,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                     end
                 end
                 % Put in Penetration Limits
-                xline([14,36,52,68],'--',{'Beryllium Window Penetration','Collimator Disk Penetration','Veto Detector Triggering','Collimator Side Penetration'}, ...
+                xline([14,35,51],'--',{'Beryllium Window Penetration','Collimator Teeth Penetration','Veto Detector Triggering'}, ...
                     'LineWidth', 1.5,'FontSize', 19,'LabelOrientation','horizontal')
 
                 hold off
@@ -386,7 +404,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                 % Sets y-axis to log scale. Comment out to keep the plot linear
                 set(gca, 'YScale', 'log')
                 
-                ylim([10^-4, 10^0])
+                ylim([10^-3, 10^0])
                 grid on
                 legend(EngLegend_EC, 'Location', 'southoutside', 'NumColumns', 8)
                 
