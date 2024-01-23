@@ -5,28 +5,29 @@
 # Counter Variable Name: eKin
 # Include Visualization in the code
 # Revised by H.Zhao (Aug 12, 2020)
+# Updated by W.Teague (Jan 23, 2024)
 #######################################
-#
+
 /control/verbose 1
 /run/initialize
 
-/gps/verbose 0
+### Variable Initialization ###
 
-/gps/particle proton
+/control/alias particleType proton	# Assign particle type
+/control/alias energyValue 50		# Assign energyValue
+/control/alias particleCount 1000	# Assign particleCount
 
-#/gps/pos/type Plane
-#/gps/pos/shape Circle
-#/gps/pos/centre 0 0 -10 mm
-#/gps/pos/radius 10 mm
-#/gps/ang/type iso
-#/gps/ang/mintheta 0 deg
-#/gps/ang/maxtheta 20 deg
-#/gps/ang/minphi 0 deg
-#/gps/ang/maxphi 360 deg
+### Randomization Seed Restoration ###
 
+#/random/resetEngineFrom .\Results\seeds\HERT_CADseedSingleRun_{particleType}_Ene_{energyValue}_{particleCount}.rndm
+
+### GPS Initialization ###
+
+# Boresight Particle Firing #
 #/gps/direction 0 0 10 mm
 #/gps/position 0 0 -10 mm
 
+# Spherical Cap Particle Firing #
 /gps/pos/type Surface
 /gps/pos/shape Sphere
 /gps/pos/radius 85 mm
@@ -34,7 +35,9 @@
 /gps/pos/confine source
 /gps/pos/centre 0 0 0.75 mm
 /gps/ang/focuspoint 0 0 0.75 mm
-/gps/ene/mono 14 MeV
+/gps/ene/mono {energyValue} MeV
+
+### Visualization ###
 
 #/vis/open HepRepFile		# write heprep
 #/vis/scene/create			# Create a new empty scene
@@ -47,16 +50,25 @@
 
 /run/printProgress 1000
 
-/tracking/storeTrajectory 1
+#/tracking/storeTrajectory 1
 /tracking/verbose 0
 
-/run/beamOn 1000
+/run/beamOn {particleCount}
 
-/control/shell del C:\Users\wzt0020\Geant4\HERT_Runs\HERT-CAD\Results\HERT_CADoutputSingleRun_Proton_Ene_14_1000.txt
-/control/alias outputFileName HERT_CADoutputSingleRun_Proton_Ene_14_1000.txt
+### File Renaming and Storage ###
 
-/control/shell move EnergyDepositResult.txt {outputFileName}
-/control/shell move {outputFileName} C:\Users\wzt0020\Geant4\HERT_Runs\HERT-CAD\Results
+/control/alias outputFileName HERT_CADoutputSingleRun_{particleType}_Ene_{energyValue}_{particleCount}
+/control/alias seedFileName HERT_CADseedSingleRun_{particleType}_Ene_{energyValue}_{particleCount}
+
+/control/shell del .\Results\{outputFileName}.txt
+/control/shell move EnergyDepositResult.txt {outputFileName}.txt
+/control/shell move {outputFileName}.txt .\Results
+
+/control/shell del .\Results\{seedFileName}.rndm
+/control/shell move currentRun.rndm {seedFileName}.rndm
+/control/shell move {seedFileName}.rndm .\Results\seeds
+
+/control/shell del currentEvent.rndm
 
 exit
 
