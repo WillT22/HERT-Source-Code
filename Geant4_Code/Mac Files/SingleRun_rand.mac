@@ -12,13 +12,13 @@
 
 ### Variable Initialization ###
 /control/alias particleType proton	# Assign particle type
-/control/alias energyValue 14		# Assign energyValue
+/control/alias energyValue 50		# Assign energyValue
 /control/alias particleCount 1000	# Assign particleCount
+#/control/alias seed 34059584
 
 ### Randomization Seed Initialization ###
-#/random/setSeeds seed1 seed2
-#/random/restoreEngineStatus .\Results\seeds\HERT_CADoutputSingleRun_{particleType}_Ene_{energyValue}_{particleCount}	#Restores seed previously used
-
+#/random/setSeeds {seed} {seed}
+/random/restoreEngineStatus .\Results\seeds\HERT_CADseedSingleRun_{particleType}_Ene_{energyValue}_{particleCount}.rndm	#Restores seed previously used
 
 /gps/verbose 0
 
@@ -63,14 +63,15 @@
 /run/beamOn {particleCount}
 
 /control/alias outputFileName HERT_CADoutputSingleRun_{particleType}_Ene_{energyValue}_{particleCount}
+/control/alias seedFileName HERT_CADseedSingleRun_{particleType}_Ene_{energyValue}_{particleCount}
 
-/control/shell del .\Results\HERT_CADoutputSingleRun_{particleType}_Ene_{energyValue}_{particleCount}.txt
+/control/shell del .\Results\{outputFileName}.txt
 /control/shell move EnergyDepositResult.txt {outputFileName}.txt
-/control/shell move {outputFileName}.txt C:\Users\wzt0020\Geant4\HERT_Runs\HERT-CAD\Results
+/control/shell move {outputFileName}.txt .\Results
 
-/control/shell del .\Results\HERT_CADoutputSingleRun_{particleType}_Ene_{energyValue}_{particleCount}.rndm
-/control/shell move currentRun.rndm {outputFileName}.rndm
-/control/shell move {outputFileName}.rndm C:\Users\wzt0020\Geant4\HERT_Runs\HERT-CAD\Results\seeds
+/control/shell del .\Results\{seedFileName}.rndm
+/control/shell move currentRun.rndm {seedFileName}.rndm
+/control/shell move {seedFileName}.rndm .\Results\seeds
 
 /control/shell del currentEvent.rndm
 
