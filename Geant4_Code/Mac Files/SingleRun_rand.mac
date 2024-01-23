@@ -18,7 +18,7 @@
 
 ### Randomization Seed Initialization ###
 #/random/setSeeds {seed} {seed}
-/random/restoreEngineStatus .\Results\seeds\HERT_CADseedSingleRun_{particleType}_Ene_{energyValue}_{particleCount}.rndm	#Restores seed previously used
+#/random/restoreEngineStatus .\Results\seeds\HERT_CADseedSingleRun_{particleType}_Ene_{energyValue}_{particleCount}.rndm	#Restores seed previously used
 
 /gps/verbose 0
 
