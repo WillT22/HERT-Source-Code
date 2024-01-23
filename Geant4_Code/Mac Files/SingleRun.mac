@@ -19,9 +19,11 @@
 
 ### Randomization Seed Restoration ###
 
-#/random/resetEngineFrom .\Results\seeds\HERT_CADseedSingleRun_{particleType}_Ene_{energyValue}_{particleCount}.rndm
+/random/resetEngineFrom .\Results\seeds\HERT_CADseedSingleRun_{particleType}_Ene_{energyValue}_{particleCount}.rndm
 
 ### GPS Initialization ###
+
+/gps/particle proton
 
 # Boresight Particle Firing #
 #/gps/direction 0 0 10 mm
