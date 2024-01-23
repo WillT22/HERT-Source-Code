@@ -34,14 +34,14 @@
 /gps/pos/confine source
 /gps/pos/centre 0 0 0.75 mm
 /gps/ang/focuspoint 0 0 0.75 mm
-/gps/ene/mono 14 MeV
+/gps/ene/mono {eKin} MeV
 
-#/vis/open HepRepFile		# write heprep
-#/vis/scene/create			# Create a new empty scene
-#/vis/scene/add/volume		# Declare that the world volume should be added to the scene
-#/vis/sceneHandler/attach	# Attach scene to scenehandler
-#/vis/viewer/flush			# Draw a picture that has just the detector (no trajectories or hits).
-#/vis/scene/add/trajectories	# Declare that trajectories and hits should be added to the scene
+#/vis/open HepRepFile
+#/vis/scene/create
+#/vis/scene/add/volume
+#/vis/sceneHandler/attach
+#/vis/viewer/flush
+#/vis/scene/add/trajectories
 #/vis/scene/add/hits
 #/vis/scene/endOfEventAction accumulate 0
 
@@ -50,10 +50,10 @@
 /tracking/storeTrajectory 1
 /tracking/verbose 0
 
-/run/beamOn 1000
+/run/beamOn {number}
 
-/control/shell del C:\Users\wzt0020\Geant4\HERT_Runs\HERT-CAD\Results\HERT_CADoutputSingleRun_Proton_Ene_14_1000.txt
-/control/alias outputFileName HERT_CADoutputSingleRun_Proton_Ene_14_1000.txt
+/control/shell del C:\Users\wzt0020\Geant4\HERT_Runs\HERT-CAD\Results\HERT_CADoutputSingleRun_Proton_Ene_{eKin}_{number}.txt
+/control/alias outputFileName HERT_CADoutputSingleRun_Proton_Ene_{eKin}_{number}.txt
 
 /control/shell move EnergyDepositResult.txt {outputFileName}
 /control/shell move {outputFileName} C:\Users\wzt0020\Geant4\HERT_Runs\HERT-CAD\Results
