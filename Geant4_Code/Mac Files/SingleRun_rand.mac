@@ -1,0 +1,80 @@
+#######################################
+# Updated by LYK (Mar 9, 2020)
+# For beginner's practice version, get rid of some layer of codes (less loop)
+# Updated by LYK (Sep 28, 2018)
+# Counter Variable Name: eKin
+# Include Visualization in the code
+# Revised by H.Zhao (Aug 12, 2020)
+#######################################
+
+/control/verbose 1
+/run/initialize
+
+### Variable Initialization ###
+/control/alias particleType proton	# Assign particle type
+/control/alias energyValue 50		# Assign energyValue
+/control/alias particleCount 1000	# Assign particleCount
+#/control/alias seed 34059584
+
+### Randomization Seed Initialization ###
+#/random/setSeeds {seed} {seed}
+/random/restoreEngineStatus .\Results\seeds\HERT_CADseedSingleRun_{particleType}_Ene_{energyValue}_{particleCount}.rndm	#Restores seed previously used
+
+/gps/verbose 0
+
+/gps/particle {particleType}
+
+#/gps/pos/type Plane
+#/gps/pos/shape Circle
+#/gps/pos/centre 0 0 -10 mm
+#/gps/pos/radius 10 mm
+#/gps/ang/type iso
+#/gps/ang/mintheta 0 deg
+#/gps/ang/maxtheta 20 deg
+#/gps/ang/minphi 0 deg
+#/gps/ang/maxphi 360 deg
+
+#/gps/direction 0 0 10 mm
+#/gps/position 0 0 -10 mm
+
+/gps/pos/type Surface
+/gps/pos/shape Sphere
+/gps/pos/radius 85 mm
+/gps/ang/type cos
+/gps/pos/confine source
+/gps/pos/centre 0 0 0.75 mm
+/gps/ang/focuspoint 0 0 0.75 mm
+/gps/ene/mono {energyValue} MeV
+
+#/vis/open HepRepFile		# write heprep
+#/vis/scene/create			# Create a new empty scene
+#/vis/scene/add/volume		# Declare that the world volume should be added to the scene
+#/vis/sceneHandler/attach	# Attach scene to scenehandler
+#/vis/viewer/flush			# Draw a picture that has just the detector (no trajectories or hits).
+#/vis/scene/add/trajectories	# Declare that trajectories and hits should be added to the scene
+#/vis/scene/add/hits
+#/vis/scene/endOfEventAction accumulate 0
+
+/run/printProgress 1000
+
+#/tracking/storeTrajectory 1
+/tracking/verbose 0
+
+/run/beamOn {particleCount}
+
+/control/alias outputFileName HERT_CADoutputSingleRun_{particleType}_Ene_{energyValue}_{particleCount}
+/control/alias seedFileName HERT_CADseedSingleRun_{particleType}_Ene_{energyValue}_{particleCount}
+
+/control/shell del .\Results\{outputFileName}.txt
+/control/shell move EnergyDepositResult.txt {outputFileName}.txt
+/control/shell move {outputFileName}.txt .\Results
+
+/control/shell del .\Results\{seedFileName}.rndm
+/control/shell move currentRun.rndm {seedFileName}.rndm
+/control/shell move {seedFileName}.rndm .\Results\seeds
+
+/control/shell del currentEvent.rndm
+
+exit
+
+
