@@ -45,20 +45,35 @@ G4String EventAction::detName[]= {"detector_1","detector_2",
     "detector_3","detector_4","detector_5","detector_6","detector_7","detector_8", "detector_9", "Al","W","Be"};
 
 G4String EventAction::BeName = "solid_BeWin";
+
+std::fstream f;
+
 //.................................................... 	  
  EventAction::EventAction(){
-   for(int i=0; i<9 ; i++){
-   	         SiSensID[i] = -1;
-   }   
-       
+    for(int i=0; i<9 ; i++){
+   	          SiSensID[i] = -1;
+    }   
+    std::remove("EnergyDepositResult.txt");
+    f.open("EnergyDepositResult.txt", std::ios::app | std::ios::out);
+    f << "Einc (MeV)  " << "Edep (MeV)  "
+        << "Detector 1  " << "Detector 2  " << "Detector 3  " << "Detector 4  " << "Detector 5  " << "Detector 6  " << "Detector 7  " << "Detector 8  " << "Detector 9 " << std::endl;
+    f.close();
  }
 //.................................................... 
- EventAction::~EventAction(){}
- 
- void EventAction::BeginOfEventAction(const G4Event*){
+ EventAction::~EventAction(){
+ }
+
+ void EventAction::BeginOfEventAction(const G4Event* evt){
   
 //  G4cout << " <EventAction> BeginOfEventAction " << G4endl;
   //G4RunManager::GetRunManager()->rndmSaveThisEvent(); 
+
+  // Store incident energy
+  G4PrimaryParticle* primary = evt->GetPrimaryVertex()->GetPrimary();
+  G4double incidentEnergy = primary->GetKineticEnergy();
+  // Write incident energy
+  f.open("EnergyDepositResult.txt", std::ios::app | std::ios::out);
+  f << std::setw(11) << std::setprecision(6) << incidentEnergy/MeV;
 
   G4String collNam = "/SiDiscColl" ;   
   G4String collNm1 = "/shieldColl" ;  
@@ -87,27 +102,19 @@ G4String EventAction::BeName = "solid_BeWin";
   void EventAction::EndOfEventAction(const G4Event* evt){
 
    evtNum = evt->GetEventID();
-   
-//   G4cout << " <EventAction> EndOfEventAction " << G4endl;
-    
+  
+   // Store particle tracking
    G4TrajectoryContainer* trajectoryContainer = evt->GetTrajectoryContainer();
    numTrk = 0;
    if (trajectoryContainer) {
    	numTrk = trajectoryContainer->entries();
    }
+
 //   G4cout << " <EventAction> printFront " << G4endl;         
    printFront(evt);
 }
 //*********************************************************
   void EventAction::printFront(const G4Event* evt){
-  
-  std::fstream f;
-  
-  f.open("EnergyDepositResult.txt", std::ios::app | std::ios::out);
-//  f << " Edep & trk len (MeV,mm): \n";
-        f << " Edep (MeV)): \n";
-//  f << "Energy at each Detector" << " Length at each Detector";
-//   G4cout << " <EventAction> printFront 00 " << G4endl;
 
 // get the HCofThisEvent: it contains all the hits collections
 //that have been defined (one hit collection may be associated to
@@ -117,12 +124,11 @@ G4String EventAction::BeName = "solid_BeWin";
   HitsCollection* bkC = 0;
   G4String name;
 
-
 //   G4cout << " <EventAction> printFront 01 " << G4endl;         
   
 // k is number of time to  print the output data for each detector
 // i is the detector number. RIC 4.5.08 I think...?
-  for(int k=0; k<1 ; k++){
+  f << "           ";
   for(size_t i=0; i<9 ; i++){
    G4double totE  = 0.;
    G4double totL  = 0.;
@@ -153,16 +159,14 @@ G4String EventAction::BeName = "solid_BeWin";
            << std::setw(10) << std::setprecision(6) 
            << totL/mm << G4endl;   
 */
-
-	 f << std::setw(10) << std::setprecision(6)
-   //    << Etw
-   //    << std::setw(10) << std::setprecision(6)
-       << totE/MeV
+       f << std::setw(12) << std::setprecision(6)
+           //    << Etw
+           //    << std::setw(10) << std::setprecision(6)
+           << totE / MeV;
    //    << std::setw(10) << std::setprecision(6)
    //    << totL/mm 
    //    << std::setw(10) << std::setprecision(6)
    //    << nStep
-       << std::endl;
 		   
     G4int detIndex =  GetDetNumber(name); 
     engyDep[detIndex] = totE/MeV;   
@@ -170,9 +174,8 @@ G4String EventAction::BeName = "solid_BeWin";
     }
     
     }
-  } 
-  	f.close();
-
+   f << std::endl;
+   f.close();
 /*    f.open("EnergyThroughWindow.txt", std::ios::app | std::ios::out);
     f << " EthrWin (MeV)): \n";
     for (int i = 2; i = 2; i++)

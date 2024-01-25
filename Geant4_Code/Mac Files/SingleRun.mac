@@ -12,17 +12,20 @@
 /run/initialize
 
 ### Variable Initialization ###
-
 /control/alias particleType proton	# Assign particle type
 /control/alias energyValue 50		# Assign energyValue
-/control/alias particleCount 1000	# Assign particleCount
+/control/alias energyMin 10			# Assign energy minimum
+/control/alias energyMax 80			# Assign energy maximum
+/control/alias particleCount 100000	# Assign particleCount
+/control/alias runNumber 1			# Assign a run number for randomized runs
 
 ### Randomization Seed Restoration ###
-
-/random/resetEngineFrom .\Results\seeds\HERT_CADseedSingleRun_{particleType}_Ene_{energyValue}_{particleCount}.rndm
+# Descretized energy file name
+#/random/resetEngineFrom .\Results\seeds\HERT_CADoutput_{particleType}_Ene_{energyValue}_{particleCount}_seed.rndm
+# Randomized energy file name
+#/random/resetEngineFrom .\Results\seeds\HERT_CADoutput_{particleType}_{particleCount}_Run{runNumber}_seed.rndm
 
 ### GPS Initialization ###
-
 /gps/particle proton
 
 # Boresight Particle Firing #
@@ -37,7 +40,16 @@
 /gps/pos/confine source
 /gps/pos/centre 0 0 0.75 mm
 /gps/ang/focuspoint 0 0 0.75 mm
+
+# Deterministic Energy Selection
 /gps/ene/mono {energyValue} MeV
+
+# Randomized Energy Selection
+/gps/ene/type Lin			# Defines linear distribution of particle energies
+/gps/ene/min {energyMin} MeV			
+/gps/ene/max {energyMax} MeV
+/gps/ene/gradient 0
+/gps/ene/intercept 1
 
 ### Visualization ###
 
@@ -58,9 +70,12 @@
 /run/beamOn {particleCount}
 
 ### File Renaming and Storage ###
-
-/control/alias outputFileName HERT_CADoutputSingleRun_{particleType}_Ene_{energyValue}_{particleCount}
-/control/alias seedFileName HERT_CADseedSingleRun_{particleType}_Ene_{energyValue}_{particleCount}
+# Descretized energy file names
+#/control/alias outputFileName HERT_CADoutput_{particleType}_Ene_{energyValue}_{particleCount}
+#/control/alias seedFileName HERT_CADoutput_{particleType}_Ene_{energyValue}_{particleCount}_seed
+# Randomized energy file names
+/control/alias outputFileName HERT_CADoutput_{particleType}_{particleCount}_Run{runNumber}
+/control/alias seedFileName HERT_CADoutput_{particleType}_{particleCount}_Run{runNumber}_seed
 
 /control/shell del .\Results\{outputFileName}.txt
 /control/shell move EnergyDepositResult.txt {outputFileName}.txt
@@ -69,8 +84,6 @@
 /control/shell del .\Results\{seedFileName}.rndm
 /control/shell move currentRun.rndm {seedFileName}.rndm
 /control/shell move {seedFileName}.rndm .\Results\seeds
-
-/control/shell del currentEvent.rndm
 
 exit
 
