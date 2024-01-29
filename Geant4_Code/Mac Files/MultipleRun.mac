@@ -7,11 +7,10 @@
 ##### Test Track ############
 
 /control/shell del *.txt
-/control/alias startEnergy 24		#MeV 0.5
-/control/alias stepEnergy  5		#MeV 0.05
-/control/alias endEnergy   79		#MeV 7.0
-/control/alias number 1000000		#Number of run 2000000
+/control/alias startNumber 2
+/control/alias stepNumber  1	
+/control/alias endNumber   9
 
-/control/loop SingleRun_loop.mac eKin {startEnergy} {endEnergy} {stepEnergy} number {number}
+/control/loop ..\SingleRun.mac runNumber {startNumber} {endNumber} {stepNumber}
 
 exit
