@@ -12,12 +12,12 @@
 /run/initialize
 
 ### Variable Initialization ###
-/control/alias particleType proton	# Assign particle type
-/control/alias energyValue 50		# Assign energyValue (for descrete energy run)
-/control/alias energyMin 10			# Assign energy minimum
-/control/alias energyMax 80			# Assign energy maximum
+/control/alias particleType proton		# Assign particle type
+/control/alias energyValue 50			# Assign energyValue (for descrete energy run)
+/control/alias energyMin 10				# Assign energy minimum
+/control/alias energyMax 80				# Assign energy maximum
 /control/alias particleCount 1000000	# Assign particleCount
-#/control/alias runNumber 2			# Assign a run number for randomized runs
+#/control/alias runNumber 1				# Assign a run number for randomized runs
 
 ### Randomization Seed Restoration ###
 # Descretized energy file name

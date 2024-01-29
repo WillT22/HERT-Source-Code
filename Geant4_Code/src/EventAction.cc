@@ -55,8 +55,8 @@ std::fstream f;
     }   
     std::remove("EnergyDepositResult.txt");
     f.open("EnergyDepositResult.txt", std::ios::app | std::ios::out);
-    f << "Einc (MeV)  " << "Edep (MeV)  "
-        << "Detector 1  " << "Detector 2  " << "Detector 3  " << "Detector 4  " << "Detector 5  " << "Detector 6  " << "Detector 7  " << "Detector 8  " << "Detector 9 " << std::endl;
+    f << "Einc(MeV) " << "Edep(MeV) "
+        << "Detector1 " << "Detector2 " << "Detector3 " << "Detector4 " << "Detector5 " << "Detector6 " << "Detector7 " << "Detector8 " << "Detector9" << std::endl;
     f.close();
  }
 //.................................................... 
@@ -73,7 +73,7 @@ std::fstream f;
   G4double incidentEnergy = primary->GetKineticEnergy();
   // Write incident energy
   f.open("EnergyDepositResult.txt", std::ios::app | std::ios::out);
-  f << std::setw(11) << std::setprecision(6) << incidentEnergy/MeV;
+  f << std::setw(9) << std::setprecision(6) << incidentEnergy/MeV;
 
   G4String collNam = "/SiDiscColl" ;   
   G4String collNm1 = "/shieldColl" ;  
@@ -128,7 +128,7 @@ std::fstream f;
   
 // k is number of time to  print the output data for each detector
 // i is the detector number. RIC 4.5.08 I think...?
-  f << "           ";
+  f << "          ";
   for(size_t i=0; i<9 ; i++){
    G4double totE  = 0.;
    G4double totL  = 0.;
@@ -159,7 +159,7 @@ std::fstream f;
            << std::setw(10) << std::setprecision(6) 
            << totL/mm << G4endl;   
 */
-       f << std::setw(12) << std::setprecision(6)
+       f << std::setw(10) << std::setprecision(6)
            //    << Etw
            //    << std::setw(10) << std::setprecision(6)
            << totE / MeV;
