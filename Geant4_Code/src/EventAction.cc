@@ -53,18 +53,12 @@ std::fstream f;
     for(int i=0; i<9 ; i++){
    	          SiSensID[i] = -1;
     }   
-    std::remove("EnergyDepositResult.txt");
-    f.open("EnergyDepositResult.txt", std::ios::app | std::ios::out);
-    f << "Einc(MeV) " << "Edep(MeV) "
-        << "Detector1 " << "Detector2 " << "Detector3 " << "Detector4 " << "Detector5 " << "Detector6 " << "Detector7 " << "Detector8 " << "Detector9" << std::endl;
-    f.close();
  }
 //.................................................... 
  EventAction::~EventAction(){
  }
 
  void EventAction::BeginOfEventAction(const G4Event* evt){
-  
 //  G4cout << " <EventAction> BeginOfEventAction " << G4endl;
   //G4RunManager::GetRunManager()->rndmSaveThisEvent(); 
 
@@ -193,7 +187,7 @@ std::fstream f;
    //------------------------------------------------------------------ 
 void  EventAction::resetArrays(){ 
 	
-	for(int k=0; k<21 ; k++){ 
+    for(int k=0; k<21 ; k++){ 
        engyDep[k] = 0.0;
        trkLeng[k] = 0.0;    
        numGamma[k] = 0;

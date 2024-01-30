@@ -8,6 +8,8 @@
 #include "RunAction.hh"
 #include "HistoManager.hh"
 
+std::fstream f_run;
+
 RunAction::RunAction()
 : G4UserRunAction(), fHistoManager(0)
 {
@@ -35,11 +37,13 @@ void RunAction::BeginOfRunAction(const G4Run* aRun)
     if ( analysisManager->IsActive() ) {
         analysisManager->OpenFile();
     }
+
+    std::remove("EnergyDepositResult.txt");
+    f_run.open("EnergyDepositResult.txt", std::ios::app | std::ios::out);
+    f_run << "Einc(MeV) " << "Edep(MeV) "
+        << "Detector1 " << "Detector2 " << "Detector3 " << "Detector4 " << "Detector5 " << "Detector6 " << "Detector7 " << "Detector8 " << "Detector9" << std::endl;
+    f_run.close();
 }
-
-/**
-
-**/
 
 
 void RunAction::EndOfRunAction(const G4Run* aRun)
