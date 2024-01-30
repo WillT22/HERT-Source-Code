@@ -41,9 +41,6 @@ list_fileNames = {list.name};
 % Gets number of columns in file names indicating the number of files that can be loaded
 C = size(list_fileNames, 2);
 
-% Initialize index_arr before the loop
-index_arr = [];
-
 % User chooses an option from the menu
 choice = menu('HERT Post Process Loop: Choose an option', 'Exit Program', 'Load one file', 'Load all files');
 
@@ -83,7 +80,7 @@ while choice ~= 1
                 disp('Run HERTPostProcessWhole.m Once');
                 
                 % Calls HERTPostProcessWhole function for one file
-                index_arr = HERTPostProcessWhole(filename, inputfolder, outputfolder);
+                HERTPostProcessWhole(filename, inputfolder, outputfolder);
             
             % More than one file selected
             elseif size(filename, 1) > 1
@@ -94,7 +91,7 @@ while choice ~= 1
                     tic
 
                     % Calls HERTPostProcessWhole function in a loop for each file
-                    Output = HERTPostProcessWhole(filename{i}, inputfolder, outputfolder);
+                    HERTPostProcessWhole(filename{i}, inputfolder, outputfolder);
 
                     toc
                 end
