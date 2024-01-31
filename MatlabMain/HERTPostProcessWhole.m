@@ -34,7 +34,7 @@ end
 
 %% Starts Post Process Loop
 cd(outputfolder)
-NewFileName = append('PostProcess', file_name, '.txt');
+NewFileName = append('PostProcess', file_name);
 fid = fopen(NewFileName, 'wt');
 
 fprintf('Starting Run %d \n', run_number)

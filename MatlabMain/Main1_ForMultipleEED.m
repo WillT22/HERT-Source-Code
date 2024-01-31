@@ -204,7 +204,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                     % For every .txt file in Results, it will run
                     % oneEnergyEffDist and add the results to finalMatrix
                     % and finalMatrix2
-                    [output_Mult, energy_beam, output_number, count_back_whole, hits_detectors_whole]...
+                    [output_Mult, energy_beam, output_number, count_back_whole, hits_detectors_whole, count_reject, run_number]...
                         = oneEnergyEffDistWhole(filename{i}, energy_channels, back_limit, inputfolder, detector_threshold);
                         
                     % This will be Y in our plot
@@ -213,16 +213,18 @@ while choice ~= 1 % Choice 1 is to exit the program
                     % final_matrix is a matrix with
                     % Energy Channel x number of different energy levels tested
                     % This will be X in our plot
-                    M_incident_energy(i) = energy_beam;
+                    M_incident_energy(i,:) = energy_beam;
                     M_output_number(i) = output_number;
                     M_count_back_whole(i) = count_back_whole;
                     M_hits_detector_whole(:, i) = hits_detectors_whole;
+                    M_count_reject(i) = count_reject;
+                    M_run_number(i) = run_number;
                 end
                 
                 %% Save Results
                 % Goes to Result directory and outputs final_matrix
                 cd 'E:\HERT_Drive\MATLAB Main\Result'
-                save('output_MultipleParticleMatrix.mat', 'M_incident_energy')
+                save('output_MultipleParticleMatrix.mat', 'M_run_number')
                 disp('output_MultipleParticleMatrix.mat');
                 cd ..
                 
@@ -234,7 +236,10 @@ while choice ~= 1 % Choice 1 is to exit the program
                 r_source = 8.5; % 8.5 cm for HERT-CAD
 
                 % Find the indices that would sort M_output_energy
+                M_incident_energy = reshape(M_incident_energy,1,:);
                 [sorted_M_output_energy, sort_indices] = sort(M_incident_energy);
+                min_incident_energy = min(M_incident_energy,[],"all");
+                max_incident_energy = max(M_incident_energy,[],"all");
 
                 % Y has a column for every energy channel and rows up to
                 % the number of .txt. files
@@ -284,8 +289,8 @@ while choice ~= 1 % Choice 1 is to exit the program
                 
                 hold on
                 % Plot Theory Bands
-                plot([min(M_incident_energy), max(M_incident_energy)], G3_whole_min * ones(1,2), '--g', 'LineWidth', line_width);
-                plot([min(M_incident_energy), max(M_incident_energy)], G3_whole_max * ones(1,2), '--b', 'LineWidth', line_width);
+                plot([min_incident_energy, max_incident_energy], G3_whole_min * ones(1,2), '--g', 'LineWidth', line_width);
+                plot([min_incident_energy, max_incident_energy], G3_whole_max * ones(1,2), '--b', 'LineWidth', line_width);
                 
                 % Plot Simulation Value
                 plot(sorted_M_output_energy, geo_EL(sort_indices), '-k', 'LineWidth', line_width);
@@ -299,7 +304,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                 ylim([10^-4, 10^0])
                 set(gca, 'FontSize', textsize)
                 
-                titlestr = append(sprintf('Total GF: %.2f MeV - %.2f MeV ', min(M_incident_energy), max(M_incident_energy)), addin);
+                titlestr = append(sprintf('Total GF: %.2f MeV - %.2f MeV ', min_incident_energy, max_incident_energy), addin);
                 title(titlestr, 'FontSize', 20)
                 ylabel('Geometric Factor (cm^2 sr)', 'FontSize', textsize)
                 xlabel('Incident Energy (MeV)', 'FontSize', textsize)
@@ -337,7 +342,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                 % ylim([0 100])
                 % yticks((0:5:100))
                 set(gca, 'FontSize', textsize)
-                titlestr = append(sprintf('Hits %.2f MeV - %.2f MeV ', min(M_incident_energy), max(M_incident_energy)), addin);
+                titlestr = append(sprintf('Hits %.2f MeV - %.2f MeV ', min_incident_energy, max_incident_energy), addin);
                 title(titlestr, 'FontSize', 20)
                 ylabel('Percent of Hits')
                 xlabel('Energy (MeV)')
@@ -363,24 +368,19 @@ while choice ~= 1 % Choice 1 is to exit the program
                 hold on
                 
                 % All Channels
-                channel_select = 1:length(energy_channels);
                 
                 % Select which channels to highlight
                 % channel_select = [2,10,20,30,35];
                 % channel_select = [10];
                 
-                EC_plot_color = plasma(length(channel_select));
+                EC_plot_color = plasma(1:length(energy_channels));
                 
                 hold on
                 for i = 1:size(energy_channels, 1)
-                    if max(i == channel_select)
-                        plot(sorted_M_output_energy, geo_EC(i, sort_indices), 'Color', EC_plot_color(color_iter, :), 'LineWidth', line_width);
-                        EngLegend_EC(i) = append(sprintf('Channel #%.0f: ', i), EngLegend(i));
-                        EngLegend_EC(i) = EngLegend(i);
-                        color_iter = color_iter + 1;
-                    else
-                        plot(M_incident_energy(i) * ones(1, file_number), geo_EC(i, sort_indices), 'Color', [0.75, 0.75, 0.75], 'LineWidth', line_width);
-                    end
+                    plot(sorted_M_output_energy, geo_EC(i, sort_indices), 'Color', EC_plot_color(color_iter, :), 'LineWidth', line_width);
+                    EngLegend_EC(i) = append(sprintf('Channel #%.0f: ', i), EngLegend(i));
+                    EngLegend_EC(i) = EngLegend(i);
+                    color_iter = color_iter + 1;
                 end
                 % Put in Penetration Limits
                 xline([14,35,51],'--',{'Beryllium Window Penetration','Collimator Teeth Penetration','Veto Detector Triggering'}, ...
@@ -390,7 +390,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                 
                 set(gca, 'FontSize', textsize)
                 hold off
-                titlestr_whole = append(sprintf('Geometric Factor by EC %.2f MeV - %.2f MeV ', min(M_incident_energy), max(M_incident_energy)), addin);
+                titlestr_whole = append(sprintf('Geometric Factor by EC %.2f MeV - %.2f MeV ', min_incident_energy, max_incident_energy), addin);
                 title(titlestr_whole, 'FontSize', textsize)
                 ylabel('Geometric Factor (cm^2 sr)', 'FontSize', textsize)
                 xlabel('Incident Energy (MeV)', 'FontSize', textsize)
@@ -424,7 +424,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                 legend(EngLegend, 'Location', 'southoutside', 'NumColumns', 8)
                 
                 % Adding Titles and Axis Labels
-                titlestr = append(sprintf('%.2f MeV - %.2f MeV ', min(M_output_energy), max(M_output_energy)), addin);
+                titlestr = append(sprintf('%.2f MeV - %.2f MeV ', min_incident_energy, max_incident_energy), addin);
                 title(titlestr)
                 ylabel('Efficiency')
                 xlabel('Energy (MeV)')

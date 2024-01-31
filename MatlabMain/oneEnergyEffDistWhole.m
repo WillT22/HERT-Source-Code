@@ -1,4 +1,4 @@
-function [singleMatrix_whole, energy_beam, beam_number, count_back_whole, hits_detectors_whole, count_reject] = oneEnergyEffDistWhole(file_name, energy_channels, back_limit, inputfolder, detector_threshold)
+function [singleMatrix_whole, energy_beam, beam_number, count_back_whole, hits_detectors_whole, count_reject,run_number] = oneEnergyEffDistWhole(file_name, energy_channels, back_limit, inputfolder, detector_threshold)
 % Author: Yinbo Chen
 % Date: 6/15/2021
 % Modified by: Skyler Krantz, Will Teague
@@ -8,7 +8,6 @@ numDetect = 9;
 
 % Initialize output variables
 singleMatrix_whole = zeros(size(energy_channels,1), 1);
-hits_log = 0;
 hits_detectors_whole = zeros(numDetect, 1);
 
 % Find the first sequence of digits and convert it to a number
@@ -27,9 +26,6 @@ NumEnergyDeposit = textscan(fide, '%f', 'Delimiter','','HeaderLines',1);
 % Closes the file
 fclose(fide);
 
-% Get the number of rows in the data file
-n = size(data{1, 1},1);
-
 % Extract relevant information from the data
 energy_beam = data{1};
 Detector_Energy = cell2mat(data(2:end));
@@ -41,34 +37,43 @@ if NumNoEnergy + NumEnergyDeposit ~= beam_number
     error('ERROR IN THE DATA FILE!');
 end
 
-% Reset counters
-count_back_whole = 0;
+fprintf('Starting Run %d \n', run_number)
 
-percentage = 0;
-fprintf('Starting Run %d \nPercent Complete: ', run_number)
-h = 1;
+% Reset the counts
+count_back_whole = 0;
+count_reject = 0;
 
 % Zero out values below detector threshold for the whole configuration
-for i = 1:numDetect
-    if Detector_Energy(i) < detector_threshold
-        Detector_Energy(i) = 0;
+for i = 1:size(Detector_Energy,1)                       % For each particle that deposited nonzero energy on at least one detector,
+    if Detector_Energy(i,1) < detector_threshold        % If the particle did not deposit above the threshold on the first detector,
+        Detector_Energy(i,:) = 0;                       % Reject the count.
+        count_reject = count_reject + 1;    
+    elseif Detector_Energy(i,numDetect) > back_limit    % If the particle deposited energy above the threshold on the back detector,
+        Detector_Energy(i,:) = 0;                       % Reject the count.
+        count_back_whole = count_back_whole + 1;
+    else                                                % Otherwise,
+        for j = 2:numDetect-1                           % For the other detectors,
+            if Detector_Energy(j) < detector_threshold  % If the particle did not deposit energy above the threshold of a detector,
+                Detector_Energy(j) = 0;                 % set that detector's energy count to zero for that particle
+            end
+        end
     end
 end
+count_reject = count_reject + count_back_whole;
 
-% Calculate the sum of energy deposits for the whole configuration
-WholeSum = sum(Detector_Energy); 
-
-% Read data for each detector
-for j = 1:(numDetect-1)
-    % Update hits count for each detector
-    hits_detectors_whole(j) = nnz(Detector_Energy(:,j));
+% Update hits count for each detector
+for k = 1:(numDetect)
+    hits_detectors_whole(k) = nnz(Detector_Energy(:,k));
 end
     
+% Calculate the sum of energy deposits over all detectors for each particle
+WholeSum = sum(Detector_Energy,2); 
+
 % Update singleMatrix for each energy channel
-for k = 1:length(energy_channels(:, 1))
-    for i = 1:numDetect
-        if WholeSum(i) >= energy_channels(k, 1) && WholeSum(i) < energy_channels(k, 2)
-            singleMatrix_whole(k) = singleMatrix_whole(k) + 1;
+for l = 1:length(energy_channels(:, 1))                                                     % For each energy channel
+    for i = 1:size(Detector_Energy,1)                                                       % For each particle
+        if WholeSum(i) >= energy_channels(l, 1) && WholeSum(i) < energy_channels(l, 2)      % Sort total deposited energies into an energy channel
+            singleMatrix_whole(i) = l;
         end
     end
 end
