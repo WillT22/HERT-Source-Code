@@ -59,9 +59,9 @@ NoEnergyDep = nnz(EnergySum == 0);
 %% Writes Output to Text File
 fprintf(fid, '%s \n', header);
 fprintf(fid, '%9.6g          %10.6g%10.6g%10.6g%10.6g%10.6g%10.6g%10.6g%10.6g%10.6g\n', Energy_output');
-fprintf(fid, ' Sims with No Energy Deposited: \n');
+fprintf(fid, 'Sims with No Energy Deposited: \n');
 fprintf(fid, '%.f \n', NoEnergyDep);
-fprintf(fid, ' Sims with Energy Deposited: \n');
+fprintf(fid, 'Sims with Energy Deposited: \n');
 fprintf(fid, '%.f', HitsLog);
 fclose(fid);
 

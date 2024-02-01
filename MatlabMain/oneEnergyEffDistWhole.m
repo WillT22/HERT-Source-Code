@@ -7,7 +7,6 @@ function [singleMatrix_whole, energy_beam, beam_number, count_back_whole, hits_d
 numDetect = 9;
 
 % Initialize output variables
-singleMatrix_whole = zeros(size(energy_channels,1), 1);
 hits_detectors_whole = zeros(numDetect, 1);
 
 % Find the first sequence of digits and convert it to a number
@@ -69,6 +68,8 @@ end
 % Calculate the sum of energy deposits over all detectors for each particle
 WholeSum = sum(Detector_Energy,2); 
 
+singleMatrix_whole = zeros(length(energy_beam), 1);
+
 % Update singleMatrix for each energy channel
 for l = 1:length(energy_channels(:, 1))                                                     % For each energy channel
     for i = 1:size(Detector_Energy,1)                                                       % For each particle
@@ -79,7 +80,7 @@ for l = 1:length(energy_channels(:, 1))                                         
 end
 
 % Display summary information after running through all simulations
-fprintf('Whole Configuration: \nNumber of back hits= %i\nTotal number of hits = %i\n', count_back_whole,sum(singleMatrix_whole));
+fprintf('Number of back hits= %i\nTotal number of hits = %i\n', count_back_whole,sum(singleMatrix_whole));
 
 % Change back to the original directory
 cd ..
