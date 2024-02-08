@@ -192,15 +192,15 @@ while choice ~= 1 % Choice 1 is to exit the program
                 disp(addin);
                 
                 % Creates matrix to store data
-                M_incident_energy = zeros(1, file_number);
-                M_output_Mult = zeros(size(energy_channels,1), file_number);
+                M_incident_energy = [];
+                M_output_Mult = [];
                 M_output_number = zeros(1, file_number);
                 M_count_back_whole = zeros(1, file_number);
                 M_detector_energy_whole = zeros(9, file_number);
                 M_hits_detector_whole = zeros(9, file_number);
                 
                 % Nested For loops to create final matrix 1 and 2
-                for i = 1: file_number
+                for i = 1:file_number
                     % For every .txt file in Results, it will run
                     % oneEnergyEffDist and add the results to finalMatrix
                     % and finalMatrix2
@@ -208,15 +208,15 @@ while choice ~= 1 % Choice 1 is to exit the program
                         = oneEnergyEffDistWhole(filename{i}, energy_channels, back_limit, inputfolder, detector_threshold);
                         
                     % This will be Y in our plot
-                    M_output_Mult(:, i) = output_Mult;
+                    M_output_Mult = [M_output_Mult; output_Mult];
                     
                     % final_matrix is a matrix with
                     % Energy Channel x number of different energy levels tested
                     % This will be X in our plot
-                    M_incident_energy(i,:) = energy_beam;
+                    M_incident_energy = [M_incident_energy; energy_beam];
                     M_output_number(i) = output_number;
                     M_count_back_whole(i) = count_back_whole;
-                    M_hits_detector_whole(:, i) = hits_detectors_whole;
+                    M_hits_detector_whole(:,i) = hits_detectors_whole;
                     M_count_reject(i) = count_reject;
                     M_run_number(i) = run_number;
                 end
@@ -243,12 +243,18 @@ while choice ~= 1 % Choice 1 is to exit the program
 
                 % Y has a column for every energy channel and rows up to
                 % the number of .txt. files
-                hits_whole = M_output_Mult;
+                hits_whole_EC = histcounts(M_output_Mult);
+                for i = 1:length(energy_channels)-1
+                    for j = 1:length(M_output_Mult)
+                        if M_output_Mult(j) == i
+                            hits_whole_EC(i) = hits_whole_EC(i) + 1;
+                        end
+                    end
+                end
                 
                 % Calculates total number of hits across energy level and
                 % energy channel for the whole config.
-                hits_EL_whole = sum(hits_whole, 1);
-                hits_tot_whole = sum(hits_EL_whole);
+                hits_EL_whole = sum(hits_whole_EC, 1);
                 
                 if sim_type == 0
                     % Scales up simulated particles to the total number of particles
@@ -268,8 +274,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                 
                 % Calculates total geometric factor per energy level and
                 % geometric factor of each energy channel versus incident energy
-                geo = (hits_tot_whole / part_tot) * (4 * (pi^2) * (r_source^2));
-                geo_EC = (hits_whole ./ (part_tot_EC .* ones(size(hits_whole)))) * (4 * (pi^2) * (r_source^2));
+                geo_EC = (hits_whole_EC ./ (part_tot_EC .* ones(size(hits_whole_EC)))) * (4 * (pi^2) * (r_source^2));
                 geo_EL = sum(geo_EC, 1);
                 
                 % Calculate Standard deviation and Error
@@ -519,10 +524,10 @@ while choice ~= 1 % Choice 1 is to exit the program
                     [output_Mult,energy_beam,output_number,count_back_whole,detector_energy_whole,hits_detectors_whole]...
                         = oneEnergyEffDistWhole(filename,energy_channels,back_limit,inputfolder,detector_threshold);
                 
-                    hits_whole = output_Mult;
+                    hits_whole_EC = output_Mult;
                     r_source = 8.5; % 8.5 cm for HERT-CAD
                     part_tot_EC = 2 .* output_number / (1 - cosd(15));
-                    geo_EC = (hits_whole ./ part_tot_EC) * (4 * (pi^2) * (r_source^2));
+                    geo_EC = (hits_whole_EC ./ part_tot_EC) * (4 * (pi^2) * (r_source^2));
                     %{
                     save('output_singleParticleArray.mat','output_Mult')
                     disp('output_singleParticleArray.mat');

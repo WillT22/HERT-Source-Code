@@ -80,7 +80,9 @@ for l = 1:length(energy_channels(:, 1))                                         
 end
 
 % Display summary information after running through all simulations
-fprintf('Number of back hits= %i\nTotal number of hits = %i\n', count_back_whole,sum(singleMatrix_whole));
+fprintf('Number of back hits= %i\n', count_back_whole);
+fprintf('Number of rejected hits = %i\n', count_reject);
+fprintf('Number of counted hits = %i\n', sum(singleMatrix_whole));
 
 % Change back to the original directory
 cd ..
