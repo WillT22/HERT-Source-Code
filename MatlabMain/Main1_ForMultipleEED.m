@@ -14,7 +14,7 @@ addpath 'E:\HERT_Drive\MATLAB Main'
 
 % Initialization of different values (I didn't know where else to put them) 
 numDetect = 9;
-textsize = 24;
+textsize = 18;
 
 %% Geometric Factor- Theory
 % This section solves for the theoretical geometric factor of the instrument
@@ -172,7 +172,7 @@ while choice ~= 1 % Choice 1 is to exit the program
             energy_channel_choice = menu('Choose Energy Channels', channels.name);
             energy_channels = readmatrix(channels(energy_channel_choice).name);
             Selected_Channel_name = channels(energy_channel_choice).name;
-            fprintf('%f Energy Channels Selected \n', size(energy_channels, 1))
+            fprintf('%.g Energy Channels Selected \n', size(energy_channels, 1))
             addin = append(' ', erase(channels(energy_channel_choice).name, '.txt'), addin);
             
             % Preallocates EngLegend variable
@@ -184,7 +184,7 @@ while choice ~= 1 % Choice 1 is to exit the program
             
             % Creates n x 3 matrix for plot colors. This will give each energy channel its own color on the plot.
             % n = number of energy channels
-            Effplotcolor = plasma(size(energy_channels, 1)); % Requires MatPlotLib Perceptually Uniform Colormaps
+            Effplotcolor = plasma(length(energy_channels)-1); % Requires MatPlotLib Perceptually Uniform Colormaps
             
             % More than one file selected
             if iscell(filename)
@@ -192,30 +192,34 @@ while choice ~= 1 % Choice 1 is to exit the program
                 disp(addin);
                 
                 % Creates matrix to store data
-                M_incident_energy = [];
                 M_output_Mult = [];
-                M_output_number = zeros(1, file_number);
-                M_count_back_whole = zeros(1, file_number);
+                M_energy_beam = [];
+                M_non_energy_beam = [];
+                M_beam_number = zeros(1,file_number);
+                M_back_whole = [];
                 M_detector_energy_whole = zeros(9, file_number);
                 M_hits_detector_whole = zeros(9, file_number);
+                M_count_reject = zeros(9, file_number);
+                M_run_number = zeros(1,file_number);
                 
                 % Nested For loops to create final matrix 1 and 2
                 for i = 1:file_number
                     % For every .txt file in Results, it will run
                     % oneEnergyEffDist and add the results to finalMatrix
                     % and finalMatrix2
-                    [output_Mult, energy_beam, output_number, count_back_whole, hits_detectors_whole, count_reject, run_number]...
+                    [output_Mult, energy_beam, non_energy_beam, beam_number, back_whole, hits_detectors_whole, count_reject, run_number]...
                         = oneEnergyEffDistWhole(filename{i}, energy_channels, back_limit, inputfolder, detector_threshold);
                         
                     % This will be Y in our plot
-                    M_output_Mult = [M_output_Mult; output_Mult];
+                    M_output_Mult = [M_output_Mult, output_Mult];
                     
                     % final_matrix is a matrix with
                     % Energy Channel x number of different energy levels tested
                     % This will be X in our plot
-                    M_incident_energy = [M_incident_energy; energy_beam];
-                    M_output_number(i) = output_number;
-                    M_count_back_whole(i) = count_back_whole;
+                    M_energy_beam = [M_energy_beam, energy_beam];
+                    M_non_energy_beam = [M_non_energy_beam, non_energy_beam];
+                    M_beam_number(i) = beam_number;
+                    M_back_whole = [M_back_whole,(length(M_energy_beam)-length(energy_beam))+back_whole];
                     M_hits_detector_whole(:,i) = hits_detectors_whole;
                     M_count_reject(i) = count_reject;
                     M_run_number(i) = run_number;
@@ -236,50 +240,56 @@ while choice ~= 1 % Choice 1 is to exit the program
                 r_source = 8.5; % 8.5 cm for HERT-CAD
 
                 % Find the indices that would sort M_output_energy
-                M_incident_energy = reshape(M_incident_energy,1,:);
-                [sorted_M_output_energy, sort_indices] = sort(M_incident_energy);
-                min_incident_energy = min(M_incident_energy,[],"all");
-                max_incident_energy = max(M_incident_energy,[],"all");
+                min_incident_energy = min(M_energy_beam,[],"all");
+                max_incident_energy = max(M_energy_beam,[],"all");
 
                 % Y has a column for every energy channel and rows up to
                 % the number of .txt. files
                 hits_whole_EC = histcounts(M_output_Mult);
-                for i = 1:length(energy_channels)-1
-                    for j = 1:length(M_output_Mult)
-                        if M_output_Mult(j) == i
-                            hits_whole_EC(i) = hits_whole_EC(i) + 1;
-                        end
-                    end
+                
+                 % Bin the energy for every particle simulated (hits or no)
+                bins = 100;
+                [M_energy_bin,M_energy_edges,M_energy_bin_indicies] = histcounts([M_energy_beam, M_non_energy_beam],bins);
+                
+                M_energy_midpoints = zeros(1,length(M_energy_edges)-1);
+                for edge = 1:length(M_energy_edges)-1
+                    M_energy_midpoints(edge) = (M_energy_edges(edge)+M_energy_edges(edge+1))/2;
                 end
+
+                % Get bin indices for all energy beam values for hit counts
+                [~,~,beam_bin_indices] = histcounts(M_energy_beam, M_energy_edges);
                 
-                % Calculates total number of hits across energy level and
-                % energy channel for the whole config.
-                hits_EL_whole = sum(hits_whole_EC, 1);
-                
+                % Find the bin number for each back hit
+                back_bins = beam_bin_indices(M_back_whole);
+
+                back_counts = zeros(1,bins);
+                for bin = 1:bins
+                    back_counts(bin) = nnz(back_bins==bin);
+                end
+
                 if sim_type == 0
                     % Scales up simulated particles to the total number of particles
-                    part_tot_EC = 2 .* M_output_number / (1 - cosd(15));
-                    part_tot_EL = part_tot_EC(:,1);
-                    part_tot = sum(part_tot_EL) .* size(energy_channels, 1);
-                      
-                elseif sim_type == 1
-                    % Full Spherical
-                    part_tot_EC = M_output_number;
-                    part_tot_EL = M_output_number;
-                    part_tot = sum(M_output_number) .* size(energy_channels, 1);
+                    M_energy_bin = 2 .* M_energy_bin / (1 - cosd(15));
                     
                 else
                     error('Error on Sim Type')
                 end
                 
-                % Calculates total geometric factor per energy level and
-                % geometric factor of each energy channel versus incident energy
-                geo_EC = (hits_whole_EC ./ (part_tot_EC .* ones(size(hits_whole_EC)))) * (4 * (pi^2) * (r_source^2));
-                geo_EL = sum(geo_EC, 1);
-                
-                % Calculate Standard deviation and Error
-                omega_n_whole = (part_tot_EL .* (hits_EL_whole ./ part_tot_EL) .* (1 - (hits_EL_whole ./ part_tot_EL))).^0.5;
-                omega_G_whole = (4 * (pi^2) * (8.2^2)) * (1 - (hits_EL_whole ./ part_tot_EL)) .* ((hits_EL_whole ./ (part_tot_EL.^2))).^0.5;
+                % Find the number of particles in each bin for each energy channel
+                hits_log = zeros(length(energy_channels)-1,bins);
+                geo_EC = zeros(length(energy_channels)-1,bins);
+                for channel = 1:length(energy_channels)-1
+                    for particle = 1:length(M_output_Mult)
+                        if M_output_Mult(particle) == channel
+                            hits_log(channel,beam_bin_indices(particle))= hits_log(channel,beam_bin_indices(particle)) + 1;
+                        end
+                    end
+                    % Calculates the geometric factor for each channel
+                    geo_EC(channel,:) = (hits_log(channel,:) ./ M_energy_bin * (4 * (pi^2) * (r_source^2)));
+                end
+
+                % Calculates total geometric factor
+                geo_total = sum(geo_EC);
                 
                 % Saves variables for later graph making
                 Var_String = append('OutputVariables', addin, '.mat');
@@ -294,11 +304,11 @@ while choice ~= 1 % Choice 1 is to exit the program
                 
                 hold on
                 % Plot Theory Bands
-                plot([min_incident_energy, max_incident_energy], G3_whole_min * ones(1,2), '--g', 'LineWidth', line_width);
-                plot([min_incident_energy, max_incident_energy], G3_whole_max * ones(1,2), '--b', 'LineWidth', line_width);
+                plot([0, 80], G3_whole_min * ones(1,2), '--g', 'LineWidth', line_width);
+                plot([0, 80], G3_whole_max * ones(1,2), '--b', 'LineWidth', line_width);
                 
                 % Plot Simulation Value
-                plot(sorted_M_output_energy, geo_EL(sort_indices), '-k', 'LineWidth', line_width);
+                plot(M_energy_midpoints, sum(geo_EC,1), '-k', 'LineWidth', line_width);
 
                  % Put in Penetration Limits
                 xline([14,36,51],'--',{'Beryllium Window Penetration','Collimator Teeth Penetration','Veto Detector Triggering'}, ...
@@ -335,9 +345,9 @@ while choice ~= 1 % Choice 1 is to exit the program
                 f2.Position = [0 0 2048 1600];
                 
                 hold on
-                plot(sorted_M_output_energy, 100 * hits_EL_whole(sort_indices) ./ M_output_number, 'DisplayName', 'Counted Hits', 'LineWidth', line_width)
-                plot(sorted_M_output_energy, 100 * M_count_back_whole(sort_indices) ./ M_output_number, 'DisplayName', 'Last Detector Triggered', 'LineWidth', line_width)
-                
+                plot(M_energy_midpoints, 100 * sum(hits_log,1) ./ M_energy_bin, 'DisplayName', 'Counted Hits', 'LineWidth', line_width)
+                plot(M_energy_midpoints, 100 * back_counts ./ M_energy_bin, 'DisplayName', 'Last Detector Triggered', 'LineWidth', line_width)
+
                  % Put in Penetration Limits
                 xline([14,35,51],'--',{'Beryllium Window Penetration','Collimator Teeth Penetration','Veto Detector Triggering'}, ...
                     'LineWidth', 1.5,'FontSize', 19,'LabelOrientation','horizontal')
@@ -378,13 +388,13 @@ while choice ~= 1 % Choice 1 is to exit the program
                 % channel_select = [2,10,20,30,35];
                 % channel_select = [10];
                 
-                EC_plot_color = plasma(1:length(energy_channels));
+                EC_plot_color = plasma(length(energy_channels));
                 
                 hold on
-                for i = 1:size(energy_channels, 1)
-                    plot(sorted_M_output_energy, geo_EC(i, sort_indices), 'Color', EC_plot_color(color_iter, :), 'LineWidth', line_width);
-                    EngLegend_EC(i) = append(sprintf('Channel #%.0f: ', i), EngLegend(i));
-                    EngLegend_EC(i) = EngLegend(i);
+                for channel = 1:size(energy_channels, 1)-1
+                    plot(M_energy_midpoints, geo_EC(channel,:), 'Color', EC_plot_color(color_iter, :), 'LineWidth', line_width);
+                    EngLegend_EC(channel) = append(sprintf('Channel #%.0f: ', channel), EngLegend(channel));
+                    EngLegend_EC(channel) = EngLegend(channel);
                     color_iter = color_iter + 1;
                 end
                 % Put in Penetration Limits
@@ -521,12 +531,12 @@ while choice ~= 1 % Choice 1 is to exit the program
             else
                     disp('Start the oneEnergyEffDist.m');  
                     % Runs oneEnergyEffDistWhole for the one .txt file
-                    [output_Mult,energy_beam,output_number,count_back_whole,detector_energy_whole,hits_detectors_whole]...
+                    [output_Mult,energy_beam,beam_number,back_whole,detector_energy_whole,hits_detectors_whole]...
                         = oneEnergyEffDistWhole(filename,energy_channels,back_limit,inputfolder,detector_threshold);
                 
                     hits_whole_EC = output_Mult;
                     r_source = 8.5; % 8.5 cm for HERT-CAD
-                    part_tot_EC = 2 .* output_number / (1 - cosd(15));
+                    part_tot_EC = 2 .* beam_number / (1 - cosd(15));
                     geo_EC = (hits_whole_EC ./ part_tot_EC) * (4 * (pi^2) * (r_source^2));
                     %{
                     save('output_singleParticleArray.mat','output_Mult')

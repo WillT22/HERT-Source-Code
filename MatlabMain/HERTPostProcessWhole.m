@@ -42,12 +42,15 @@ fprintf('Starting Run %d \n', run_number)
 EnergySum = sum(Detector_Energy,2);
 
 Einc_new = [];
+Einc_non = [];
 Edep_data = [];
 
 for i = 1:beam_number
     if EnergySum(i) ~= 0
-        Einc_new = [Einc_new; Einc(i)];
+        Einc_new = [Einc_new; Einc(i)]; 
         Edep_data = [Edep_data; Detector_Energy(i,:)];
+    else
+        Einc_non = [Einc_non; Einc(i)];
     end
 end
 
@@ -57,12 +60,12 @@ HitsLog = nnz(EnergySum);
 NoEnergyDep = nnz(EnergySum == 0); 
 
 %% Writes Output to Text File
+fprintf(fid, 'Sims with Energy Deposited: %.f\n', HitsLog);
 fprintf(fid, '%s \n', header);
 fprintf(fid, '%9.6g          %10.6g%10.6g%10.6g%10.6g%10.6g%10.6g%10.6g%10.6g%10.6g\n', Energy_output');
-fprintf(fid, 'Sims with No Energy Deposited: \n');
-fprintf(fid, '%.f \n', NoEnergyDep);
-fprintf(fid, 'Sims with Energy Deposited: \n');
-fprintf(fid, '%.f', HitsLog);
+fprintf(fid, '\nSims with No Energy Deposited: %.f\n',NoEnergyDep);
+fprintf(fid, 'Einc(MeV) \n');
+fprintf(fid, '%9.6g \n', Einc_non);
 fclose(fid);
 
 % Return to MATLAB Main

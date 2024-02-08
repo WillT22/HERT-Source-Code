@@ -1,4 +1,4 @@
-function [singleMatrix_whole, energy_beam, beam_number, count_back_whole, hits_detectors_whole, count_reject,run_number] = oneEnergyEffDistWhole(file_name, energy_channels, back_limit, inputfolder, detector_threshold)
+function [singleMatrix_whole, energy_beam, non_energy_beam, beam_number, back_whole, hits_detectors_whole, count_reject,run_number] = oneEnergyEffDistWhole(file_name, energy_channels, back_limit, inputfolder, detector_threshold)
 % Author: Yinbo Chen
 % Date: 6/15/2021
 % Modified by: Skyler Krantz, Will Teague
@@ -7,7 +7,7 @@ function [singleMatrix_whole, energy_beam, beam_number, count_back_whole, hits_d
 numDetect = 9;
 
 % Initialize output variables
-hits_detectors_whole = zeros(numDetect, 1);
+hits_detectors_whole = zeros(1,numDetect);
 
 % Find the first sequence of digits and convert it to a number
 beam_number = str2double(regexp(file_name, '\d+', 'match', 'once'));
@@ -19,17 +19,19 @@ cd(inputfolder);
 % Opens the file to be processed
 fide = fopen(file_name, 'r');
 % Sorts each line in the .txt file into a cell array
-data = textscan(fide, '%f %f %f %f %f %f %f %f %f %f', 'Delimiter','','HeaderLines',1);  % Skip header
-NumNoEnergy = textscan(fide, '%f', 'Delimiter','','HeaderLines',1);
-NumEnergyDeposit = textscan(fide, '%f', 'Delimiter','','HeaderLines',1);
+NumEnergyDeposit = textscan(fide, 'Sims with Energy Deposited: %f', 'Delimiter','');
+deposit_data = textscan(fide, '%f %f %f %f %f %f %f %f %f %f', 'Delimiter','','HeaderLines',1);  % Skip header
+NumNoEnergy = textscan(fide, 'Sims with No Energy Deposited: %f', 'Delimiter','');
+Einc_data = textscan(fide, '%f', 'Delimiter','','HeaderLines',1);  % Skip header
 % Closes the file
 fclose(fide);
 
 % Extract relevant information from the data
-energy_beam = data{1};
-Detector_Energy = cell2mat(data(2:end));
 NumEnergyDeposit = NumEnergyDeposit{1, 1};
+energy_beam = deposit_data{1}';
+Detector_Energy = cell2mat(deposit_data(2:end));
 NumNoEnergy = NumNoEnergy{1, 1};
+non_energy_beam = Einc_data{1}';
 
 % Check if the sum of energy deposits and no-energy counts match the beam number
 if NumNoEnergy + NumEnergyDeposit ~= beam_number
@@ -39,7 +41,7 @@ end
 fprintf('Starting Run %d \n', run_number)
 
 % Reset the counts
-count_back_whole = 0;
+back_whole = [];
 count_reject = 0;
 
 % Zero out values below detector threshold for the whole configuration
@@ -49,7 +51,7 @@ for i = 1:size(Detector_Energy,1)                       % For each particle that
         count_reject = count_reject + 1;    
     elseif Detector_Energy(i,numDetect) > back_limit    % If the particle deposited energy above the threshold on the back detector,
         Detector_Energy(i,:) = 0;                       % Reject the count.
-        count_back_whole = count_back_whole + 1;
+        back_whole = [back_whole,i];
     else                                                % Otherwise,
         for j = 2:numDetect-1                           % For the other detectors,
             if Detector_Energy(j) < detector_threshold  % If the particle did not deposit energy above the threshold of a detector,
@@ -58,7 +60,7 @@ for i = 1:size(Detector_Energy,1)                       % For each particle that
         end
     end
 end
-count_reject = count_reject + count_back_whole;
+count_reject = count_reject + nnz(back_whole);
 
 % Update hits count for each detector
 for k = 1:(numDetect)
@@ -68,10 +70,9 @@ end
 % Calculate the sum of energy deposits over all detectors for each particle
 WholeSum = sum(Detector_Energy,2); 
 
-singleMatrix_whole = zeros(length(energy_beam), 1);
-
+singleMatrix_whole = zeros(1,length(energy_beam));
 % Update singleMatrix for each energy channel
-for l = 1:length(energy_channels(:, 1))                                                     % For each energy channel
+for l = 1:size(energy_channels,1)                                                     % For each energy channel
     for i = 1:size(Detector_Energy,1)                                                       % For each particle
         if WholeSum(i) >= energy_channels(l, 1) && WholeSum(i) < energy_channels(l, 2)      % Sort total deposited energies into an energy channel
             singleMatrix_whole(i) = l;
@@ -80,9 +81,9 @@ for l = 1:length(energy_channels(:, 1))                                         
 end
 
 % Display summary information after running through all simulations
-fprintf('Number of back hits= %i\n', count_back_whole);
+fprintf('Number of back hits= %i\n', length(back_whole));
 fprintf('Number of rejected hits = %i\n', count_reject);
-fprintf('Number of counted hits = %i\n', sum(singleMatrix_whole));
+fprintf('Number of counted hits = %i\n', nnz(singleMatrix_whole));
 
 % Change back to the original directory
 cd ..

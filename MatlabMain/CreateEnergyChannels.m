@@ -14,7 +14,7 @@ Max_Limit = 7;
 %
 ExLow_Limit = 10;
 Low_Limit = 15;
-Med_Limit = 30.0;
+Med_Limit = 40.0;
 High_Limit = 60.0;
 Max_Limit = 80.0;
 ExHigh_Limit = 120;
@@ -100,7 +100,7 @@ Resolution
 
 %% Write to Text File
 
-fileID = fopen('proton_channels_v1.txt','w');
+fileID = fopen('proton_channels_v3.txt','w');
 for i = 1:size(Channels,1)
 fprintf(fileID,'%6.3f,%6.3f \n',Channels(i,:));
 end
