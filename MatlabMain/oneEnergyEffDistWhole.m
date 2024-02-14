@@ -51,7 +51,7 @@ for i = 1:size(Detector_Energy,1)                       % For each particle that
         count_reject = count_reject + 1;    
     elseif Detector_Energy(i,numDetect) > back_limit    % If the particle deposited energy above the threshold on the back detector,
         Detector_Energy(i,:) = 0;                       % Reject the count.
-        back_whole = [back_whole,i];
+        back_whole = [back_whole,energy_beam(i)];
     else                                                % Otherwise,
         for j = 2:numDetect-1                           % For the other detectors,
             if Detector_Energy(j) < detector_threshold  % If the particle did not deposit energy above the threshold of a detector,
@@ -72,10 +72,10 @@ WholeSum = sum(Detector_Energy,2);
 
 singleMatrix_whole = zeros(1,length(energy_beam));
 % Update singleMatrix for each energy channel
-for l = 1:size(energy_channels,1)                                                     % For each energy channel
+for ec = 1:size(energy_channels,1)                                                     % For each energy channel
     for i = 1:size(Detector_Energy,1)                                                       % For each particle
-        if WholeSum(i) >= energy_channels(l, 1) && WholeSum(i) < energy_channels(l, 2)      % Sort total deposited energies into an energy channel
-            singleMatrix_whole(i) = l;
+        if WholeSum(i) >= energy_channels(ec, 1) && WholeSum(i) < energy_channels(ec, 2)      % Sort total deposited energies into an energy channel
+            singleMatrix_whole(i) = ec; %replace with variable sized matrix that takes all good hits and add bad hits to non_energy_beam
         end
     end
 end
@@ -83,7 +83,7 @@ end
 % Display summary information after running through all simulations
 fprintf('Number of back hits= %i\n', length(back_whole));
 fprintf('Number of rejected hits = %i\n', count_reject);
-fprintf('Number of counted hits = %i\n', nnz(singleMatrix_whole));
+fprintf('Number of counted hits = %i\n', length(singleMatrix_whole));
 
 % Change back to the original directory
 cd ..

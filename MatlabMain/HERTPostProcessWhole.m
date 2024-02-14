@@ -24,8 +24,7 @@ fclose(fide);
 Einc = data{1};
 Detector_Energy = cell2mat(data(2:end));
 
-% Finds the number of rows in the data file and stores it in n
-n = size(data{1,1}, 1);
+n = size(Detector_Energy,1); % Number of particles in file
 
 % Checks that n is equal to the beam number. If not, an error is thrown.
 if n ~= beam_number
@@ -41,23 +40,17 @@ fprintf('Starting Run %d \n', run_number)
     
 EnergySum = sum(Detector_Energy,2);
 
-Einc_new = [];
-Einc_non = [];
-Edep_data = [];
+% Use logical indexing and single assignments
+idx_positive = EnergySum > 0;
 
-for i = 1:beam_number
-    if EnergySum(i) ~= 0
-        Einc_new = [Einc_new; Einc(i)]; 
-        Edep_data = [Edep_data; Detector_Energy(i,:)];
-    else
-        Einc_non = [Einc_non; Einc(i)];
-    end
-end
+Einc_new = Einc(idx_positive==1);
+Einc_non = Einc(idx_positive==0);
+Edep_data = Detector_Energy(idx_positive==1, :);
 
 Energy_output = [Einc_new, Edep_data];
 
-HitsLog = nnz(EnergySum);
-NoEnergyDep = nnz(EnergySum == 0); 
+HitsLog = nnz(idx_positive);
+NoEnergyDep = nnz(idx_positive == 0); 
 
 %% Writes Output to Text File
 fprintf(fid, 'Sims with Energy Deposited: %.f\n', HitsLog);

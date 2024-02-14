@@ -12,9 +12,27 @@ close all;
 clc;
 addpath 'E:\HERT_Drive\MATLAB Main'
 
-% Initialization of different values (I didn't know where else to put them) 
+% Initialization of User Manipulated Variables 
+detector_threshold = 0.1; % Detector Threshold (MeV)
+back_threshold = 0.1; % Back Detector Threshold (MeV)
 numDetect = 9;
+bins = 200;
 textsize = 18;
+
+%% Calculate GEANT4 Results
+% Read files from ./Result folder and store into a 1*C array
+cd 'E:\HERT_Drive\MATLAB Main\Result'; % Main Result Directory
+
+% Get Folder Names for User
+topLevelFolder = pwd; % or whatever, such as 'C:\Users\John\Documents\MATLAB\work'
+files = dir(topLevelFolder);
+dirFlags = [files.isdir];
+subFolders = files(dirFlags);
+subFolderNames = {subFolders(3:end).name}; % Start at 3 to skip . and ..
+
+FolderChoice = menu('HERT Loop: Choose an input folder', subFolderNames{:});
+inputfolder = subFolderNames{FolderChoice};
+addin = inputfolder;
 
 %% Geometric Factor- Theory
 % This section solves for the theoretical geometric factor of the instrument
@@ -37,26 +55,10 @@ L_13 = L_12 + L_23;
 
 G3_whole_min = findG3whole(L_12, L_23, L_13, r1, r2, r3);
 
-%% Calculate GEANT4 Results
-% Read files from ./Result folder and store into a 1*C array
-cd 'E:\HERT_Drive\MATLAB Main\Result'; % Main Result Directory
-
-% Get Folder Names for User
-topLevelFolder = pwd; % or whatever, such as 'C:\Users\John\Documents\MATLAB\work'
-files = dir(topLevelFolder);
-dirFlags = [files.isdir];
-subFolders = files(dirFlags);
-subFolderNames = {subFolders(3:end).name}; % Start at 3 to skip . and ..
-
-FolderChoice = menu('HERT Loop: Choose an input folder', subFolderNames{:});
-inputfolder = subFolderNames{FolderChoice};
-addin = inputfolder;
-
 % Menu to select particle type on which max geometric factor depends
 parttype_choice = menu('Particle Type', 'Electron', 'Proton');
 switch parttype_choice
     case 1
-        sim_type = 0;
         fprintf('Particle Type: Electron \n')
         % Assuming the Collimator Knife Edge Stops No Particles (Max GeoFactor)
         L_12 = 6.0; % cm distance between first and last collimator teeth
@@ -69,7 +71,6 @@ switch parttype_choice
         
         G3_whole_max = findG3whole(L_12, L_23, L_13, r1, r2, r3);
     case 2
-        sim_type = 1;
         fprintf('Particle Type: Proton \n')
         % Protons penetrate entirety of collimator teeth
         L_12 = 6.0; % cm distance between first and last collimator teeth
@@ -82,6 +83,7 @@ switch parttype_choice
         G3_whole_max = 0.5*(pi^2)*((r1^2+r3^2+L_13^2)-(((r1^2+r3^2+L_13^2)^2-4*(r1^2)*(r3^2))^0.5));
 end
 
+%% Select Run Information
 % Menu to select spherical cap or full spherical
 simtype_choice = menu('Simulation Type', 'Spherical Cap (15 deg)', 'Full Sphere');
 switch simtype_choice
@@ -104,6 +106,12 @@ list_fileNames = {list.name};
 % Gets the number of rows and columns in file names. Columns will indicate
 % the number of files that can be loaded
 file_number = size(list_fileNames, 2);
+
+% Menu to determine energy channels
+channels = dir('*.txt');
+energy_channel_choice = menu('Choose Energy Channels', channels.name);
+energy_channels = readmatrix(channels(energy_channel_choice).name);
+Selected_Channel_name = channels(energy_channel_choice).name;
 
 % Display a menu and get a choice
 choice = menu('Choose an option', 'Exit Program', 'Load one file', 'Load all files');
@@ -129,63 +137,34 @@ while choice ~= 1 % Choice 1 is to exit the program
                 disp(filename); % Shows the file that was loaded
             end
         case 3 % Load all files
-            txt_files_All = menu('Choose all files', 'All .txt files');
-            switch txt_files_All
-                case 1
-                    % Loads all .txt files in the Result folder
-                    filename = list_fileNames;
-                    fprintf('Number of files loaded: %.0f\n', length(list_fileNames))
-            end
+            filename = list_fileNames;
+            fprintf('Number of files loaded: %.0f\n', length(list_fileNames))
+
+%% Start Data Processing            
         case 4 % Start Run
-            % Menu to determine run type
-            runtype_choice = menu('Set Back Detector Limit', '0 MeV', '0.01 MeV', '0.1 MeV');
-            switch runtype_choice
-                % Includes Outer Ring Hits
-                case 1
-                    back_limit = 0;
-                    addin = append(' 0 MeV ', addin);
-                case 2 % Sets 0.01 MeV Threshold for detectors
-                    back_limit = 0.01;
-                    addin = append(' 0.01 MeV ', addin);
-                case 3 % Sets 0.1 MeV Threshold for Outer Ring
-                    back_limit = 0.1;
-                    addin = append(' 0.1 MeV ', addin);
-            end
-            % Prints Outer_limit
-            fprintf('Back Detector Limit: %.2i\n', back_limit)
+            % Print detector threshold information
+            detector_string = sprintf(' %.2f MeV ', detector_threshold); % Format with 2 decimal places
+            addin = append(detector_string,addin);
+            fprintf('Detector Threshold: %.2f MeV\n', detector_threshold)
+
+            % Print back threshold information
+            back_string = sprintf(' %.2f MeV ', back_threshold); % Format with 2 decimal places
+            addin = append(back_string,addin);
+            fprintf('Back Detector Threshold: %.2f MeV\n', back_threshold)
             
-            % Menu to determine detector threshold
-            detector_choice = menu('Detector Threshold', '0 MeV', '0.1 MeV');
-            switch detector_choice
-                case 1
-                    detector_threshold = 0;
-                    addin = append(addin, ' 0 MeV DT ');
-                case 2
-                    detector_threshold = 0.1; % MeV
-                    addin = append(addin, ' 0.1 MeV DT ');
-            end
-            % Prints Outer_limit
-            fprintf('Detector Threshold: %.2i MeV\n', detector_threshold)
-            
-            % Menu to determine energy channels
-            channels = dir('*.txt');
-            energy_channel_choice = menu('Choose Energy Channels', channels.name);
-            energy_channels = readmatrix(channels(energy_channel_choice).name);
-            Selected_Channel_name = channels(energy_channel_choice).name;
+            % Print energy channel selection
             fprintf('%.g Energy Channels Selected \n', size(energy_channels, 1))
             addin = append(' ', erase(channels(energy_channel_choice).name, '.txt'), addin);
             
-            % Preallocates EngLegend variable
+            % Creates energy channel string array for plot legend
             EngLegend = strings([1, length(energy_channels)]);
-            % Creates Str Array for Plot legend
             for i = 1:size(energy_channels, 1)
                 EngLegend(i) = append(num2str(round(energy_channels(i, 1), 2)), '-', num2str(round(energy_channels(i, 2), 2)), ' MeV');
             end
             
-            % Creates n x 3 matrix for plot colors. This will give each energy channel its own color on the plot.
-            % n = number of energy channels
-            Effplotcolor = plasma(length(energy_channels)-1); % Requires MatPlotLib Perceptually Uniform Colormaps
-            
+            % Creates plot colors for each energy channel
+            Effplotcolor = plasma(length(energy_channels)); % Requires MatPlotLib Perceptually Uniform Colormaps
+                       
             % More than one file selected
             if iscell(filename)
                 disp('Start to loop oneEnergyEffDist.m');
@@ -208,7 +187,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                     % oneEnergyEffDist and add the results to finalMatrix
                     % and finalMatrix2
                     [output_Mult, energy_beam, non_energy_beam, beam_number, back_whole, hits_detectors_whole, count_reject, run_number]...
-                        = oneEnergyEffDistWhole(filename{i}, energy_channels, back_limit, inputfolder, detector_threshold);
+                        = oneEnergyEffDistWhole(filename{i}, energy_channels, back_threshold, inputfolder, detector_threshold);
                         
                     % This will be Y in our plot
                     M_output_Mult = [M_output_Mult, output_Mult];
@@ -219,24 +198,17 @@ while choice ~= 1 % Choice 1 is to exit the program
                     M_energy_beam = [M_energy_beam, energy_beam];
                     M_non_energy_beam = [M_non_energy_beam, non_energy_beam];
                     M_beam_number(i) = beam_number;
-                    M_back_whole = [M_back_whole,(length(M_energy_beam)-length(energy_beam))+back_whole];
+                    M_back_whole = [M_back_whole,back_whole];
                     M_hits_detector_whole(:,i) = hits_detectors_whole;
                     M_count_reject(i) = count_reject;
                     M_run_number(i) = run_number;
                 end
                 
-                %% Save Results
-                % Goes to Result directory and outputs final_matrix
-                cd 'E:\HERT_Drive\MATLAB Main\Result'
-                save('output_MultipleParticleMatrix.mat', 'M_run_number')
-                disp('output_MultipleParticleMatrix.mat');
-                cd ..
-                
+%% Obtain Data for Plotting
                 % Goes to Efficiency_Curves Directory in prep to save
                 % Eff Curve Plot
                 cd Plots/Efficiency_Curves
-                
-                %% Obtain Data for Plotting
+
                 r_source = 8.5; % 8.5 cm for HERT-CAD
 
                 % Find the indices that would sort M_output_energy
@@ -248,7 +220,6 @@ while choice ~= 1 % Choice 1 is to exit the program
                 hits_whole_EC = histcounts(M_output_Mult);
                 
                  % Bin the energy for every particle simulated (hits or no)
-                bins = 100;
                 [M_energy_bin,M_energy_edges,M_energy_bin_indicies] = histcounts([M_energy_beam, M_non_energy_beam],bins);
                 
                 M_energy_midpoints = zeros(1,length(M_energy_edges)-1);
@@ -260,11 +231,11 @@ while choice ~= 1 % Choice 1 is to exit the program
                 [~,~,beam_bin_indices] = histcounts(M_energy_beam, M_energy_edges);
                 
                 % Find the bin number for each back hit
-                back_bins = beam_bin_indices(M_back_whole);
+                [~,~,back_bin_indices] = histcounts(M_back_whole, M_energy_edges);
 
                 back_counts = zeros(1,bins);
                 for bin = 1:bins
-                    back_counts(bin) = nnz(back_bins==bin);
+                    back_counts(bin) = nnz(back_bin_indices==bin);
                 end
 
                 if sim_type == 0
@@ -276,12 +247,12 @@ while choice ~= 1 % Choice 1 is to exit the program
                 end
                 
                 % Find the number of particles in each bin for each energy channel
-                hits_log = zeros(length(energy_channels)-1,bins);
-                geo_EC = zeros(length(energy_channels)-1,bins);
-                for channel = 1:length(energy_channels)-1
-                    for particle = 1:length(M_output_Mult)
-                        if M_output_Mult(particle) == channel
-                            hits_log(channel,beam_bin_indices(particle))= hits_log(channel,beam_bin_indices(particle)) + 1;
+                hits_log = zeros(length(energy_channels),bins);
+                geo_EC = zeros(length(energy_channels),bins);
+                for channel = 1:length(energy_channels)
+                    for particle_index = 1:length(M_output_Mult)
+                        if M_output_Mult(particle_index) == channel
+                            hits_log(channel,beam_bin_indices(particle_index))= hits_log(channel,beam_bin_indices(particle_index)) + 1;
                         end
                     end
                     % Calculates the geometric factor for each channel
@@ -297,18 +268,21 @@ while choice ~= 1 % Choice 1 is to exit the program
                 
                 addin = regexprep(addin, '_', ' ');
                 
-                %% Total Geometric Factor Comparison
+%% Total Geometric Factor Comparison
                 line_width = 2;
                 f1 = gcf;
                 f1.Position = [0 0 2048 1600];
                 
                 hold on
                 % Plot Theory Bands
-                plot([0, 80], G3_whole_min * ones(1,2), '--g', 'LineWidth', line_width);
-                plot([0, 80], G3_whole_max * ones(1,2), '--b', 'LineWidth', line_width);
+                plot([10, 80], G3_whole_min * ones(1,2), '--g', 'LineWidth', line_width);
+                plot([10, 80], G3_whole_max * ones(1,2), '--b', 'LineWidth', line_width);
                 
                 % Plot Simulation Value
-                plot(M_energy_midpoints, sum(geo_EC,1), '-k', 'LineWidth', line_width);
+                total_geo = sum(geo_EC,1);
+                total_geo(total_geo < 1e-5) = 1e-5;
+                
+                plot(M_energy_midpoints, total_geo, '-k', 'LineWidth', line_width);
 
                  % Put in Penetration Limits
                 xline([14,36,51],'--',{'Beryllium Window Penetration','Collimator Teeth Penetration','Veto Detector Triggering'}, ...
@@ -316,6 +290,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                  
                 % Sets y-axis to log scale. Comment out to keep plot linear
                 set(gca, 'YScale', 'log')
+                xlim([10,80])
                 ylim([10^-4, 10^0])
                 set(gca, 'FontSize', textsize)
                 
@@ -339,14 +314,14 @@ while choice ~= 1 % Choice 1 is to exit the program
                 effsave = append('Total GF_', string(datetime("today")), '_', addin, '.jpg');
                 saveas(gcf, effsave)
                                
-                %% Total Hits Comparison
+%% Total Hits Comparison
                 line_width = 2;
                 f2 = figure;
                 f2.Position = [0 0 2048 1600];
                 
                 hold on
-                plot(M_energy_midpoints, 100 * sum(hits_log,1) ./ M_energy_bin, 'DisplayName', 'Counted Hits', 'LineWidth', line_width)
-                plot(M_energy_midpoints, 100 * back_counts ./ M_energy_bin, 'DisplayName', 'Last Detector Triggered', 'LineWidth', line_width)
+                plot(M_energy_midpoints, sum(hits_log,1) ./ M_energy_bin, 'DisplayName', 'Counted Hits', 'LineWidth', line_width)
+                plot(M_energy_midpoints, back_counts ./ M_energy_bin, 'DisplayName', 'Last Detector Triggered', 'LineWidth', line_width)
 
                  % Put in Penetration Limits
                 xline([14,35,51],'--',{'Beryllium Window Penetration','Collimator Teeth Penetration','Veto Detector Triggering'}, ...
@@ -367,7 +342,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                 effsave = append('Counted Hits', string(datetime("today")), addin, '.jpg');
                 saveas(f2, effsave)
 
-                %% Whole Ring Geometric Factor by Energy Channel
+%% Geometric Factor by Energy Channel
                 geo_EC(geo_EC == 0) = 10^-31;
                 line_width = 2;
                 y_label = round(max(max(geo_EC)), 2);
@@ -388,11 +363,9 @@ while choice ~= 1 % Choice 1 is to exit the program
                 % channel_select = [2,10,20,30,35];
                 % channel_select = [10];
                 
-                EC_plot_color = plasma(length(energy_channels));
-                
                 hold on
-                for channel = 1:size(energy_channels, 1)-1
-                    plot(M_energy_midpoints, geo_EC(channel,:), 'Color', EC_plot_color(color_iter, :), 'LineWidth', line_width);
+                for channel = 1:size(energy_channels, 1)
+                    plot(M_energy_midpoints, geo_EC(channel,:), 'Color', Effplotcolor(color_iter, :), 'LineWidth', line_width);
                     EngLegend_EC(channel) = append(sprintf('Channel #%.0f: ', channel), EngLegend(channel));
                     EngLegend_EC(channel) = EngLegend(channel);
                     color_iter = color_iter + 1;
@@ -415,124 +388,18 @@ while choice ~= 1 % Choice 1 is to exit the program
                 
                 ylim([10^-3, 10^0])
                 grid on
-                legend(EngLegend_EC, 'Location', 'southoutside', 'NumColumns', 8)
+                legend(EngLegend_EC, 'Location', 'southoutside', 'NumColumns', 6)
                 
                 % Saving the figure as a jpg then returning to the main directory
                 effsave = append('Geometric Factor Whole by EC_', string(datetime("today")), addin, '.jpg');
                 saveas(f3, effsave)
                 
-%{
-                %% Efficiency
-                line_width = 1;
-                % Create figure at a certain position and size
-                f7 = figure;
-                f7.Position = [0 0 2000 840];
-                hold on
-                hits_rate = hits_whole ./ M_output_number;
-                % Plots each energy channel with a different color
-                for i = 1:size(energy_channels, 1)
-                    plot(sorted_M_output_energy, hits_rate(i, sort_indices), 'Color', Effplotcolor(i, :), 'LineWidth', line_width)
-                end
-                hold off
-                
-                % Adds a legend to distinguish each channel
-                legend(EngLegend, 'Location', 'southoutside', 'NumColumns', 8)
-                
-                % Adding Titles and Axis Labels
-                titlestr = append(sprintf('%.2f MeV - %.2f MeV ', min_incident_energy, max_incident_energy), addin);
-                title(titlestr)
-                ylabel('Efficiency')
-                xlabel('Energy (MeV)')
-                
-                % Saving the figure as a jpg then returning to the main directory
-                effsave = append('Eff', '_', addin, '.jpg');
-                saveas(f7, effsave)
-                cd ..
-                cd ..
-%}
-%{
-                %% Plots for Side Pen Tests
-                % Check if the selected energy channel name contains 'side pen'
-                if contains(lower(Selected_Channel_name),'side pen')
-                    % Define simulated hits for the first detector in side pen tests
-                    hits_EL_whole_1st = [0;0;6;9;8;20;19;27;50;50;78;117;132;152;180;239;280;287;344;379];
-                    
-                    % Set figure properties
-                    textsize=30;
-                    sidepenFig = figure;
-                    sidepenFig.Position = [0 0 1600 800];
-                    
-                    % Plot simulated hits for the middle and first detector
-                    hold on
-                    plot(M_output_energy,100*hits_EL_whole./M_output_number,'Color',[0 0.4470 0.7410],'LineWidth',2)
-                    plot(M_output_energy,100*hits_EL_whole_1st./M_output_number,'Color',[0.5 0 0.7410],'LineWidth',2)
-                    
-                    % Set plot properties
-                    titlestr = addin;
-                    ylabel('Percentage of Hits (%)','FontSize',textsize)
-                    xlabel('Incident Energy (MeV)','FontSize',textsize)
-                    set(gca,'FontSize',textsize)
-                    grid on
-                    legend("Middle Detector","1st Detector","Location","northwest",'FontSize',20)
-                    
-                    % Save the figure as a jpg
-                    effsave = append('Side Pen',addin,'.jpg');
-                    saveas(sidepenFig,effsave)
-                    
-                    % Release figure hold
-                    hold off
-                end
-%}                
-%{
-                %% FWHM-Whole
-                % Calculate Full Width at Half Max (FWHM) values for each energy channel
-                fprintf('\nWhole Configuration: Full Width at Half Max Values:\n')
-                fwhm_whole = zeros(size(energy_channels));
-                for u = 1:size(energy_channels,1)
-                    % Using X and Y from above, calculates FWHM value for each energy channel
-                    [fwhm_whole(u),xr(u),xl(u)] = findFWHM(M_output_energy,geo_EC(:,u));
-                    % Print full width half max values into the command window
-                    fprintf('%.2f - %.2f MeV: %.4f\n',energy_channels(u,1),energy_channels(u,2),fwhm_whole(u))
-                end
-                
-                % Exports .txt file with the FWHM values
-                cd FWHM_values
-                exportname_whole = append('Whole ',inputfolder,'_',addin,'_',num2str(length(energy_channels)));
-                plotsave = append(exportname_whole,'.txt');
-                writematrix(fwhm_whole,plotsave)
-                cd ..
-                
-                % Create figure for showing the FWHM values
-                b = figure;
-                b.Position = [0 0 2000 840];
-                hold on
-                
-                % Plot each energy channel's FWHM value in the same color as the Eff. Curve
-                for i = 1:size(energy_channels,1)
-                    bar((energy_channels(i,1)+energy_channels(i,2))/2,fwhm_whole(i),(energy_channels(i,2)-energy_channels(i,1)),'EdgeColor','k','FaceColor',Effplotcolor(i,:))
-                end
-                hold off
-                
-                % Label the Bar Graph
-                title(titlestr_whole)
-                legend(EngLegend,'Location', 'southoutside','NumColumns',8)
-                ylabel('Full Width at Half Max')
-                xlabel('Energy (MeV)')
-                
-                % Save the Bar Graph as .jpg
-                cd Plots/Histograms
-                histsave = append(exportname_whole,'.jpg');
-                saveas(gcf,histsave)
-                cd ..
-                cd ..
-%} 
-
-            %Diagnostics for one file selected
+%% One file selected?
             else
                     disp('Start the oneEnergyEffDist.m');  
                     % Runs oneEnergyEffDistWhole for the one .txt file
                     [output_Mult,energy_beam,beam_number,back_whole,detector_energy_whole,hits_detectors_whole]...
-                        = oneEnergyEffDistWhole(filename,energy_channels,back_limit,inputfolder,detector_threshold);
+                        = oneEnergyEffDistWhole(filename,energy_channels,back_threshold,inputfolder,detector_threshold);
                 
                     hits_whole_EC = output_Mult;
                     r_source = 8.5; % 8.5 cm for HERT-CAD
@@ -548,8 +415,9 @@ while choice ~= 1 % Choice 1 is to exit the program
                     xlabel('Incident Energy (MeV)')
                     %}
             end
-    end
+    end 
     choice = menu('Choose an option', 'Exit Program', 'Load one file','Load all files','Start Run');
     
 end
+cd 'E:\HERT_Drive\MATLAB Main\Result'
 close all

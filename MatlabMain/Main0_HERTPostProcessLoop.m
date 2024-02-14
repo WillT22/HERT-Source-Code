@@ -1,6 +1,6 @@
 %% Authored by Skyler Krantz
 % Edited by Will Teague 
-% Updated: Nov. 13th, 2023
+% Updated: Feb. 13th, 2024
 % Post Processing Itteration Loop for GEANT4
 
 % Resets all variables and values in MATLAB
@@ -8,7 +8,6 @@ clear all;
 close all;
 clc;
 addpath 'E:\HERT_Drive\Matlab Main\'
-
 %% Reads in all files names
 
 % Changes address to where results are stored
@@ -37,19 +36,19 @@ list = dir(inputfiles);
 
 % Grabs all the names of the files in vector (nx1 matrix)
 list_fileNames = {list.name};
-
-% Gets number of columns in file names indicating the number of files that can be loaded
-C = size(list_fileNames, 2);
+number_files = size(list_fileNames, 2); % Gets number of files that can be loaded
 
 % User chooses an option from the menu
-choice = menu('HERT Post Process Loop: Choose an option', 'Exit Program', 'Load one file', 'Load all files');
+choice = menu('HERT Post Process Loop: Choose an option', 'Exit Program', 'Choose file', 'Load all files');
 
-while choice ~= 1
+all_files_loaded = false;
+
+while choice ~= 1 
     switch choice
         case 0
             disp('Error - please choose one of the options.')
 
-        % Load One File
+        % Choose File
         case 2
             % Displays all the files that can be loaded
             txt_file_choice = menu('Choose a file', list_fileNames{:});
@@ -57,9 +56,9 @@ while choice ~= 1
             % If menu button is closed, it will recycle to the initial menu
             if txt_file_choice == 0
                 disp('Please select a file')
-            % If the user selects a file, it will change filename to reference that one file.
+            % If the user selects a file, it will change filename to reference that file.
             elseif txt_file_choice > 0
-                for i = 1:C
+                for i = 1:number_files
                     switch txt_file_choice
                         case i
                             filename = list_fileNames{i};
@@ -71,33 +70,21 @@ while choice ~= 1
 
         % Load all files
         case 3
-            filename = list_fileNames';
+            filename = list_fileNames;
             fprintf('Number of files loaded: %.0f \n', length(list_fileNames))
 
-         case 4
-            % One file selected
-            if size(filename, 1) == 1
-                disp('Run HERTPostProcessWhole.m Once');
-                
-                % Calls HERTPostProcessWhole function for one file
-                HERTPostProcessWhole(filename, inputfolder, outputfolder);
-            
-            % More than one file selected
-            elseif size(filename, 1) > 1
-                disp('Start to loop HERTPostProcessWhole.m');
-
-                % Iterating over each file
-                for i = 1:C 
-                    tic
-
-                    % Calls HERTPostProcessWhole function in a loop for each file
-                    HERTPostProcessWhole(filename{i}, inputfolder, outputfolder);
-
-                    toc
-                end
+        % Start Run
+        case 4
+            for file_index = 1:number_files
+                tic % finds elapsed time of reading each data file
+                % processes each file
+                HERTPostProcessWhole(filename{file_index}, inputfolder,outputfolder);
+                toc
             end
-    end
+            % Report all files are loaded and move on
+            fprintf('All Files Processed\n')
+    end % switch end
     
     % User chooses another option from the menu
     choice = menu('HERT Post Process Loop: Choose an option', 'Exit Program', 'Load one file', 'Load all files', 'Start Run');
-end
+end % while not Exit Program
