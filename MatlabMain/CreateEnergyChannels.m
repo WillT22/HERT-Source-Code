@@ -12,20 +12,20 @@ Max_Limit = 7;
 
 %% Protons
 %
-ExLow_Limit = 10;
-Low_Limit = 15;
-Med_Limit = 40.0;
-High_Limit = 60.0;
-Max_Limit = 80.0;
-ExHigh_Limit = 120;
+ExLow_Limit = 0.1;
+Low_Limit = 5;
+Med_Limit = 10;
+High_Limit = 20;
+Max_Limit = 50;
+ExHigh_Limit = 100;
 %
 
 % Number of channels in each range:
-ExLownum = 1; %2
-Lownum = 3; %12
-Mednum = 4; %16
-Highnum = 1; %10
-ExHighnum = 1; %2
+ExLownum = 2; %2
+Lownum = 12; %12
+Mednum = 12; %16
+Highnum = 10; %10
+ExHighnum = 2; %2
 
 % Excluded energy channels (below threshold)
 x = 1:(ExLownum+1);
@@ -100,7 +100,7 @@ Resolution
 
 %% Write to Text File
 
-fileID = fopen('proton_channels_v3.txt','w');
+fileID = fopen('proton_channels_v2.txt','w');
 for i = 1:size(Channels,1)
 fprintf(fileID,'%6.3f,%6.3f \n',Channels(i,:));
 end

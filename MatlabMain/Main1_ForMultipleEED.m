@@ -16,7 +16,7 @@ addpath 'E:\HERT_Drive\MATLAB Main'
 detector_threshold = 0.1; % Detector Threshold (MeV)
 back_threshold = 0.1; % Back Detector Threshold (MeV)
 numDetect = 9;
-bins = 200;
+bins = 300;         % number of energy bins to create (recommend ~100 for every million particles)    
 textsize = 18;
 
 %% Calculate GEANT4 Results
@@ -172,22 +172,19 @@ while choice ~= 1 % Choice 1 is to exit the program
                 
                 % Creates matrix to store data
                 M_output_Mult = [];
+                M_run_number = zeros(1,file_number);
+                M_beam_number = zeros(1,file_number);
                 M_energy_beam = [];
                 M_non_energy_beam = [];
-                M_beam_number = zeros(1,file_number);
-                M_back_whole = [];
-                M_detector_energy_whole = zeros(9, file_number);
-                M_hits_detector_whole = zeros(9, file_number);
-                M_count_reject = zeros(9, file_number);
-                M_run_number = zeros(1,file_number);
+                M_back_beam = [];
                 
                 % Nested For loops to create final matrix 1 and 2
                 for i = 1:file_number
                     % For every .txt file in Results, it will run
                     % oneEnergyEffDist and add the results to finalMatrix
                     % and finalMatrix2
-                    [output_Mult, energy_beam, non_energy_beam, beam_number, back_whole, hits_detectors_whole, count_reject, run_number]...
-                        = oneEnergyEffDistWhole(filename{i}, energy_channels, back_threshold, inputfolder, detector_threshold);
+                    [output_Mult, run_number, beam_number, energy_beam, non_energy_beam, back_energy_beam]...
+                        = oneEnergyEffDistWhole(filename{i}, inputfolder, energy_channels, detector_threshold, back_threshold);
                         
                     % This will be Y in our plot
                     M_output_Mult = [M_output_Mult, output_Mult];
@@ -195,19 +192,17 @@ while choice ~= 1 % Choice 1 is to exit the program
                     % final_matrix is a matrix with
                     % Energy Channel x number of different energy levels tested
                     % This will be X in our plot
+                    M_run_number(i) = run_number;
+                    M_beam_number(i) = beam_number;
                     M_energy_beam = [M_energy_beam, energy_beam];
                     M_non_energy_beam = [M_non_energy_beam, non_energy_beam];
-                    M_beam_number(i) = beam_number;
-                    M_back_whole = [M_back_whole,back_whole];
-                    M_hits_detector_whole(:,i) = hits_detectors_whole;
-                    M_count_reject(i) = count_reject;
-                    M_run_number(i) = run_number;
+                    M_back_beam = [M_back_beam,back_energy_beam];
                 end
                 
 %% Obtain Data for Plotting
                 % Goes to Efficiency_Curves Directory in prep to save
                 % Eff Curve Plot
-                cd Plots/Efficiency_Curves
+                cd ../Plots/Efficiency_Curves
 
                 r_source = 8.5; % 8.5 cm for HERT-CAD
 
@@ -219,19 +214,20 @@ while choice ~= 1 % Choice 1 is to exit the program
                 % the number of .txt. files
                 hits_whole_EC = histcounts(M_output_Mult);
                 
-                 % Bin the energy for every particle simulated (hits or no)
-                [M_energy_bin,M_energy_edges,M_energy_bin_indicies] = histcounts([M_energy_beam, M_non_energy_beam],bins);
+                % Bin the energy for every particle simulated (hits or no)
+                energy_edges = logspace(log10(min_incident_energy), log10(max_incident_energy), bins + 1);
+                [M_energy_bin, ~ ,M_energy_bin_indicies] = histcounts([M_energy_beam, M_back_beam, M_non_energy_beam],energy_edges);
                 
-                M_energy_midpoints = zeros(1,length(M_energy_edges)-1);
-                for edge = 1:length(M_energy_edges)-1
-                    M_energy_midpoints(edge) = (M_energy_edges(edge)+M_energy_edges(edge+1))/2;
+                M_energy_midpoints = zeros(1,length(energy_edges)-1);
+                for edge = 1:length(energy_edges)-1
+                    M_energy_midpoints(edge) = (energy_edges(edge)+energy_edges(edge+1))/2;
                 end
 
                 % Get bin indices for all energy beam values for hit counts
-                [~,~,beam_bin_indices] = histcounts(M_energy_beam, M_energy_edges);
+                [~,~,beam_bin_indices] = histcounts(M_energy_beam, energy_edges);
                 
                 % Find the bin number for each back hit
-                [~,~,back_bin_indices] = histcounts(M_back_whole, M_energy_edges);
+                [~,~,back_bin_indices] = histcounts(M_back_beam, energy_edges);
 
                 back_counts = zeros(1,bins);
                 for bin = 1:bins
@@ -247,9 +243,9 @@ while choice ~= 1 % Choice 1 is to exit the program
                 end
                 
                 % Find the number of particles in each bin for each energy channel
-                hits_log = zeros(length(energy_channels),bins);
-                geo_EC = zeros(length(energy_channels),bins);
-                for channel = 1:length(energy_channels)
+                hits_log = zeros(size(energy_channels,1),bins);
+                geo_EC = zeros(size(energy_channels,1),bins);
+                for channel = 1:size(energy_channels,1)
                     for particle_index = 1:length(M_output_Mult)
                         if M_output_Mult(particle_index) == channel
                             hits_log(channel,beam_bin_indices(particle_index))= hits_log(channel,beam_bin_indices(particle_index)) + 1;
@@ -320,8 +316,8 @@ while choice ~= 1 % Choice 1 is to exit the program
                 f2.Position = [0 0 2048 1600];
                 
                 hold on
-                plot(M_energy_midpoints, sum(hits_log,1) ./ M_energy_bin, 'DisplayName', 'Counted Hits', 'LineWidth', line_width)
-                plot(M_energy_midpoints, back_counts ./ M_energy_bin, 'DisplayName', 'Last Detector Triggered', 'LineWidth', line_width)
+                plot(M_energy_midpoints, sum(hits_log,1) ./ M_energy_bin *100, 'DisplayName', 'Counted Hits', 'LineWidth', line_width)
+                plot(M_energy_midpoints, back_counts ./ M_energy_bin *100, 'DisplayName', 'Last Detector Triggered', 'LineWidth', line_width)
 
                  % Put in Penetration Limits
                 xline([14,35,51],'--',{'Beryllium Window Penetration','Collimator Teeth Penetration','Veto Detector Triggering'}, ...

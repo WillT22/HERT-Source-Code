@@ -1,13 +1,8 @@
-function [singleMatrix_whole, energy_beam, non_energy_beam, beam_number, back_whole, hits_detectors_whole, count_reject,run_number] = oneEnergyEffDistWhole(file_name, energy_channels, back_limit, inputfolder, detector_threshold)
+function [hit_energy_channels, run_number, beam_number, energy_beam, non_energy_beam, back_energy_beam] = oneEnergyEffDistWhole(file_name, inputfolder, energy_channels, detector_threshold, back_threshold)
 % Author: Yinbo Chen
 % Date: 6/15/2021
 % Modified by: Skyler Krantz, Will Teague
 % Date: Nov. 13, 2023
-
-numDetect = 9;
-
-% Initialize output variables
-hits_detectors_whole = zeros(1,numDetect);
 
 % Find the first sequence of digits and convert it to a number
 beam_number = str2double(regexp(file_name, '\d+', 'match', 'once'));
@@ -40,50 +35,44 @@ end
 
 fprintf('Starting Run %d \n', run_number)
 
-% Reset the counts
-back_whole = [];
-count_reject = 0;
-
 % Zero out values below detector threshold for the whole configuration
-for i = 1:size(Detector_Energy,1)                       % For each particle that deposited nonzero energy on at least one detector,
-    if Detector_Energy(i,1) < detector_threshold        % If the particle did not deposit above the threshold on the first detector,
-        Detector_Energy(i,:) = 0;                       % Reject the count.
-        count_reject = count_reject + 1;    
-    elseif Detector_Energy(i,numDetect) > back_limit    % If the particle deposited energy above the threshold on the back detector,
-        Detector_Energy(i,:) = 0;                       % Reject the count.
-        back_whole = [back_whole,energy_beam(i)];
-    else                                                % Otherwise,
-        for j = 2:numDetect-1                           % For the other detectors,
-            if Detector_Energy(j) < detector_threshold  % If the particle did not deposit energy above the threshold of a detector,
-                Detector_Energy(j) = 0;                 % set that detector's energy count to zero for that particle
-            end
-        end
-    end
-end
-count_reject = count_reject + nnz(back_whole);
+Detector_Energy(Detector_Energy < detector_threshold) = 0;
 
-% Update hits count for each detector
-for k = 1:(numDetect)
-    hits_detectors_whole(k) = nnz(Detector_Energy(:,k));
-end
+% Counts rejected hits
+count_reject_logic = Detector_Energy(:,1)==0;                           % find which hits are rejected
+count_reject_indices = find(count_reject_logic);                        % find indices of rejected hits
+non_energy_beam = [non_energy_beam,energy_beam(count_reject_indices)];  % update non_energy_beam with rejected hits
+energy_beam = energy_beam(~count_reject_logic);                         % remove energy values from energy beam
+Detector_Energy = Detector_Energy(~count_reject_logic,:);               % update Detector_Energy with non-rejected hits
+
+% Counts back hits
+back_energy_beam = [];
+back_hits_logic = Detector_Energy(:,end)> back_threshold;               % find which hits are rejected
+back_hits_indices = find(back_hits_logic);                             % find indices of rejected hits
+back_energy_beam = [back_energy_beam,energy_beam(back_hits_indices)];   % update non_energy_beam with rejected hits
+energy_beam = energy_beam(~back_hits_logic);                             % remove energy values from energy beam
+Detector_Energy = Detector_Energy(~back_hits_logic,:);                  % update Detector_Energy with non-rejected hits
+
+back_hits = nnz(back_hits_logic);
+count_reject = nnz(count_reject_logic) + nnz(back_hits_logic);
     
 % Calculate the sum of energy deposits over all detectors for each particle
 WholeSum = sum(Detector_Energy,2); 
 
-singleMatrix_whole = zeros(1,length(energy_beam));
+hit_energy_channels = zeros(1,length(energy_beam));
 % Update singleMatrix for each energy channel
 for ec = 1:size(energy_channels,1)                                                     % For each energy channel
     for i = 1:size(Detector_Energy,1)                                                       % For each particle
         if WholeSum(i) >= energy_channels(ec, 1) && WholeSum(i) < energy_channels(ec, 2)      % Sort total deposited energies into an energy channel
-            singleMatrix_whole(i) = ec; %replace with variable sized matrix that takes all good hits and add bad hits to non_energy_beam
+            hit_energy_channels(i) = ec; %replace with variable sized matrix that takes all good hits
         end
     end
 end
 
 % Display summary information after running through all simulations
-fprintf('Number of back hits= %i\n', length(back_whole));
+fprintf('Number of back hits= %i\n', back_hits);
 fprintf('Number of rejected hits = %i\n', count_reject);
-fprintf('Number of counted hits = %i\n', length(singleMatrix_whole));
+fprintf('Number of counted hits = %i\n', length(hit_energy_channels));
 
 % Change back to the original directory
 cd ..
