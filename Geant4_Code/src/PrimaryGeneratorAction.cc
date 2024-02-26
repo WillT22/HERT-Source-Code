@@ -3,7 +3,7 @@
 
 #include "G4Event.hh"
 #include "G4GeneralParticleSource.hh"
-#include "G4ParticleGun.hh"
+//#include "G4ParticleGun.hh" // not needed with G4GeneralParticleSource
 #include "G4ParticleTable.hh"
 #include "G4ParticleDefinition.hh"
 #include "globals.hh"
@@ -34,20 +34,19 @@ PrimaryGeneratorAction::PrimaryGeneratorAction()
 void PrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
 {
 	G4int i = anEvent->GetEventID() % 3;
-	G4ThreeVector v(0.0,0.0,1.0);
-	switch(i)
-{
-	case 0:
-	break;
-	case 1:
-	v.setY(0.0);
-	break;
-	case 2:
-	v.setZ(0.0);
-	break;
-}
+//	G4ThreeVector v(0.0,0.0,1.0);
+//	switch(i) {
+//	case 0:
+//		break;
+//	case 1:
+//		v.setY(0.0);
+//		break;
+//	case 2:
+//		v.setZ(0.0);
+//		break;
+//}
 //	particleGun->SetParticleMomentumDirection(v);
-	fParticleGun->GeneratePrimaryVertex(anEvent);
+fParticleGun->GeneratePrimaryVertex(anEvent);
 
 }
 
