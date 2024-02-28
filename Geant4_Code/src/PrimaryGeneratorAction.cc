@@ -23,9 +23,5 @@ PrimaryGeneratorAction::PrimaryGeneratorAction()
 void PrimaryGeneratorAction::GeneratePrimaries(G4Event* anEvent)
 {
 	G4int i = anEvent->GetEventID() % 3;
-
 	fParticleGun->GeneratePrimaryVertex(anEvent);
-
 }
-
-

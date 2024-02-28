@@ -46,6 +46,9 @@ G4String EventAction::detName[]= {"detector_1","detector_2",
 
 G4String EventAction::BeName = "solid_BeWin";
 
+bool particleTrack = false; // boolean used to determine if particle should be tracked and written
+std::vector<int> trackParticles = { 1015, 265557, 505827 }; // Vector used to select which particles to record;
+
 std::fstream f;
 
 //.................................................... 	  
@@ -59,130 +62,144 @@ std::fstream f;
  }
 
  void EventAction::BeginOfEventAction(const G4Event* evt){
-//  G4cout << " <EventAction> BeginOfEventAction " << G4endl;
-  //G4RunManager::GetRunManager()->rndmSaveThisEvent(); 
+     // G4cout << " <EventAction> BeginOfEventAction " << G4endl;
+     //G4RunManager::GetRunManager()->rndmSaveThisEvent();
+     particleTrack = false;
+     if (!trackParticles.empty()) {
+         for (int element : trackParticles) {
+             if (evt->GetEventID() == element - 1) { // Check for count
+                 particleTrack = true;
+                 G4cout << "Particle Number: " << evt->GetEventID() + 1 << G4endl;
+             }
+         }
+     }
+     else {
+         particleTrack = true;
+     }
+     if (particleTrack) {
+         // Store incident energy
 
-  // Store incident energy
-  G4PrimaryParticle* primary = evt->GetPrimaryVertex()->GetPrimary();
-  G4double incidentEnergy = primary->GetKineticEnergy();
-  // Write incident energy
-  f.open("EnergyDepositResult.txt", std::ios::app | std::ios::out);
-  f << std::setw(9) << std::setprecision(6) << incidentEnergy/MeV;
+         G4PrimaryParticle* primary = evt->GetPrimaryVertex()->GetPrimary();
+         G4double incidentEnergy = primary->GetKineticEnergy();
 
-  G4String collNam = "/SiDiscColl" ;   
-  G4String collNm1 = "/shieldColl" ;  
-  G4String collNm2 = "/BeDiscColl" ;                       	    
-  for(int i=0; i<9; i++){
-    SiSensID[i] = G4SDManager::GetSDMpointer()->GetCollectionID(bkSnam[i]+collNam);
+         // Write incident energy
+         f.open("EnergyDepositResult.txt", std::ios::app | std::ios::out);
+         f << std::setw(9) << std::setprecision(6) << incidentEnergy / MeV;
 
-  // 	G4cout << " SiSensID[i] " << SiSensID[i] << 
-    //	 "bkSnam[i]+collNam "<< bkSnam[i]+collNam << G4endl;     
-      }	 
-    	 
-//    	G4cout << " backGardID[i] " << backGardID[i] << 
-//    	 "bkGnam[i]+collNm1 "<< bkGnam[i]+collNam << G4endl;     
-          
-   //for(int i=0; i<10 ; i++){ 
-   	//shieldID[i] = G4SDManager::GetSDMpointer()->GetCollectionID(shlnam[i]+collNm1);
-   	//G4cout << " shieldID[i] " << shieldID[i] << 
-	//	"shlnam[i]+collNm1 "<< shlnam[i]+collNm1 << G4endl;
-    //}
-	
-    
- //    BeDiscID = G4SDManager::GetSDMpointer()->GetCollectionID(BeName+collNm2);	 
-     resetArrays();
+         G4String collNam = "/SiDiscColl";
+         G4String collNm1 = "/shieldColl";
+         G4String collNm2 = "/BeDiscColl";
+         for (int i = 0; i < 9; i++) {
+             SiSensID[i] = G4SDManager::GetSDMpointer()->GetCollectionID(bkSnam[i] + collNam);
+
+             // 	G4cout << " SiSensID[i] " << SiSensID[i] << 
+               //	 "bkSnam[i]+collNam "<< bkSnam[i]+collNam << G4endl;     
+         }
+
+         //    	G4cout << " backGardID[i] " << backGardID[i] << 
+         //    	 "bkGnam[i]+collNm1 "<< bkGnam[i]+collNam << G4endl;     
+
+            //for(int i=0; i<10 ; i++){ 
+             //shieldID[i] = G4SDManager::GetSDMpointer()->GetCollectionID(shlnam[i]+collNm1);
+             //G4cout << " shieldID[i] " << shieldID[i] << 
+             //	"shlnam[i]+collNm1 "<< shlnam[i]+collNm1 << G4endl;
+             //}
+
+
+          //    BeDiscID = G4SDManager::GetSDMpointer()->GetCollectionID(BeName+collNm2);	 
+         resetArrays();
+     }
   }
 //**************************************************************
   void EventAction::EndOfEventAction(const G4Event* evt){
+      if (particleTrack) {
+          G4TrajectoryContainer* trajectoryContainer = evt->GetTrajectoryContainer();
+          numTrk = 0;
+          if (trajectoryContainer) {
+              numTrk = trajectoryContainer->entries();
+          }
 
-   evtNum = evt->GetEventID();
-  
-   // Store particle tracking
-   G4TrajectoryContainer* trajectoryContainer = evt->GetTrajectoryContainer();
-   numTrk = 0;
-   if (trajectoryContainer) {
-   	numTrk = trajectoryContainer->entries();
-   }
-
-//   G4cout << " <EventAction> printFront " << G4endl;         
-   printFront(evt);
+          //   G4cout << " <EventAction> printFront " << G4endl;         
+          printFront(evt);
+      }
 }
 //*********************************************************
-  void EventAction::printFront(const G4Event* evt){
+  void EventAction::printFront(const G4Event* evt) {
+      if (particleTrack) {
+          // get the HCofThisEvent: it contains all the hits collections
+                  //that have been defined (one hit collection may be associated to
+                  //each detector).
+          G4HCofThisEvent* HCE = evt->GetHCofThisEvent();
+          if (!HCE) return;
+          HitsCollection* bkC = 0;
+          G4String name;
 
-// get the HCofThisEvent: it contains all the hits collections
-//that have been defined (one hit collection may be associated to
-//each detector).
-  G4HCofThisEvent* HCE = evt->GetHCofThisEvent();
-  if(!HCE) return;
-  HitsCollection* bkC = 0;
-  G4String name;
+          //   G4cout << " <EventAction> printFront 01 " << G4endl;         
 
-//   G4cout << " <EventAction> printFront 01 " << G4endl;         
-  
-// k is number of time to  print the output data for each detector
-// i is the detector number. RIC 4.5.08 I think...?
-  f << "          ";
-  for(size_t i=0; i<9 ; i++){
-   G4double totE  = 0.;
-   G4double totL  = 0.;
-   G4double Etw = 0.;
-   G4int    nStep = 0;
-//   if (k==0 && HCE){
-    	 bkC = (HitsCollection*)(HCE->GetHC(SiSensID[i]));
-    	 name =  bkSnam[i];
-//    }	 
-//    if (k==1 && HCE) {
-//    	bkC = (HitsCollection*)(HCE->GetHC(frontGardID[i]));
-//    	 name =  ftGnam[i];
-//    }	     	
-    if (bkC){
-       G4int nHit = bkC->entries();
-//       G4cout << bkSnam[i] << " engy "  << (*bkC)[0]->GetEdep() << G4endl;
-//       Etw = (*bkC)[0];
-//       G4cout << (*bkC)[0];
-       for (G4int ii=0;ii<nHit;ii++){
-        totE += (*bkC)[ii]->GetEdep(); 
-        totL += (*bkC)[ii]->GetTrak();
-        nStep += (*bkC)[ii]->GetNStep();
+          // k is number of time to  print the output data for each detector
+          // i is the detector number. RIC 4.5.08 I think...?
+          f << "          ";
+          for (size_t i = 0; i < 9; i++) {
+              G4double totE = 0.;
+              G4double totL = 0.;
+              G4double Etw = 0.;
+              G4int    nStep = 0;
+              //   if (k==0 && HCE){
+              bkC = (HitsCollection*)(HCE->GetHC(SiSensID[i]));
+              name = bkSnam[i];
+              //    }	 
+              //    if (k==1 && HCE) {
+              //    	bkC = (HitsCollection*)(HCE->GetHC(frontGardID[i]));
+              //    	 name =  ftGnam[i];
+              //    }	     	
+              if (bkC) {
+                  G4int nHit = bkC->entries();
+                  //       G4cout << bkSnam[i] << " engy "  << (*bkC)[0]->GetEdep() << G4endl;
+                  //       Etw = (*bkC)[0];
+                  //       G4cout << (*bkC)[0];
+                  for (G4int ii = 0;ii < nHit;ii++) {
+                      totE += (*bkC)[ii]->GetEdep();
+                      totL += (*bkC)[ii]->GetTrak();
+                      nStep += (*bkC)[ii]->GetNStep();
+                  }
+                  /*      G4cout << name
+                             << " Edep & trk len (MeV,mm): "
+                             << std::setw(10) << std::setprecision(6)
+                             << totE/MeV
+                             << std::setw(10) << std::setprecision(6)
+                             << totL/mm << G4endl;
+                  */
+                  f << std::setw(10) << std::setprecision(6)
+                      //    << Etw
+                      //    << std::setw(10) << std::setprecision(6)
+                      << totE / MeV;
+                  //    << std::setw(10) << std::setprecision(6)
+                  //    << totL/mm 
+                  //    << std::setw(10) << std::setprecision(6)
+                  //    << nStep
+
+                  G4int detIndex = GetDetNumber(name);
+                  engyDep[detIndex] = totE / MeV;
+                  //    trkLeng[detIndex] = totL/mm;
+              }
+
+          }
+          f << std::endl;
+          f.close();
+          /*    f.open("EnergyThroughWindow.txt", std::ios::app | std::ios::out);
+              f << " EthrWin (MeV)): \n";
+              for (int i = 2; i = 2; i++)
+              {
+                  G4double Ethrwin = 0.;
+
+                  bkC = (HitsCollection*)(HCE->GetHC("BeFrontDisc"));
+                  G4int nHit = bkC->entries();
+                  f << std::setw(10) << std::setprecision(6)
+                      <<nHit
+              }
+              f.close(); */
       }
-/*      G4cout << name 
-           << " Edep & trk len (MeV,mm): " 
-           << std::setw(10) << std::setprecision(6)            
-           << totE/MeV  
-           << std::setw(10) << std::setprecision(6) 
-           << totL/mm << G4endl;   
-*/
-       f << std::setw(10) << std::setprecision(6)
-           //    << Etw
-           //    << std::setw(10) << std::setprecision(6)
-           << totE / MeV;
-   //    << std::setw(10) << std::setprecision(6)
-   //    << totL/mm 
-   //    << std::setw(10) << std::setprecision(6)
-   //    << nStep
-		   
-    G4int detIndex =  GetDetNumber(name); 
-    engyDep[detIndex] = totE/MeV;   
-//    trkLeng[detIndex] = totL/mm;
-    }
-    
-    }
-   f << std::endl;
-   f.close();
-/*    f.open("EnergyThroughWindow.txt", std::ios::app | std::ios::out);
-    f << " EthrWin (MeV)): \n";
-    for (int i = 2; i = 2; i++)
-    {
-        G4double Ethrwin = 0.;
-
-        bkC = (HitsCollection*)(HCE->GetHC("BeFrontDisc"));
-        G4int nHit = bkC->entries();
-        f << std::setw(10) << std::setprecision(6)
-            <<nHit
-    }
-    f.close();
- */ }
+  }
 
    //------------------------------------------------------------------ 
 void  EventAction::resetArrays(){ 
