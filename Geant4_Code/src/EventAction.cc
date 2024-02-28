@@ -46,7 +46,9 @@ G4String EventAction::detName[]= {"detector_1","detector_2",
 
 G4String EventAction::BeName = "solid_BeWin";
 
-bool particleTrack = false; // boolean used to determine if particle should be tracked and written
+std::vector<int> trackParticles = {}; // Track all particles
+// Track only certain particles
+bool EventAction::particleTrack = true; // boolean used to determine if particle should be tracked and written
 std::vector<int> trackParticles = { 1015, 265557, 505827 }; // Vector used to select which particles to record;
 
 std::fstream f;
@@ -64,8 +66,8 @@ std::fstream f;
  void EventAction::BeginOfEventAction(const G4Event* evt){
      // G4cout << " <EventAction> BeginOfEventAction " << G4endl;
      //G4RunManager::GetRunManager()->rndmSaveThisEvent();
-     particleTrack = false;
      if (!trackParticles.empty()) {
+         particleTrack = false;
          for (int element : trackParticles) {
              if (evt->GetEventID() == element - 1) { // Check for count
                  particleTrack = true;

@@ -9,6 +9,7 @@
 #include "G4VPhysicalVolume.hh"
 #include "G4SystemOfUnits.hh"
 #include "G4PhysicalConstants.hh"
+#include "EventAction.hh"
 
 G4double TrackingAction::beamParticle[4] = {-99.,-99.,-99.,-99.};
 
@@ -20,7 +21,7 @@ TrackingAction::~TrackingAction()
 
 void TrackingAction::PreUserTrackingAction(const G4Track* aTrack)
 {
-    fpTrackingManager->SetStoreTrajectory(true);
+    fpTrackingManager->SetStoreTrajectory(EventAction::particleTrack);
     fpTrackingManager->SetTrajectory(new G4Trajectory(aTrack));
 
     G4ParticleDefinition* pdef = aTrack->GetDefinition();
@@ -83,7 +84,7 @@ void TrackingAction::PreUserTrackingAction(const G4Track* aTrack)
 
     //  G4cout << calPhys->GetName() << " " << aTrack->GetTrackID() << " " 
     //         << pdef->GetParticleName()   << G4endl;
-
 }
+
 
 
