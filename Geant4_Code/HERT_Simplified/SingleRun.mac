@@ -1,0 +1,88 @@
+#######################################
+# Updated by LYK (Mar 9, 2020)
+# For beginner's practice version, get rid of some layer of codes (less loop)
+# Updated by LYK (Sep 28, 2018)
+# Counter Variable Name: eKin
+# Include Visualization in the code
+# Revised by H.Zhao (Aug 12, 2020)
+# Updated by W.Teague (Jan 23, 2024)
+#######################################
+
+/control/verbose 1
+/run/initialize
+
+### Variable Initialization ###
+/control/alias particleType electron	# Assign particle type
+#/control/alias energyValue 50			# Assign energyValue (for descrete energy run)
+/control/alias energyMin 0				# Assign energy minimum
+/control/alias energyMax 8				# Assign energy maximum
+/control/alias particleCount 1000000	# Assign particleCount
+/control/alias runNumber 1				# Assign a run number for randomized runs
+
+### Randomization Seed Restoration ###
+# Descretized energy file name
+#/random/resetEngineFrom .\Results\seeds\HERT_CADoutput_{particleType}_Ene_{energyValue}_{particleCount}_seed.rndm
+# Randomized energy file name
+#/random/resetEngineFrom .\Results\seeds\HERT_CADoutput_{particleType}_{particleCount}_Run{runNumber}_seed.rndm
+
+### GPS Initialization ###
+/gps/particle e-
+
+# Boresight Particle Firing #
+#/gps/direction 0 0 10 mm
+#/gps/position 0 0 -10 mm
+
+# Spherical Cap Particle Firing #
+/gps/pos/type Surface
+/gps/pos/shape Sphere
+/gps/pos/radius 85 mm
+/gps/ang/type cos
+/gps/pos/confine source
+/gps/pos/centre 0 0 0.75 mm
+/gps/ang/focuspoint 0 0 0.75 mm
+
+# Deterministic Energy Selection
+#/gps/ene/mono {energyValue} MeV
+
+# Randomized Energy Selection
+/gps/ene/type Lin			# Defines linear distribution of particle energies
+/gps/ene/min {energyMin} MeV			
+/gps/ene/max {energyMax} MeV
+/gps/ene/gradient 0
+/gps/ene/intercept 1
+
+### Visualization ###
+
+/vis/open HepRepFile			# write heprep
+/vis/scene/create				# Create a new empty scene
+/vis/scene/add/volume			# Declare that the world volume should be added to the scene
+/vis/sceneHandler/attach		# Attach scene to scenehandler
+/vis/viewer/flush				# Draw a picture that has just the detector (no trajectories or hits).
+/vis/scene/add/trajectories		# Declare that trajectories and hits should be added to the scene
+/vis/scene/add/hits
+/vis/scene/endOfEventAction accumulate {particleCount}
+
+/run/printProgress 10000
+
+#/tracking/storeTrajectory 1
+/tracking/verbose 0
+
+/run/beamOn {particleCount}
+
+### File Renaming and Storage ###
+# Descretized energy file names
+#/control/alias outputFileName HERT_CADoutput_{particleType}_Ene_{energyValue}_{particleCount}
+#/control/alias seedFileName HERT_CADoutput_{particleType}_Ene_{energyValue}_{particleCount}_seed
+# Randomized energy file names
+#/control/alias outputFileName HERT_CADoutput_{particleType}_{particleCount}_Run{runNumber}
+#/control/alias seedFileName HERT_CADoutput_{particleType}_{particleCount}_Run{runNumber}_seed
+
+#/control/shell del .\Results\{outputFileName}.txt
+#/control/shell move EnergyDepositResult.txt {outputFileName}.txt
+#/control/shell move {outputFileName}.txt .\Results
+
+#/control/shell del .\Results\{seedFileName}.rndm
+#/control/shell move currentRun.rndm {seedFileName}.rndm
+#/control/shell move {seedFileName}.rndm .\Results\seeds
+
+exit

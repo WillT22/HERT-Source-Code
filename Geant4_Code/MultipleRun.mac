@@ -1,0 +1,16 @@
+#######################################
+# Updated by LYK (Mar 9, 2020)
+# For beginner's practice version, get rid of some layer of codes (less loop)
+# Purpose: To run loop 
+# Revised by H. Zhao (Aug 12, 2020)
+
+##### Test Track ############
+
+/control/shell del *.txt
+/control/alias startNumber 31
+/control/alias stepNumber  1	
+/control/alias endNumber   50
+
+/control/loop ..\SingleRun.mac runNumber {startNumber} {endNumber} {stepNumber}
+
+exit
