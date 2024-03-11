@@ -61,7 +61,7 @@ class DetectorConstruction : public G4VUserDetectorConstruction
 	G4LogicalVolume* logic_al_chm;
 	G4LogicalVolume* logic_al_end;
 	G4LogicalVolume* logic_al_endann;
-	G4LogicalVolume* logic_be;
+	G4LogicalVolume* logic_BeWin;
 	G4LogicalVolume* logic_w_ann;
 	G4LogicalVolume* logic_w_ann1;
 	G4LogicalVolume* logic_w_ann2;
@@ -100,24 +100,14 @@ class DetectorConstruction : public G4VUserDetectorConstruction
 	G4LogicalVolume* logic_fastener2;
 	G4LogicalVolume* logic_fastener3;
 	G4LogicalVolume* logic_d1;
-    //G4LogicalVolume* logic_d1outer;
     G4LogicalVolume* logic_d2;  
-    //G4LogicalVolume* logic_d2outer;
 	G4LogicalVolume* logic_d3;
-	//G4LogicalVolume* logic_d3outer;
     G4LogicalVolume* logic_d4;
-    //G4LogicalVolume* logic_d4outer;
 	G4LogicalVolume* logic_d5;
-	//G4LogicalVolume* logic_d5outer;
 	G4LogicalVolume* logic_d6;
-	//G4LogicalVolume* logic_d6outer;
 	G4LogicalVolume* logic_d7;
-	//G4LogicalVolume* logic_d7outer;
 	G4LogicalVolume* logic_d8;
-	//G4LogicalVolume* logic_d8outer;
 	G4LogicalVolume* logic_d9;
-    
-	
 
     // Physical volumes
 	G4VPhysicalVolume* physi_w;
@@ -184,26 +174,14 @@ class DetectorConstruction : public G4VUserDetectorConstruction
 	G4VPhysicalVolume* physi_fastener3;
 
 	G4VPhysicalVolume* physi_d1;
-    //G4VPhysicalVolume* physi_d1outer;
     G4VPhysicalVolume* physi_d2;
-    //G4VPhysicalVolume* physi_d2outer;
 	G4VPhysicalVolume* physi_d3;
-    //G4VPhysicalVolume* physi_d3outer;
 	G4VPhysicalVolume* physi_d4;
-    //G4VPhysicalVolume* physi_d4outer;
 	G4VPhysicalVolume* physi_d5;
-	//G4VPhysicalVolume* physi_d5outer;
 	G4VPhysicalVolume* physi_d6;
-	//G4VPhysicalVolume* physi_d6outer;
 	G4VPhysicalVolume* physi_d7;
-	//G4VPhysicalVolume* physi_d7outer;
 	G4VPhysicalVolume* physi_d8;
-	//G4VPhysicalVolume* physi_d8outer;
 	G4VPhysicalVolume* physi_d9;
-
-	
-	
-	
     
 	// Visible attributes
 	G4VisAttributes* VisAtt_w;
@@ -214,21 +192,13 @@ class DetectorConstruction : public G4VUserDetectorConstruction
 	G4VisAttributes* VisAtt_w_chm;
 	G4VisAttributes* VisAtt_StStl;
 	G4VisAttributes* VisAtt_d1;
-    //G4VisAttributes* VisAtt_d1Outer;
     G4VisAttributes* VisAtt_d2;
-    //G4VisAttributes* VisAtt_d2Outer;
 	G4VisAttributes* VisAtt_d3;
-    //G4VisAttributes* VisAtt_d3Outer;
 	G4VisAttributes* VisAtt_d4;
-    //G4VisAttributes* VisAtt_d4Outer;
 	G4VisAttributes* VisAtt_d5;
-	//G4VisAttributes* VisAtt_d5Outer;
 	G4VisAttributes* VisAtt_d6;
-	//G4VisAttributes* VisAtt_d6Outer;
 	G4VisAttributes* VisAtt_d7;
-	//G4VisAttributes* VisAtt_d7Outer;
 	G4VisAttributes* VisAtt_d8;
-	//G4VisAttributes* VisAtt_d8Outer;
 	G4VisAttributes* VisAtt_d9;
 	G4VisAttributes* VisAtt_coll_tooth_W1;
 	G4VisAttributes* VisAtt_coll_tooth_W2;
