@@ -40,33 +40,15 @@
 
 DetectorConstruction::DetectorConstruction()
 	:  //fDetectorMessenger(0),
-	
-	logic_w(0), logic_S1(0), logic_frontcoll(0), logic_coll(0), 
-	logic_coll_embed1(0), logic_coll_embed2(0), logic_coll_embed3(0), logic_coll_embed4(0), logic_coll_embed5(0), 
-	logic_coll_embed_Al1(0), logic_coll_embed_Al2(0), logic_coll_embed_Al3(0), logic_coll_embed_Al4(0), 
-	logic_coll_tooth_W1(0), logic_coll_tooth_W2(0), logic_coll_tooth_W3(0), logic_coll_tooth_W4(0), logic_coll_tooth_W5(0), logic_coll_tooth_W6(0), logic_coll_tooth_W7(0), 
-	logic_al_ann1(0), logic_al_chm(0), logic_al_end(0), logic_al_endann(0), logic_BeWin(0), 
-	logic_w_ann(0), logic_w_ann1(0), logic_w_ann2(0), logic_w_ann3(0), logic_w_ann4(0), logic_w_ann_Al1(0), logic_w_ann_Al2(0), logic_w_ann_Al3(0), 
-	logic_w_chm(0), logic_w_chm1(0), logic_w_chm2(0), logic_w_chm3(0), logic_w_chm4(0), logic_w_chm5(0), 
-	logic_w_chm_Al1(0), logic_w_chm_Al2(0), logic_w_chm_Al3(0), logic_w_chm_Al4(0), 
-	logic_w_end(0), logic_w_end1(0), logic_w_end2(0), logic_w_end3(0), logic_w_end4(0), logic_w_end5(0), 
-	logic_w_end_Al1(0), logic_w_end_Al2(0), logic_w_end_Al3(0), logic_w_end_Al4(0), 
-	logic_w_endenh(0), logic_w_endenh1(0), logic_w_endenh2(0), logic_w_endenh3(0), logic_w_endenh_Al1(0), logic_w_endenh_Al2(0), 
-	logic_d1(0), logic_d2(0), logic_d3(0), logic_d4(0), logic_d5(0), logic_d6(0), logic_d7(0), logic_d8(0), logic_d9(0), 
-	logic_fastener1(0), logic_fastener2(0), logic_fastener3(0), 
-	physi_w(0), physi_S1(0), physi_frontcoll(0), physi_coll(0), 
-	physi_coll_embed1(0), physi_coll_embed2(0), physi_coll_embed3(0), physi_coll_embed4(0),	physi_coll_embed5(0), 
-	physi_coll_embed_Al1(0), physi_coll_embed_Al2(0), physi_coll_embed_Al3(0), physi_coll_embed_Al4(0), 
-	physi_coll_tooth_W1(0), physi_coll_tooth_W2(0), physi_coll_tooth_W3(0), physi_coll_tooth_W4(0),	physi_coll_tooth_W5(0), physi_coll_tooth_W6(0), physi_coll_tooth_W7(0),	
-	physi_al_ann1(0), physi_al_chm(0), physi_al_end(0), physi_al_endann(0), physi_be(0), 
-	physi_w_ann(0), physi_w_ann1(0), physi_w_ann2(0), physi_w_ann3(0), physi_w_ann4(0), physi_w_ann_Al1(0), physi_w_ann_Al2(0), physi_w_ann_Al3(0), 
-	physi_w_chm(0), physi_w_chm1(0), physi_w_chm2(0), physi_w_chm3(0), physi_w_chm4(0), physi_w_chm5(0), 
-	physi_w_chm_Al1(0), physi_w_chm_Al2(0), physi_w_chm_Al3(0), physi_w_chm_Al4(0), 
-	physi_w_end(0), physi_w_end1(0), physi_w_end2(0), physi_w_end3(0), physi_w_end4(0), physi_w_end5(0),
-	physi_w_end_Al1(0), physi_w_end_Al2(0), physi_w_end_Al3(0), physi_w_end_Al4(0), 
-	physi_w_endenh(0), physi_w_endenh1(0), physi_w_endenh2(0), physi_w_endenh3(0), physi_w_endenh_Al1(0), physi_w_endenh_Al2(0), 
-	physi_d1(0), physi_d2(0), physi_d3(0), physi_d4(0), physi_d5(0), physi_d6(0), physi_d7(0), physi_d8(0), physi_d9(0), 
-	physi_fastener1(0), physi_fastener2(0), physi_fastener3(0)
+
+	logic_w(0), logic_alHousing(0), logic_BeWin(0), logic_TaTooth5(0), logic_TaTooth4(0), logic_TaSpac4(0), logic_TaTooth3(0), logic_TaSpac3(0),
+	logic_TaTooth2(0), logic_TaSpac2(0), logic_TaTooth1(0), logic_TaSpac1(0), logic_WFr1(0), logic_AlFrShim(0), logic_WFrIn1(0), logic_AlChShim1(0),
+	logic_BackW(0), logic_EpoxCham(0), logic_AlBkShim1(0), logic_AlBkPlate(0), logic_AlignPin1(0), logic_AlignPin2(0), logic_AlignPin3(0),
+
+	physi_alHousing(0), physi_BeWin(0), physi_TaTooth5(0), physi_TaTooth4(0), physi_TaSpac4(0), physi_TaTooth3(0), physi_TaSpac3(0),
+	physi_TaTooth2(0), physi_TaSpac2(0), physi_TaTooth1(0), physi_TaSpac1(0), physi_WFr1(0), physi_AlFrShim(0), physi_AlChShim1(0),
+	physi_BackW(0), physi_EpoxCham(0), physi_AlBkShim1(0), physi_AlBkPlate(0), physi_AlignPin1(0), physi_AlignPin2(0), physi_AlignPin3(0),
+	physi_WFrIn1(0)
 {
 
     //G4cout << "----> DetectorMessenger-Before." << G4endl;          
@@ -112,7 +94,6 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 	G4Element* elO = man->FindOrBuildElement("O");
 	G4Element* elN = man->FindOrBuildElement("N");
 
-
 	// Aluminum
 	G4Material* Al = 
 	new G4Material("Aluminum", z= 13.,  a= 26.9815*g/mole, density= 2.6989*g/cm3);
@@ -145,7 +126,6 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 	Alalloy->AddElement(Zn, fractionmass=0.0025);
 	Alalloy->AddElement(Zr, fractionmass=0.0025);
 	
-
 	// Stainless Steel - 304 (Based on http://www.worldstainless.org/Files/issf/non-image-files/PDF/Atlas_Grade_datasheet_-_all_datasheets_rev_Aug_2013.pdf) 
 	G4Material* StainlessSteel = new G4Material("StainlessSteel", density= 8.06*g/cm3, ncomponents=9);
 	StainlessSteel->AddElement(C, fractionmass=0.0007);
@@ -623,65 +603,91 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 	logic_w_ann1 = new G4LogicalVolume(solid_w_ann1, W, "W_annulus1", 0, 0, 0);
 	physi_w_ann1 = new G4PVPlacement(0, G4ThreeVector(w_ann_x1, w_ann_y1, w_ann_z1), logic_w_ann1, "W_annulus1", logic_w, false, 0);
 
-	// tungsten chamber
-	G4double w_chm_d = 24.86 * mm; // depth
-	G4double w_chm_hd = 0.5 * w_chm_d * mm; // half depth
-	G4double w_chm_ir = 30.75 * mm; // inner radius
-	G4double w_chm_or = 34.75 * mm; // outer radius
-	G4double w_chm_sta = 0.0 * deg; // start angle
-	G4double w_chm_spa = 360 * deg; // span angle
-	G4double w_chm_x = 0.0 * mm; // x location
-	G4double w_chm_y = 0.0 * mm; // y location
-	G4double w_chm_z = frontcoll_d + coll_d + al_ann1_d + w_ann_d + w_ann_d_Al1 + w_ann_d1 + w_chm_hd; // z location
-	
-	G4Tubs* solid_w_chm = new G4Tubs("W_chamber", w_chm_ir, w_chm_or, w_chm_hd, w_chm_sta, w_chm_spa);
-	logic_w_chm = new G4LogicalVolume(solid_w_chm, EpoxyTungsten, "W_chamber", 0, 0, 0);
-	physi_w_chm = new G4PVPlacement(0, G4ThreeVector(w_chm_x, w_chm_y, w_chm_z), logic_w_chm, "W_chamber", logic_w, false, 0);
+	// epoxy tungsten chamber
+	G4double EpoxCham_d = 24.86 * mm; // depth
+	G4double EpoxCham_hd = 0.5 * EpoxCham_d * mm; // half depth
+	G4double EpoxCham_ir = 30.75 * mm; // inner radius
+	G4double EpoxCham_or = 34.75 * mm; // outer radius
+	G4double EpoxCham_sta = 0.0 * deg; // start angle
+	G4double EpoxCham_spa = 360 * deg; // span angle
+	G4double x_EpoxCham = 0 * mm;
+	G4double y_EpoxCham = 0 * mm;
+	G4double z_EpoxCham = -0.5 * mm;
+
+	G4RotationMatrix* rotm_EpoCham = new G4RotationMatrix();
+	rotm_EpoCham->rotateY(90. * deg);
+	rotm_EpoCham->rotateZ(90. * deg);
+	logic_EpoxCham = new G4LogicalVolume(solid_EpoxCham, EpoxyTungsten, "logical_EpoxCham", 0, 0, 0);
+	physi_EpoxCham = new G4PVPlacement(rotm_EpoCham, G4ThreeVector(x_EpoxCham, y_EpoxCham, z_EpoxCham), logic_EpoxCham, "physical_EpoxCham", logic_w, false, 0);
+
+	// Al Chamber Shim 1
+	G4double AlChShim1_d = 2 * mm; // depth
+	G4double AlChShim1_hd = 0.5 * AlChShim1_d * mm; // half depth
+	G4double AlChShim1_ir = 0.0 * mm; // inner radius
+	G4double AlChShim1_or = 29.3 * mm; // outer radius
+	G4double AlChShim1_sta = 0.0 * deg; // start angle
+	G4double AlChShim1_spa = 360 * deg; // span angle
+	G4double x_AlChShim1 = 0 * mm;
+	G4double y_AlChShim1 = 0 * mm;
+	G4double z_AlChShim1 = d9_z + 0.54 * mm + 0.5 * mm;
+
+	G4RotationMatrix* rotm_AlCham = new G4RotationMatrix();
+	rotm_AlCham->rotateX(-90. * deg);
+	rotm_AlCham->rotateY(180. * deg);
+	logic_AlChShim1 = new G4LogicalVolume(solid_AlChShim1, Alalloy, "logical_AlChShim1", 0, 0, 0);
+	physi_AlChShim1 = new G4PVPlacement(rotm_AlCham, G4ThreeVector(x_AlChShim1, y_AlChShim1, z_AlChShim1), logic_AlChShim1, "physical_AlChShim1", logic_w, false, 0);
 
 	// tungsten end plate
-	G4double w_end_d = 5.0 * mm; // depth
-	G4double w_end_hd = 0.5 * w_end_d * mm; // half depth
-	G4double w_end_ir = 0.0 * mm; // inner radius
-	G4double w_end_or = 34.75 * mm; // outer radius
-	G4double w_end_sta = 0.0 * deg; // start angle
-	G4double w_end_spa = 360 * deg; // span angle
-	G4double w_end_x = 0.0 * mm; // x location
-	G4double w_end_y = 0.0 * mm; // y location
-	G4double w_end_z = frontcoll_d + coll_d + al_ann1_d + w_ann_d + w_ann_d_Al1 + w_ann_d1 + w_chm_d + w_end_hd; // z location
-	
-	G4Tubs* solid_w_end = new G4Tubs("W_end_plate", w_end_ir, w_end_or, w_end_hd, w_end_sta, w_end_spa);
-	logic_w_end = new G4LogicalVolume(solid_w_end, W, "W_end_plate", 0, 0, 0);
-	physi_w_end = new G4PVPlacement(0, G4ThreeVector(w_end_x, w_end_y, w_end_z), logic_w_end, "W_end_plate", logic_w, false, 0);
+	G4double BackW_d = 5.0 * mm; // depth
+	G4double BackW_hd = 0.5 * BackW_d * mm; // half depth
+	G4double BackW_ir = 0.0 * mm; // inner radius
+	G4double BackW_or = 34.75 * mm; // outer radius
+	G4double BackW_sta = 0.0 * deg; // start angle
+	G4double BackW_spa = 360 * deg; // span angle
+	G4double x_BackW = 0 * mm;
+	G4double y_BackW = 0 * mm;
+	G4double z_BackW = z_EpoxCham + 5 * mm + 24.86 * mm;
 
-	// Al Insert: Shims placed behind detector stack
-	G4double w_end_d_Al1 = 2 * mm; // depth
-	G4double w_end_hd_Al1 = 0.5 * w_end_d_Al1 * mm; // half depth
-	G4double w_end_ir_Al1 = 0.0 * mm; // inner radius
-	G4double w_end_or_Al1 = 29.3 * mm; // outer radius
-	G4double w_end_sta_Al1 = 0.0 * deg; // start angle
-	G4double w_end_spa_Al1 = 360 * deg; // span angle
-	G4double w_end_x_Al1 = 0.0 * mm; // x location
-	G4double w_end_y_Al1 = 0.0 * mm; // y location
-	G4double w_end_z_Al1 = d9_z + d9_hd + 0.54 * mm + w_end_hd_Al1; // z location
-	
-	G4Tubs* solid_w_end_Al1 = new G4Tubs("W_end_plate_Al1", w_end_ir_Al1, w_end_or_Al1, w_end_hd_Al1, w_end_sta_Al1, w_end_spa_Al1);
-	logic_w_end_Al1 = new G4LogicalVolume(solid_w_end_Al1, Alalloy, "W_end_Al1", 0, 0, 0);
-	physi_w_end_Al1 = new G4PVPlacement(0, G4ThreeVector(w_end_x_Al1, w_end_y_Al1, w_end_z_Al1), logic_w_end_Al1, "W_end_Al1", logic_w, false, 0);
+	G4RotationMatrix* rotm_BackW = new G4RotationMatrix();
+	rotm_BackW->rotateX(90. * deg);
+	rotm_BackW->rotateY(90. * deg);
+	logic_BackW = new G4LogicalVolume(solid_BackW, W, "logical_BackW", 0, 0, 0);
+	physi_BackW = new G4PVPlacement(rotm_BackW, G4ThreeVector(x_BackW, y_BackW, z_BackW), logic_BackW, "physical_BackW", logic_w, false, 0);
 
-	// Al Insert: Shims placed behind rear tungsten shielding
-	G4double w_end_d_Al2 = 1 * mm; // depth
-	G4double w_end_hd_Al2 = 0.5 * w_end_d_Al2 * mm; // half depth
-	G4double w_end_ir_Al2 = 0.0 * mm; // inner radius
-	G4double w_end_or_Al2 = 34.75 * mm; // outer radius
-	G4double w_end_sta_Al2 = 0.0 * deg; // start angle
-	G4double w_end_spa_Al2 = 360 * deg; // span angle
-	G4double w_end_x_Al2 = 0.0 * mm; // x location
-	G4double w_end_y_Al2 = 0.0 * mm; // y location
-	G4double w_end_z_Al2 = w_end_z + w_end_hd + w_end_hd_Al2; // z location
-	
-	G4Tubs* solid_w_end_Al2 = new G4Tubs("W_end_plate_Al2", w_end_ir_Al2, w_end_or_Al2, w_end_hd_Al2, w_end_sta_Al2, w_end_spa_Al2);
-	logic_w_end_Al2 = new G4LogicalVolume(solid_w_end_Al2, Alalloy, "W_end_Al2", 0, 0, 0);
-	physi_w_end_Al2 = new G4PVPlacement(0, G4ThreeVector(w_end_x_Al2, w_end_y_Al2, w_end_z_Al2), logic_w_end_Al2, "W_end_Al2", logic_w, false, 0);
+	// Al Back Shim 1
+	G4double AlBkShim1_d = 2 * mm; // depth
+	G4double AlBkShim1_hd = 0.5 * AlBkShim1_d * mm; // half depth
+	G4double AlBkShim1_ir = 0.0 * mm; // inner radius
+	G4double AlBkShim1_or = 29.3 * mm; // outer radius
+	G4double AlBkShim1_sta = 0.0 * deg; // start angle
+	G4double AlBkShim1_spa = 360 * deg; // span angle
+	G4double x_AlBkShim1 = 0 * mm;
+	G4double y_AlBkShim1 = 0 * mm;
+	G4double z_AlBkShim1 = z_BackW + 0 * mm;
+
+	G4RotationMatrix* rotm_AlBackShim = new G4RotationMatrix();
+	rotm_AlBackShim->rotateX(-90. * deg);
+	rotm_AlBackShim->rotateY(180. * deg);
+	logic_AlBkShim1 = new G4LogicalVolume(solid_AlBkShim1, Alalloy, "logical_AlBkShim1", 0, 0, 0);
+	physi_AlBkShim1 = new G4PVPlacement(rotm_AlBackShim, G4ThreeVector(x_AlBkShim1, y_AlBkShim1, z_AlBkShim1), logic_AlBkShim1, "physical_AlBkShim1", logic_w, false, 0);
+
+	// Al Back Plate
+	G4double AlBkShim1_d = 12 * mm; // depth
+	G4double AlBkShim1_hd = 0.5 * AlBkShim1_d * mm; // half depth
+	G4double AlBkShim1_ir = 0.0 * mm; // inner radius
+	G4double AlBkShim1_or = 29.3 * mm; // outer radius
+	G4double AlBkShim1_sta = 0.0 * deg; // start angle
+	G4double AlBkShim1_spa = 360 * deg; // span angle
+	G4double x_AlBkPlate = 0 * mm;
+	G4double y_AlBkPlate = 0 * mm;
+	G4double z_AlBkPlate = z_AlBkShim1 + 6 * mm;
+
+	G4RotationMatrix* rotm_AlBackPlate = new G4RotationMatrix();
+	rotm_AlBackPlate->rotateX(-90. * deg);
+	rotm_AlBackPlate->rotateZ(180. * deg);
+
+	logic_AlBkPlate = new G4LogicalVolume(solid_AlBkPlate, Alalloy, "logical_AlBkPlate", 0, 0, 0);
+	physi_AlBkPlate = new G4PVPlacement(rotm_AlBackPlate, G4ThreeVector(x_AlBkPlate, y_AlBkPlate, z_AlBkPlate), logic_AlBkPlate, "physical_AlBkPlate", logic_w, false, 0);
 
 	//____________________ visible attributes ____________________
 
@@ -747,17 +753,17 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 	VisAtt_w_ann_Al1->SetVisibility(true);
 	logic_w_ann_Al1->SetVisAttributes(VisAtt_w_ann_Al1);
 
-	VisAtt_w_chm = new G4VisAttributes(G4Colour(0.5, 0.5, 0.5));
-	VisAtt_w_chm->SetVisibility(true);
-	logic_w_chm->SetVisAttributes(VisAtt_w_chm);
+	VisAtt_EpoxCham = new G4VisAttributes(G4Colour(0.5, 0.5, 0.5));
+	VisAtt_EpoxCham->SetVisibility(true);
+	logic_EpoxCham->SetVisAttributes(VisAtt_EpoxCham);
 
 	VisAtt_w_end = new G4VisAttributes(G4Colour(0.5, 0.0, 1.0));
 	VisAtt_w_end->SetVisibility(true);
 	logic_w_end->SetVisAttributes(VisAtt_w_end);
 
-	VisAtt_w_end_Al1 = new G4VisAttributes(G4Colour(1.0, 0.0, 1.0));
-	VisAtt_w_end_Al1->SetVisibility(true);
-	logic_w_end_Al1->SetVisAttributes(VisAtt_w_end_Al1);
+	VisAtt_AlChShim1 = new G4VisAttributes(G4Colour(1.0, 0.0, 1.0));
+	VisAtt_AlChShim1->SetVisibility(true);
+	logic_AlChShim1->SetVisAttributes(VisAtt_AlChShim1);
 
 	VisAtt_w_end_Al2 = new G4VisAttributes(G4Colour(1.0, 0.0, 1.0));
 	VisAtt_w_end_Al2->SetVisibility(true);
