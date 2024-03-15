@@ -16,14 +16,14 @@
 #/control/alias energyValue 50			# Assign energyValue (for descrete energy run)
 /control/alias energyMin 0				# Assign energy minimum
 /control/alias energyMax 8				# Assign energy maximum
-/control/alias particleCount 1000000	# Assign particleCount
+/control/alias particleCount 1000000 	# Assign particleCount
 /control/alias runNumber 1				# Assign a run number for randomized runs
 
 ### Randomization Seed Restoration ###
 # Descretized energy file name
 #/random/resetEngineFrom .\Results\seeds\HERT_CADoutput_{particleType}_Ene_{energyValue}_{particleCount}_seed.rndm
 # Randomized energy file name
-#/random/resetEngineFrom .\Results\seeds\HERT_CADoutput_{particleType}_{particleCount}_Run{runNumber}_seed.rndm
+/random/resetEngineFrom .\Results\seeds\HERT_CADoutput_{particleType}_{particleCount}_Run{runNumber}_seed.rndm
 
 ### GPS Initialization ###
 /gps/particle e-
@@ -64,7 +64,7 @@
 
 /run/printProgress 10000
 
-#/tracking/storeTrajectory 1
+/tracking/storeTrajectory 1
 /tracking/verbose 0
 
 /run/beamOn {particleCount}

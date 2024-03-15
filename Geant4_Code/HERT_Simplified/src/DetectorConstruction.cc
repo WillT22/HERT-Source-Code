@@ -16,6 +16,7 @@
 //  - Longer collimater before Be window to achieve a smaller FOV (30 deg); remove embeded materials
 //  - Increased shielding at the end: but still for boresight shooting only
 //  - Add one more Si detector (as a whole; no inner/outer part) at the end of the stack of design #1
+//TEST
 
 // ADD CHANGED NOTES
 
@@ -40,15 +41,14 @@
 
 DetectorConstruction::DetectorConstruction()
 	:  //fDetectorMessenger(0),
-
-	logic_w(0), logic_alHousing(0), logic_BeWin(0), logic_TaTooth5(0), logic_TaTooth4(0), logic_TaSpac4(0), logic_TaTooth3(0), logic_TaSpac3(0),
-	logic_TaTooth2(0), logic_TaSpac2(0), logic_TaTooth1(0), logic_TaSpac1(0), logic_WFr1(0), logic_AlFrShim(0), logic_WFrIn1(0), logic_AlChShim1(0),
-	logic_BackW(0), logic_EpoxCham(0), logic_AlBkShim1(0), logic_AlBkPlate(0), logic_AlignPin1(0), logic_AlignPin2(0), logic_AlignPin3(0),
-
-	physi_alHousing(0), physi_BeWin(0), physi_TaTooth5(0), physi_TaTooth4(0), physi_TaSpac4(0), physi_TaTooth3(0), physi_TaSpac3(0),
-	physi_TaTooth2(0), physi_TaSpac2(0), physi_TaTooth1(0), physi_TaSpac1(0), physi_WFr1(0), physi_AlFrShim(0), physi_AlChShim1(0),
-	physi_BackW(0), physi_EpoxCham(0), physi_AlBkShim1(0), physi_AlBkPlate(0), physi_AlignPin1(0), physi_AlignPin2(0), physi_AlignPin3(0),
-	physi_WFrIn1(0)
+	logic_w(0), logic_coll(0), logic_frontcoll(0), logic_coll_embed(0), logic_AlHousing(0), logic_BeWin(0), logic_TaTooth5(0), logic_TaTooth4(0), logic_TaTooth3(0),
+	logic_TaTooth2(0), logic_TaTooth1(0), logic_WFr1(0), logic_AlFrShim(0), logic_WFrIn1(0), logic_AlChShim1(0),
+	logic_BackW(0), logic_EpoxCham(0), logic_AlBkShim1(0), logic_AlBkPlate(0),
+	
+	physi_coll(0), physi_frontcoll(0), physi_coll_embed(0), physi_AlHousing(0), physi_BeWin(0), physi_TaTooth5(0), physi_TaTooth4(0), physi_TaTooth3(0),
+	physi_TaTooth2(0), physi_TaTooth1(0), physi_WFr1(0), physi_AlFrShim(0), physi_AlChShim1(0),
+	physi_BackW(0), physi_EpoxCham(0), physi_AlBkShim1(0), physi_AlBkPlate(0), physi_WFrIn1(0) 
+	
 {
 
     //G4cout << "----> DetectorMessenger-Before." << G4endl;          
@@ -94,6 +94,7 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 	G4Element* elO = man->FindOrBuildElement("O");
 	G4Element* elN = man->FindOrBuildElement("N");
 
+
 	// Aluminum
 	G4Material* Al = 
 	new G4Material("Aluminum", z= 13.,  a= 26.9815*g/mole, density= 2.6989*g/cm3);
@@ -112,7 +113,7 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 	// Beryllium
 	G4Material* Be = new G4Material("Beryllium",z= 4., a= 9.0122*g/mole, density= 1.848*g/cm3);
 	
-	// Aluminum (6061-T6) Reference: https://www.mcmaster.com/89015k111
+	// Aluminium (6061-T6) Reference: https://www.mcmaster.com/89015k111
 	G4Material* Alalloy= new G4Material("AluminiumAlloy", density= 2.768*g/cm3, ncomponents=11);
 	Alalloy->AddElement(AlEle, fractionmass=0.9525);
 	Alalloy->AddElement(Cr, fractionmass=0.008);
@@ -126,6 +127,7 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 	Alalloy->AddElement(Zn, fractionmass=0.0025);
 	Alalloy->AddElement(Zr, fractionmass=0.0025);
 	
+
 	// Stainless Steel - 304 (Based on http://www.worldstainless.org/Files/issf/non-image-files/PDF/Atlas_Grade_datasheet_-_all_datasheets_rev_Aug_2013.pdf) 
 	G4Material* StainlessSteel = new G4Material("StainlessSteel", density= 8.06*g/cm3, ncomponents=9);
 	StainlessSteel->AddElement(C, fractionmass=0.0007);
@@ -138,13 +140,13 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 	StainlessSteel->AddElement(Ni, fractionmass=0.105);
 	StainlessSteel->AddElement(N, fractionmass=0.001);
 
-	// Epoxy Base
+
+
 	G4Material* EpoxyBase = new G4Material("EpoxyBase", density = 1.17 * g / cm3, ncomponents = 3);
 	EpoxyBase->AddElement(elH, 21); // Hydrogen
 	EpoxyBase->AddElement(elO, 3); // Oxygen
 	EpoxyBase->AddElement(C, 28); // Carbon
 
-	//Epoxy Accelerator
 	G4Material* EpoxyAccelerator = new G4Material("EpoxyAccelerator", density = 0.97 * g / cm3, ncomponents = 4);
 	EpoxyAccelerator->AddElement(elH, 24); // Hydrogen
 	EpoxyAccelerator->AddElement(elN, 2); // Nitrogen
@@ -168,32 +170,31 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 	G4double pressure = 3.e-18*pascal;
 	G4Material* Vacuum = new G4Material("interGalactic", atomicNumber,massOfMole, vac_density, kStateGas,temperature, pressure);
 
-	/*// air Reference: https://apc.u-paris.fr/~franco/g4doxy4.10/html/class_materials.html
-	density = 1.2929e-03 * g / cm3;  // at 20 degree
-	G4Material * Air = new G4Material("Air", density, nel = 3,
-									   kStateGas, expTemp);
-	G4double ttt = 75.47 + 23.20 + 1.28;
-	Air->AddElement(elN, massfraction = 75.47 / ttt);
-	Air->AddElement(elO, massfraction = 23.20 / ttt);
-	Air->AddElement(elAr, massfraction = 1.28 / ttt);*/
+	// air Reference: https://apc.u-paris.fr/~franco/g4doxy4.10/html/class_materials.html
+	//80   density = 1.2929e-03 * g / cm3;  // at 20 degree
+	//81   G4Material * Air = new G4Material("Air", density, nel = 3,
+	//	82                                    kStateGas, expTemp);
+	//83   G4double ttt = 75.47 + 23.20 + 1.28;
+	//84   Air->AddElement(elN, massfraction = 75.47 / ttt);
+	//85   Air->AddElement(elO, massfraction = 23.20 / ttt);
+	//86   Air->AddElement(elAr, massfraction = 1.28 / ttt);
 
-	/*//Air?
-	G4double atomicNumber = 7.;
-	G4double massOfMole = 14*g/mole;
-	G4double vac_density = 1.5e-3*g/cm3;
-	G4double temperature = 296.*kelvin;
-	G4double pressure = 101325.*pascal;
-	G4Material* Vacuum = new G4Material("interGalactic", atomicNumber,massOfMole, vac_density, kStateGas,temperature, pressure);*/
+	//Air?
+	//G4double atomicNumber = 7.;
+	//G4double massOfMole = 14*g/mole;
+	//G4double vac_density = 1.5e-3*g/cm3;
+	//G4double temperature = 296.*kelvin;
+	//G4double pressure = 101325.*pascal;
+	//G4Material* Vacuum = new G4Material("interGalactic", atomicNumber,massOfMole, vac_density, kStateGas,temperature, pressure);
 		
 	//Set the window material and depth
 	windowMaterialBe = Be; // this is to ensure the Be and Al properties are the same as what we set and also limit the options we have for window material
 	windowMaterialAl = Al;
 	windowMaterial = windowMaterialBe;
-
 	//____________________ solids ____________________
 
 	// world volume (w)
-	G4double w_fl = 40.0*cm; // full length
+	G4double w_fl = 100.0*cm; // full length
 	G4double w_hl = 0.5*w_fl; // half length
 	
 	G4Box* solid_w = new G4Box("world",w_hl,w_hl,w_hl);
@@ -218,7 +219,7 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 	G4Sphere* S1 = new G4Sphere(pName, pRmin, pRmax, pSPhi, pDPhi, pSTheta, pDTheta);
 	logic_S1 = new G4LogicalVolume(S1, Vacuum, "source", 0, 0, 0);
 	physi_S1 = new G4PVPlacement(0, G4ThreeVector(S1_x, S1_y, S1_z), logic_S1, "source", logic_w, false, 0);
-
+	
 	// detectors (d)
 	// detector 1 (d1)
 	G4double d1_d = 1.5 * mm; // depth
@@ -230,6 +231,7 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 	G4double d1_x = 0.0 * mm; // x location
 	G4double d1_y = 0.0 * mm; // y location
 	G4double d1_z = d1_hd; // z location
+
 	G4Tubs* solid_d1 = new G4Tubs("detector_1", d1_ir, d1_or, d1_hd, d1_sta, d1_spa);
 	logic_d1 = new G4LogicalVolume(solid_d1, Si, "detector_1", 0, 0, 0);
 	physi_d1 = new G4PVPlacement(0, G4ThreeVector(d1_x, d1_y, d1_z), logic_d1, "detector_1", logic_w, false, 0);
@@ -319,7 +321,6 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 	G4double d7_x = 0.0 * mm; // x location
 	G4double d7_y = 0.0 * mm; // y location
 	G4double d7_z = d6_z + d7_d + gapB; // z location
-
 	G4Tubs* solid_d7 = new G4Tubs("detector_7", d7_ir, d7_or, d7_hd, d7_sta, d7_spa);
 	logic_d7 = new G4LogicalVolume(solid_d7, Si, "detector_7", 0, 0, 0);
 	physi_d7 = new G4PVPlacement(0, G4ThreeVector(d7_x, d7_y, d7_z), logic_d7, "detector_7", logic_w, false, 0);
@@ -334,7 +335,6 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 	G4double d8_x = 0.0 * mm; // x location
 	G4double d8_y = 0.0 * mm; // y location
 	G4double d8_z = d7_z + d8_d + gapR; // z location
-
 	G4Tubs* solid_d8 = new G4Tubs("detector_8", d8_ir, d8_or, d8_hd, d8_sta, d8_spa);
 	logic_d8 = new G4LogicalVolume(solid_d8, Si, "detector_8", 0, 0, 0);
 	physi_d8 = new G4PVPlacement(0, G4ThreeVector(d8_x, d8_y, d8_z), logic_d8, "detector_8", logic_w, false, 0);
@@ -349,262 +349,196 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 	G4double d9_x = 0.0 * mm; // x location
 	G4double d9_y = 0.0 * mm; // y location
 	G4double d9_z = d8_z + d9_d + gapB; // z location
-
 	G4Tubs* solid_d9 = new G4Tubs("detector_9", d9_ir, d9_or, d9_hd, d9_sta, d9_spa);
 	logic_d9 = new G4LogicalVolume(solid_d9, Si, "detector_9", 0, 0, 0);
 	physi_d9 = new G4PVPlacement(0, G4ThreeVector(d9_x, d9_y, d9_z), logic_d9, "detector_9", logic_w, false, 0);
-	
-	G4RotationMatrix* rotm_AlHousing = new G4RotationMatrix();
-	rotm_AlHousing->rotateX(-90. * deg);
-	rotm_AlHousing->rotateY(-30. * deg);
 
-	//Rotation Matrices
-	G4RotationMatrix* rotm_negZ = new G4RotationMatrix();
-	rotm_negZ->rotateZ(-90. * deg);
-
-	G4RotationMatrix* rotm_negY = new G4RotationMatrix();
-	rotm_negY->rotateY(-90. * deg);
-
-	G4RotationMatrix* rotm_Y = new G4RotationMatrix();
-	rotm_Y->rotateY(90. * deg);
-
-	G4RotationMatrix* rotm_X = new G4RotationMatrix();
-	rotm_X->rotateX(90. * deg);
-
-	G4RotationMatrix* rotm_negX = new G4RotationMatrix();
-	rotm_negX->rotateX(-90. * deg);
-
-	// aluminum front collimator
-	G4double frontcoll_d = 1.00 * mm; // depth | 40.0 - 3.5 - 5.0 mm
-	G4double frontcoll_hd = 0.5 * frontcoll_d * mm; // half depth
-	G4double frontcoll_ir = 9.00 * mm; // inner radius
-	G4double frontcoll_or = 23.5 * mm; // outer radius | (5 mm thick Al collimator)
-	G4double frontcoll_sta = 0.0 * deg; // start angle
-	G4double frontcoll_spa = 360 * deg; // span angle
-	G4double frontcoll_x = 0.0 * mm; // x location
-	G4double frontcoll_y = 0.0 * mm; // y location
-	G4double frontcoll_z = frontcoll_hd; // z location
-	
-	G4Tubs* solid_frontcoll = new G4Tubs("Al_frontcollimator", frontcoll_ir, frontcoll_or, frontcoll_hd, frontcoll_sta, frontcoll_spa);
-	logic_frontcoll = new G4LogicalVolume(solid_frontcoll, Al, "Al_frontcollimator", 0, 0, 0);
-	physi_frontcoll = new G4PVPlacement(0, G4ThreeVector(frontcoll_x, frontcoll_y, frontcoll_z), logic_frontcoll, "Al_frontcollimator", logic_w, false, 0);
-
+	/* BUILDING THE COLLIMATOR */
 	// aluminum collimator
-	G4double coll_d = 47 * mm; // depth
+	G4double coll_d = 48.0 * mm; // depth
 	G4double coll_hd = 0.5 * coll_d * mm; // half depth
 	G4double coll_ir = 17.125 * mm; // inner radius
-	G4double coll_or = 23.5 * mm; // outer radius | (5 mm thick Al collimator)
+	G4double coll_or = 25.0 * mm; // outer radius | (5 mm thick Al collimator)
 	G4double coll_sta = 0.0 * deg; // start angle
 	G4double coll_spa = 360 * deg; // span angle
 	G4double coll_x = 0.0 * mm; // x location
 	G4double coll_y = 0.0 * mm; // y location
-	G4double coll_z = frontcoll_d + coll_hd; // z location
-	
+	G4double coll_z = -64 * mm + coll_hd; // z location
 	G4Tubs* solid_coll = new G4Tubs("Al_collimator", coll_ir, coll_or, coll_hd, coll_sta, coll_spa);
 	logic_coll = new G4LogicalVolume(solid_coll, Al, "Al_collimator", 0, 0, 0);
-	physi_coll = new G4PVPlacement(0, G4ThreeVector(coll_x, coll_y, coll_z), logic_coll, "Al_collimator", logic_w, false, 0);
+	physi_coll = new G4PVPlacement(0, G4ThreeVector(coll_x, coll_y, coll_z), logic_coll, "physical_Alcoll", logic_w, false, 0);
 
-	// heavy shielding embedded in collimator 
-	G4double coll_d_embed5 = 58.5 * mm; // depth | 40.0 - 3.5 - 5.0 mm
-	G4double coll_hd_embed5 = 0.5 * coll_d_embed5 * mm; // half depth
-	G4double coll_ir_embed5 = 15.0 * mm; // inner radius
-	G4double coll_or_embed5 = 17.0 * mm; // outer radius | (5 mm thick Al collimator)
-	G4double coll_sta_embed5 = 0.0 * deg; // start angle
-	G4double coll_spa_embed5 = 360 * deg; // span angle
-	G4double coll_x_embed5 = 0.0 * mm; // x location
-	G4double coll_y_embed5 = 0.0 * mm; // y location
-	G4double coll_z_embed5 = frontcoll_d + coll_hd_embed5; // z location
+	// Ta shielding embedded in collimator 
+	G4double coll_d_embed = 57.3 * mm; // depth (leaves a little room for Beryllium window to be seen)
+	G4double coll_hd_embed = 0.5 * coll_d_embed * mm; // half depth
+	G4double coll_ir_embed = 15.0 * mm; // inner radius
+	G4double coll_or_embed = 17.0 * mm; // outer radius | (5 mm thick Al collimator)
+	G4double coll_sta_embed = 0.0 * deg; // start angle
+	G4double coll_spa_embed = 360 * deg; // span angle
+	G4double coll_x_embed = 0.0 * mm; // x location
+	G4double coll_y_embed = 0.0 * mm; // y location
+	G4double coll_z_embed = -62.0 * mm + coll_hd_embed; // z location
+	G4Tubs* solid_coll_embed = new G4Tubs("solid_coll_embed", coll_ir_embed, coll_or_embed, coll_hd_embed, coll_sta_embed, coll_spa_embed);
+	logic_coll_embed = new G4LogicalVolume(solid_coll_embed, Ta, "embed_collimator", 0, 0, 0);
+	physi_coll_embed = new G4PVPlacement(0, G4ThreeVector(coll_x_embed, coll_y_embed, coll_z_embed), logic_coll_embed, "physical_embedcoll", logic_w, false, 0);
 	
-	G4Tubs* solid_coll_embed5 = new G4Tubs("embed_collimator5", coll_ir_embed5, coll_or_embed5, coll_hd_embed5, coll_sta_embed5, coll_spa_embed5);
-	logic_coll_embed5 = new G4LogicalVolume(solid_coll_embed5, Ta, "embed_collimator5", 0, 0, 0);
-	physi_coll_embed5 = new G4PVPlacement(0, G4ThreeVector(coll_x_embed5, coll_y_embed5, coll_z_embed5), logic_coll_embed5, "embed_collimator5", logic_w, false, 0);
+	// Ta Last Tooth
+	G4double TaTooth5_d = 1.0 * mm; // depth
+	G4double TaTooth5_hd = 0.5 * TaTooth5_d * mm; // half depth
+	G4double TaTooth5_ir = 9.00 * mm; // inner radius
+	G4double TaTooth5_or = 17.00 * mm; // outer radius | (5 mm thick Al collimator, sits underneath of collimator shielding)
+	G4double TaTooth5_sta = 0.0 * deg; // start angle
+	G4double TaTooth5_spa = 360 * deg; // span angle
+	G4double x_TaTooth5 = 0 * mm;
+	G4double y_TaTooth5 = 0 * mm;
+	G4double z_TaTooth5 = - 1.8 * mm - TaTooth5_hd;
+	G4Tubs* solid_TaTooth5 = new G4Tubs("solid_TaTooth5", TaTooth5_ir, TaTooth5_or, TaTooth5_hd, TaTooth5_sta, TaTooth5_spa);
+	logic_TaTooth5 = new G4LogicalVolume(solid_TaTooth5, Ta, "logical_TaTooth5", 0, 0, 0);
+	physi_TaTooth5 = new G4PVPlacement(0, G4ThreeVector(x_TaTooth5, y_TaTooth5, z_TaTooth5), logic_TaTooth5, "physical_TaTooth5", logic_w, false, 0);
 
-	// collimator tooth - W1
-	G4double coll_d_tooth_W1 = 1.0 * mm; // depth | 40.0 - 3.5 - 5.0 mm
-	G4double coll_hd_tooth_W1 = 0.5 * coll_d_tooth_W1 * mm; // half depth
-	G4double coll_ir_tooth_W1 = 9.00 * mm; // inner radius
-	G4double coll_or_tooth_W1 = 15.00 * mm; // outer radius | (5 mm thick Al collimator)
-	G4double coll_sta_tooth_W1 = 0.0 * deg; // start angle
-	G4double coll_spa_tooth_W1 = 360 * deg; // span angle
-	G4double coll_x_tooth_W1 = 0.0 * mm; // x location
-	G4double coll_y_tooth_W1 = 0.0 * mm; // y location
-	G4double coll_z_tooth_W1 = frontcoll_d + coll_hd_tooth_W1; // z location
-	
-	G4Tubs* solid_coll_tooth_W1 = new G4Tubs("collimator_tooth_W1", coll_ir_tooth_W1, coll_or_tooth_W1,coll_hd_tooth_W1, coll_sta_tooth_W1, coll_spa_tooth_W1);
-	logic_coll_tooth_W1 = new G4LogicalVolume(solid_coll_tooth_W1, Ta, "collimator_tooth_W1", 0, 0, 0);
-	physi_coll_tooth_W1 = new G4PVPlacement(0, G4ThreeVector(coll_x_tooth_W1, coll_y_tooth_W1, coll_z_tooth_W1),logic_coll_tooth_W1, "collimator_tooth_W1", logic_w, false, 0);
-	
-	// collimator tooth - W2
-	G4double coll_d_tooth_W2 = 1.0 * mm; // depth | 40.0 - 3.5 - 5.0 mm
-	G4double coll_hd_tooth_W2 = 0.5 * coll_d_tooth_W2 * mm; // half depth
-	G4double coll_ir_tooth_W2 = 9.00 * mm; // inner radius
-	G4double coll_or_tooth_W2 = 15.00 * mm; // outer radius | (5 mm thick Al collimator)
-	G4double coll_sta_tooth_W2 = 0.0 * deg; // start angle
-	G4double coll_spa_tooth_W2 = 360 * deg; // span angle
-	G4double coll_x_tooth_W2 = 0.0 * mm; // x location
-	G4double coll_y_tooth_W2 = 0.0 * mm; // y location
-	G4double coll_z_tooth_W2 = frontcoll_d + 15.0 * mm + coll_hd_tooth_W2; // z location
-	
-	G4Tubs* solid_coll_tooth_W2 = new G4Tubs("collimator_tooth_W2", coll_ir_tooth_W2, coll_or_tooth_W2, coll_hd_tooth_W2, coll_sta_tooth_W2, coll_spa_tooth_W2);
-	logic_coll_tooth_W2 = new G4LogicalVolume(solid_coll_tooth_W2, Ta, "collimator_tooth_W2", 0, 0, 0);
-	physi_coll_tooth_W2 = new G4PVPlacement(0, G4ThreeVector(coll_x_tooth_W2, coll_y_tooth_W2, coll_z_tooth_W2),logic_coll_tooth_W2, "collimator_tooth_W2", logic_w, false, 0);
-	
-	// collimator tooth - W3
-	G4double coll_d_tooth_W3 = 1.0 * mm; // depth | 40.0 - 3.5 - 5.0 mm
-	G4double coll_hd_tooth_W3 = 0.5 * coll_d_tooth_W3 * mm; // half depth
-	G4double coll_ir_tooth_W3 = 9.00 * mm; // inner radius
-	G4double coll_or_tooth_W3 = 15.00 * mm; // outer radius | (5 mm thick Al collimator)
-	G4double coll_sta_tooth_W3 = 0.0 * deg; // start angle
-	G4double coll_spa_tooth_W3 = 360 * deg; // span angle
-	G4double coll_x_tooth_W3 = 0.0 * mm; // x location
-	G4double coll_y_tooth_W3 = 0.0 * mm; // y location
-	G4double coll_z_tooth_W3 = frontcoll_d + 30 * mm + coll_hd_tooth_W3; // z location
-	
-	G4Tubs* solid_coll_tooth_W3 = new G4Tubs("collimator_tooth_W3", coll_ir_tooth_W3, coll_or_tooth_W3, coll_hd_tooth_W3, coll_sta_tooth_W3, coll_spa_tooth_W3);
-	logic_coll_tooth_W3 = new G4LogicalVolume(solid_coll_tooth_W3, Ta, "collimator_tooth_W3", 0, 0, 0);
-	physi_coll_tooth_W3 = new G4PVPlacement(0, G4ThreeVector(coll_x_tooth_W3, coll_y_tooth_W3, coll_z_tooth_W3), logic_coll_tooth_W3, "collimator_tooth_W3", logic_w, false, 0);
-	
-	// collimator tooth - W4
-	G4double coll_d_tooth_W4 = 1.0 * mm; // depth | 40.0 - 3.5 - 5.0 mm
-	G4double coll_hd_tooth_W4 = 0.5 * coll_d_tooth_W4 * mm; // half depth
-	G4double coll_ir_tooth_W4 = 9.00 * mm; // inner radius
-	G4double coll_or_tooth_W4 = 15.00 * mm; // outer radius | (5 mm thick Al collimator)
-	G4double coll_sta_tooth_W4 = 0.0 * deg; // start angle
-	G4double coll_spa_tooth_W4 = 360 * deg; // span angle
-	G4double coll_x_tooth_W4 = 0.0 * mm; // x location
-	G4double coll_y_tooth_W4 = 0.0 * mm; // y location
-	G4double coll_z_tooth_W4 = frontcoll_d + 45 * mm + coll_hd_tooth_W4; // z location
-	
-	G4Tubs* solid_coll_tooth_W4 = new G4Tubs("collimator_tooth_W4", coll_ir_tooth_W4, coll_or_tooth_W4, coll_hd_tooth_W4, coll_sta_tooth_W4, coll_spa_tooth_W4);
-	logic_coll_tooth_W4 = new G4LogicalVolume(solid_coll_tooth_W4, Ta, "collimator_tooth_W4", 0, 0, 0);
-	physi_coll_tooth_W4 = new G4PVPlacement(0, G4ThreeVector(coll_x_tooth_W4, coll_y_tooth_W4, coll_z_tooth_W4), logic_coll_tooth_W4, "collimator_tooth_W4", logic_w, false, 0);
-	
-	// collimator tooth - W5
-	G4double coll_d_tooth_W5 = 1.0 * mm; // depth | 40.0 - 3.5 - 5.0 mm
-	G4double coll_hd_tooth_W5 = 0.5 * coll_d_tooth_W5 * mm; // half depth
-	G4double coll_ir_tooth_W5 = 9.00 * mm; // inner radius
-	G4double coll_or_tooth_W5 = 17.00 * mm; // outer radius | (5 mm thick Al collimator)
-	G4double coll_sta_tooth_W5 = 0.0 * deg; // start angle
-	G4double coll_spa_tooth_W5 = 360 * deg; // span angle
-	G4double coll_x_tooth_W5 = 0.0 * mm; // x location
-	G4double coll_y_tooth_W5 = 0.0 * mm; // y location
-	G4double coll_z_tooth_W5 = frontcoll_d + 60 * mm + coll_hd_tooth_W5; // z location
-	
-	G4Tubs* solid_coll_tooth_W5 = new G4Tubs("collimator_tooth_W5", coll_ir_tooth_W5, coll_or_tooth_W5, coll_hd_tooth_W5, coll_sta_tooth_W5, coll_spa_tooth_W5);
-	logic_coll_tooth_W5 = new G4LogicalVolume(solid_coll_tooth_W5, Ta, "collimator_tooth_W5", 0, 0, 0);
-	physi_coll_tooth_W5 = new G4PVPlacement(0, G4ThreeVector(coll_x_tooth_W5, coll_y_tooth_W5, coll_z_tooth_W5), logic_coll_tooth_W5, "collimator_tooth_W5", logic_w, false, 0);
+	// Be Window
+	G4double BeWin_d = windowDepth; // depth
+	G4double BeWin_hd = 0.5 * windowDepth * mm; // half depth
+	G4double BeWin_ir = 0.0 * mm; // inner radius
+	G4double BeWin_or = 17.0 * mm; // outer radius
+	G4double BeWin_sta = 0.0 * deg; // start angle
+	G4double BeWin_spa = 360 * deg; // span angle
+	G4double x_BeWin = 0 * mm;
+	G4double y_BeWin = 0 * mm;
+	G4double z_BeWin = - 3.0 * mm - BeWin_hd;
+	G4Tubs* solid_BeWin = new G4Tubs("solid_BeWin", BeWin_ir, BeWin_or, 0.5 * windowDepth, BeWin_sta, BeWin_spa);
+	logic_BeWin = new G4LogicalVolume(solid_BeWin, Be, "logical_BeWin", 0, 0, 0);
+	physi_BeWin = new G4PVPlacement(0, G4ThreeVector(x_BeWin, y_BeWin, z_BeWin), logic_BeWin, "physical_BeWin", logic_w, false, 0);
 
-	// aluminum front annulus 1 (larger of the two)
-	G4double al_ann1_d = 10 * mm; // depth
-	G4double al_ann1_hd = 0.5 * al_ann1_d * mm; // half depth
-	G4double al_ann1_ir = 17.0 * mm; // inner radius
-	G4double al_ann1_or = 40 * mm; // outer radius
-	G4double al_ann1_sta = 0.0 * deg; // start angle
-	G4double al_ann1_spa = 360 * deg; // span angle
-	G4double al_ann1_x = 0.0 * mm; // x location
-	G4double al_ann1_y = 0.0 * mm; // y location
-	G4double al_ann1_z = frontcoll_d + coll_d + al_ann1_hd; // z location
+	// Ta 4th Tooth
+	G4double TaTooth4_d = 1.0 * mm; // depth | 40.0 - 3.5 - 5.0 mm
+	G4double TaTooth4_hd = 0.5 * TaTooth4_d * mm; // half depth
+	G4double TaTooth4_ir = 9.00 * mm; // inner radius
+	G4double TaTooth4_or = 15.00 * mm; // outer radius | (5 mm thick Al collimator)
+	G4double TaTooth4_sta = 0.0 * deg; // start angle
+	G4double TaTooth4_spa = 360 * deg; // span angle
+	G4double x_TaTooth4 = 0 * mm;
+	G4double y_TaTooth4 = 0 * mm;
+	G4double z_TaTooth4 = z_BeWin - 13.75 * mm;
+	G4Tubs* solid_TaTooth4 = new G4Tubs("solid_TaTooth4", TaTooth4_ir, TaTooth4_or, TaTooth4_hd, TaTooth4_sta, TaTooth4_spa);
+	logic_TaTooth4 = new G4LogicalVolume(solid_TaTooth4, Ta, "logical_TaTooth4", 0, 0, 0);
+	physi_TaTooth4 = new G4PVPlacement(0, G4ThreeVector(x_TaTooth4, y_TaTooth4, z_TaTooth4), logic_TaTooth4, "physical_TaTooth4", logic_w, false, 0);
+
+	// Ta 3rd Tooth
+	G4double TaTooth3_d = 1.0 * mm; // depth | 40.0 - 3.5 - 5.0 mm
+	G4double TaTooth3_hd = 0.5 * TaTooth3_d * mm; // half depth
+	G4double TaTooth3_ir = 9.00 * mm; // inner radius
+	G4double TaTooth3_or = 15.00 * mm; // outer radius | (5 mm thick Al collimator)
+	G4double TaTooth3_sta = 0.0 * deg; // start angle
+	G4double TaTooth3_spa = 360 * deg; // span angle
+	G4double x_TaTooth3 = 0 * mm;
+	G4double y_TaTooth3 = 0 * mm;
+	G4double z_TaTooth3 = z_TaTooth4 - 14.00 * mm - TaTooth3_d;
+	G4Tubs* solid_TaTooth3 = new G4Tubs("solid_TaTooth3", TaTooth3_ir, TaTooth3_or, TaTooth3_hd, TaTooth3_sta, TaTooth3_spa);
+	logic_TaTooth3 = new G4LogicalVolume(solid_TaTooth3, Ta, "logical_TaTooth3", 0, 0, 0);
+	physi_TaTooth3 = new G4PVPlacement(0, G4ThreeVector(x_TaTooth3, y_TaTooth3, z_TaTooth3), logic_TaTooth3, "physical_TaTooth4", logic_w, false, 0);
+
+	// Ta 2nd Tooth
+	G4double TaTooth2_d = 1.0 * mm; // depth | 40.0 - 3.5 - 5.0 mm
+	G4double TaTooth2_hd = 0.5 * TaTooth2_d * mm; // half depth
+	G4double TaTooth2_ir = 9.00 * mm; // inner radius
+	G4double TaTooth2_or = 15.00 * mm; // outer radius | (5 mm thick Al collimator)
+	G4double TaTooth2_sta = 0.0 * deg; // start angle
+	G4double TaTooth2_spa = 360 * deg; // span angle
+	G4double x_TaTooth2 = 0 * mm;
+	G4double y_TaTooth2 = 0 * mm;
+	G4double z_TaTooth2 = z_TaTooth3 - 14.00 * mm - TaTooth2_d;
+	G4Tubs* solid_TaTooth2 = new G4Tubs("solid_TaTooth2", TaTooth2_ir, TaTooth2_or, TaTooth2_hd, TaTooth2_sta, TaTooth2_spa);
+	logic_TaTooth2 = new G4LogicalVolume(solid_TaTooth2, Ta, "logical_TaTooth2", 0, 0, 0);
+	physi_TaTooth2 = new G4PVPlacement(0, G4ThreeVector(x_TaTooth2, y_TaTooth2, z_TaTooth2), logic_TaTooth2, "physical_TaTooth2", logic_w, false, 0);
+
+	// Ta 1st Tooth
+	G4double TaTooth1_d = 1.0 * mm; // depth | 40.0 - 3.5 - 5.0 mm
+	G4double TaTooth1_hd = 0.5 * TaTooth2_d * mm; // half depth
+	G4double TaTooth1_ir = 9.00 * mm; // inner radius
+	G4double TaTooth1_or = 17.00 * mm; // outer radius | (5 mm thick Al collimator, sits on top of collimator shielding)
+	G4double TaTooth1_sta = 0.0 * deg; // start angle
+	G4double TaTooth1_spa = 360 * deg; // span angle
+	G4double x_TaTooth1 = 0 * mm;
+	G4double y_TaTooth1 = 0 * mm;
+	G4double z_TaTooth1 = z_TaTooth2 - 14.00 * mm - TaTooth1_d + 0.0625; // 0.0625 added for visual distinguishability
+	G4Tubs* solid_TaTooth1 = new G4Tubs("solid_TaTooth1", TaTooth1_ir, TaTooth1_or, TaTooth1_hd, TaTooth1_sta, TaTooth1_spa);
+	logic_TaTooth1 = new G4LogicalVolume(solid_TaTooth1, Ta, "logical_TaTooth1", 0, 0, 0);
+	physi_TaTooth1 = new G4PVPlacement(0, G4ThreeVector(x_TaTooth1, y_TaTooth1, z_TaTooth1), logic_TaTooth1, "physical_TaTooth1", logic_w, false, 0);
+
+	// Aluminum Collimator Front
+	G4double frontcoll_d = 1.00 * mm; // depth | 40.0 - 3.5 - 5.0 mm
+	G4double frontcoll_hd = 0.5 * frontcoll_d * mm; // half depth
+	G4double frontcoll_ir = 9.00 * mm; // inner radius
+	G4double frontcoll_or = 17.125 * mm; // outer radius | (5 mm thick Al collimator)
+	G4double frontcoll_sta = 0.0 * deg; // start angle
+	G4double frontcoll_spa = 360 * deg; // span angle
+	G4double frontcoll_x = 0.0 * mm; // x location
+	G4double frontcoll_y = 0.0 * mm; // y location
+	G4double frontcoll_z = z_TaTooth1 - frontcoll_d - 0.0625; // 0.0625 subtracted for visual distinguishability
+	G4Tubs* solid_frontcoll = new G4Tubs("Al_frontcollimator", frontcoll_ir, frontcoll_or, frontcoll_hd, frontcoll_sta, frontcoll_spa);
+	logic_frontcoll = new G4LogicalVolume(solid_frontcoll, Al, "Al_frontcollimator", 0, 0, 0);
+	physi_frontcoll = new G4PVPlacement(0, G4ThreeVector(frontcoll_x, frontcoll_y, frontcoll_z), logic_frontcoll, "physical_Alfrontcoll", logic_w, false, 0);
+
+	/* BUILDING THE INTSTRUMENT HEAD */
+	// W Second Layer of Shielding
+	G4double WFrIn1_d = 1.50 * mm; // depth | 40.0 - 3.5 - 5.0 mm
+	G4double WFrIn1_hd = 0.5 * WFrIn1_d * mm; // half depth
+	G4double WFrIn1_ir = 11.50 * mm; // inner radius
+	G4double WFrIn1_or = 34.75 * mm; // outer radius | (5 mm thick Al collimator)
+	G4double WFrIn1_sta = 0.0 * deg; // start angle
+	G4double WFrIn1_spa = 360 * deg; // span angle
+	G4double x_WFrIn1 = 0 * mm;
+	G4double y_WFrIn1 = 0 * mm;
+	G4double z_WFrIn1 = -2 * mm + WFrIn1_hd;
+	G4Tubs* solid_WFrIn1 = new G4Tubs("solid_WFrIn1", WFrIn1_ir, WFrIn1_or, WFrIn1_hd, WFrIn1_sta, WFrIn1_spa);
+	logic_WFrIn1 = new G4LogicalVolume(solid_WFrIn1, W, "logical_WFrIn1", 0, 0, 0);
+	physi_WFrIn1 = new G4PVPlacement(0, G4ThreeVector(x_WFrIn1, y_WFrIn1, z_WFrIn1), logic_WFrIn1, "physical_WFrIn1", logic_w, false, 0);
+
+	// Al Front Shim 
+	G4double AlFrShim_d = 0.5 * mm; // depth
+	G4double AlFrShim_hd = 0.5 * AlFrShim_d * mm; // half depth
+	G4double AlFrShim_ir = 17.125 * mm; // inner radius
+	G4double AlFrShim_or = 34.75 * mm; // outer radius | 
+	G4double AlFrShim_sta = 0.0 * deg; // start angle
+	G4double AlFrShim_spa = 360 * deg; // span angle
+	G4double x_AlFrShim = 0 * mm;
+	G4double y_AlFrShim = 0 * mm;
+	G4double z_AlFrShim = z_WFrIn1 - WFrIn1_hd - AlFrShim_hd;
+	G4Tubs* solid_AlFrShim = new G4Tubs("solid_AlFrShim", AlFrShim_ir, AlFrShim_or, AlFrShim_hd, AlFrShim_sta, AlFrShim_spa);
+	logic_AlFrShim = new G4LogicalVolume(solid_AlFrShim, Alalloy, "logical_AlFrShim", 0, 0, 0);
+	physi_AlFrShim = new G4PVPlacement(0, G4ThreeVector(x_AlFrShim, y_AlFrShim, z_AlFrShim), logic_AlFrShim, "physical_AlFrShim", logic_w, false, 0);
+
+	// W Front Plate 1 
+	G4double WFr1_d = 3.5 * mm; // depth
+	G4double WFr1_hd = 0.5 * WFr1_d * mm; // half depth
+	G4double WFr1_ir = 17.125 * mm; // inner radius
+	G4double WFr1_or = 34.75 * mm; // outer radius
+	G4double WFr1_sta = 0.0 * deg; // start angle
+	G4double WFr1_spa = 360 * deg; // span angle
+	G4double x_WFr1 = 0 * mm;
+	G4double y_WFr1 = 0 * mm;
+	G4double z_WFr1 = z_AlFrShim - AlFrShim_hd - WFr1_hd;
+	G4Tubs* solid_WFr1 = new G4Tubs("solid_WFr1", WFr1_ir, WFr1_or, WFr1_hd, WFr1_sta, WFr1_spa);
+	logic_WFr1 = new G4LogicalVolume(solid_WFr1, W, "logical_WFr1", 0, 0, 0);
+	physi_WFr1 = new G4PVPlacement(0, G4ThreeVector(x_WFr1, y_WFr1, z_WFr1), logic_WFr1, "physical_WFr1", logic_w, false, 0);
+
+	// Aluminum Housing
+	G4double AlHousing_d = 46.5 * mm; // depth: revised for HERT1
+	G4double AlHousing_hd = 0.5 * AlHousing_d * mm; // half depth
+	G4double AlHousing_ir = 35 * mm; // inner radius 
+	G4double AlHousing_or = 40 * mm; // outer radius
+	G4double AlHousing_sta = 0.0 * deg; // start angle
+	G4double AlHousing_spa = 360 * deg; // span angle
+	G4double x_AlHousing = 0 * mm;
+	G4double y_AlHousing = 0 * mm;
+	G4double z_AlHousing = -64 * mm + coll_d + AlHousing_hd;
+	G4Tubs* solid_AlHousing = new G4Tubs("solid_AlHousing", AlHousing_ir, AlHousing_or, AlHousing_hd, AlHousing_sta, AlHousing_spa);
+	logic_AlHousing = new G4LogicalVolume(solid_AlHousing, Alalloy, "logical_AlHousing", 0, 0, 0);
+	physi_AlHousing = new G4PVPlacement(0, G4ThreeVector(x_AlHousing, y_AlHousing, z_AlHousing), logic_AlHousing, "physical_AlHousing", logic_w, false, 0);
 	
-	G4Tubs* solid_al_ann1 = new G4Tubs("Al_annulus_1", al_ann1_ir, al_ann1_or, al_ann1_hd, al_ann1_sta, al_ann1_spa);
-	logic_al_ann1 = new G4LogicalVolume(solid_al_ann1, Al, "Al_annulus_1", 0, 0, 0);
-	physi_al_ann1 = new G4PVPlacement(0, G4ThreeVector(al_ann1_x, al_ann1_y, al_ann1_z), logic_al_ann1, "Al_annulus_1", logic_w, false, 0);
-
-	// aluminum chamber
-	G4double al_chm_d = 36.5 * mm; // depth: revised for HERT1
-	G4double al_chm_hd = 0.5 * al_chm_d * mm; // half depth
-	G4double al_chm_ir = 35 * mm; // inner radius | 30.5625 - 5.0 - 3.5 = 22.0625
-	G4double al_chm_or = 40 * mm; // outer radius
-	G4double al_chm_sta = 0.0 * deg; // start angle
-	G4double al_chm_spa = 360 * deg; // span angle
-	G4double al_chm_x = 0.0 * mm; // x location
-	G4double al_chm_y = 0.0 * mm; // y location
-	G4double al_chm_z = frontcoll_d + coll_d + al_ann1_d + al_chm_hd; // z location. Add 0.75 for width of delrin lip
-	
-	G4Tubs* solid_al_chm = new G4Tubs("Al_chamber", al_chm_ir, al_chm_or, al_chm_hd, al_chm_sta, al_chm_spa);
-	logic_al_chm = new G4LogicalVolume(solid_al_chm, Al, "Al_chamber", 0, 0, 0);
-	physi_al_chm = new G4PVPlacement(0, G4ThreeVector(al_chm_x, al_chm_y, al_chm_z), logic_al_chm, "Al_chamber", logic_w, false, 0);
-
-	// aluminum end plate
-	G4double al_end_d = 5.0 * mm; // depth
-	G4double al_end_hd = 0.5 * al_end_d * mm; // half depth
-	G4double al_end_ir = 0.0 * mm; // inner radius
-	G4double al_end_or = 40 * mm; // outer radius
-	G4double al_end_sta = 0.0 * deg; // start angle
-	G4double al_end_spa = 360 * deg; // span angle
-	G4double al_end_x = 0.0 * mm; // x location
-	G4double al_end_y = 0.0 * mm; // y location
-	G4double al_end_z = frontcoll_d + coll_d + al_ann1_d + al_chm_d + al_end_hd; // z location
-	
-	G4Tubs* solid_al_end = new G4Tubs("Al_end_plate", al_end_ir, al_end_or, al_end_hd, al_end_sta, al_end_spa);
-	logic_al_end = new G4LogicalVolume(solid_al_end, Al, "Al_end_plate", 0, 0, 0);
-	physi_al_end = new G4PVPlacement(0, G4ThreeVector(al_end_x, al_end_y, al_end_z), logic_al_end, "Al_end_plate", logic_w, false, 0);
-
-	// beryllium window
-	G4double be_d = windowDepth; // depth
-	G4double be_hd = 0.5 * windowDepth * mm; // half depth
-	G4double be_ir = 0.0 * mm; // inner radius
-	G4double be_or = 17.0 * mm; // outer radius
-	G4double be_sta = 0.0 * deg; // start angle
-	G4double be_spa = 360 * deg; // span angle
-	G4double be_x = 0.0 * mm; // x location
-	G4double be_y = 0.0 * mm; // y location
-	G4double be_z = frontcoll_d + 58.5 * mm + 0.5 * windowDepth; // z location
-
-	G4Tubs* solid_be = new G4Tubs("FOV_disc", be_ir, be_or, 0.5 * windowDepth, be_sta, be_spa);
-	logic_BeWin = new G4LogicalVolume(solid_be, windowMaterial, "FOV_disc", 0, 0, 0);
-	physi_be = new G4PVPlacement(0, G4ThreeVector(be_x, be_y, be_z), logic_BeWin, "FOV_disc", logic_w, false, 0);
-
-	G4cout << "----> The window's z is " << be_z << G4endl;
-	G4cout << "----> The window's material is " << logic_BeWin->GetMaterial() << G4endl;
-	G4cout << "----> The window's depth is " << windowDepth << "mm" << G4endl;
-
-	// tungsten front annulus part 1
-	G4double w_ann_d = 3.5 * mm; // depth
-	G4double w_ann_hd = 0.5 * w_ann_d * mm; // half depth
-	G4double w_ann_ir = 17.125 * mm; // inner radius
-	G4double w_ann_or = 34.75 * mm; // outer radius | 30.5625 - 5.0
-	G4double w_ann_sta = 0.0 * deg; // start angle
-	G4double w_ann_spa = 360 * deg; // span angle
-	G4double w_ann_x = 0.0 * mm; // x location
-	G4double w_ann_y = 0.0 * mm; // y location
-	G4double w_ann_z = frontcoll_d + coll_d + al_ann1_d + w_ann_hd; // z location
-	
-	G4Tubs* solid_w_ann = new G4Tubs("W_annulus", w_ann_ir, w_ann_or, w_ann_hd, w_ann_sta, w_ann_spa);
-	logic_w_ann = new G4LogicalVolume(solid_w_ann, W, "W_annulus", 0, 0, 0);
-	physi_w_ann = new G4PVPlacement(0, G4ThreeVector(w_ann_x, w_ann_y, w_ann_z), logic_w_ann, "W_annulus", logic_w, false, 0);
-
-	// Al Insert: Between tungsten part 1 and part 2 front annulus part 1
-	G4double w_ann_d_Al1 = 0.5 * mm; // depth
-	G4double w_ann_hd_Al1 = 0.5 * w_ann_d_Al1 * mm; // half depth
-	G4double w_ann_ir_Al1 = 17.125 * mm; // inner radius
-	G4double w_ann_or_Al1 = 34.75 * mm; // outer radius | 
-	G4double w_ann_sta_Al1 = 0.0 * deg; // start angle
-	G4double w_ann_spa_Al1 = 360 * deg; // span angle
-	G4double w_ann_x_Al1 = 0.0 * mm; // x location
-	G4double w_ann_y_Al1 = 0.0 * mm; // y location
-	G4double w_ann_z_Al1 = frontcoll_d + coll_d + al_ann1_d + w_ann_d + w_ann_hd_Al1; // z location
-	
-	G4Tubs* solid_w_ann_Al1 = new G4Tubs("W_annulus_Al1", w_ann_ir_Al1, w_ann_or_Al1, w_ann_hd_Al1, w_ann_sta_Al1, w_ann_spa_Al1);
-	logic_w_ann_Al1 = new G4LogicalVolume(solid_w_ann_Al1, Alalloy, "W_annulus_Al1", 0, 0, 0);
-	physi_w_ann_Al1 = new G4PVPlacement(0, G4ThreeVector(w_ann_x_Al1, w_ann_y_Al1, w_ann_z_Al1), logic_w_ann_Al1, "W_annulus_Al1", logic_w, false, 0);
-
-	// tungsten front annulus part 2
-	G4double w_ann_d1 = 1.5 * mm; // depth
-	G4double w_ann_hd1 = 0.5 * w_ann_d1 * mm; // half depth
-	G4double w_ann_ir1 = 11.5 * mm; // inner radius
-	G4double w_ann_or1 = 34.75 * mm; // outer radius | 30.5625 - 5.0
-	G4double w_ann_sta1 = 0.0 * deg; // start angle
-	G4double w_ann_spa1 = 360 * deg; // span angle
-	G4double w_ann_x1 = 0.0 * mm; // x location
-	G4double w_ann_y1 = 0.0 * mm; // y location
-	G4double w_ann_z1 = frontcoll_d + coll_d + al_ann1_d + w_ann_d + w_ann_d_Al1 + w_ann_hd1; // z location
-	
-	G4Tubs* solid_w_ann1 = new G4Tubs("W_annulus1", w_ann_ir1, w_ann_or1, w_ann_hd1, w_ann_sta1, w_ann_spa1);
-	logic_w_ann1 = new G4LogicalVolume(solid_w_ann1, W, "W_annulus1", 0, 0, 0);
-	physi_w_ann1 = new G4PVPlacement(0, G4ThreeVector(w_ann_x1, w_ann_y1, w_ann_z1), logic_w_ann1, "W_annulus1", logic_w, false, 0);
-
-	// epoxy tungsten chamber
-	G4double EpoxCham_d = 24.86 * mm; // depth
+	// Epoxy Chamber
+	G4double EpoxCham_d = 24.85 * mm; // depth
 	G4double EpoxCham_hd = 0.5 * EpoxCham_d * mm; // half depth
 	G4double EpoxCham_ir = 30.75 * mm; // inner radius
 	G4double EpoxCham_or = 34.75 * mm; // outer radius
@@ -612,32 +546,26 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 	G4double EpoxCham_spa = 360 * deg; // span angle
 	G4double x_EpoxCham = 0 * mm;
 	G4double y_EpoxCham = 0 * mm;
-	G4double z_EpoxCham = -0.5 * mm;
-
-	G4RotationMatrix* rotm_EpoCham = new G4RotationMatrix();
-	rotm_EpoCham->rotateY(90. * deg);
-	rotm_EpoCham->rotateZ(90. * deg);
+	G4double z_EpoxCham = -2 * mm + WFrIn1_d + EpoxCham_hd;
+	G4Tubs* solid_EpoxCham = new G4Tubs("solid_EpoxCham", EpoxCham_ir, EpoxCham_or, EpoxCham_hd, EpoxCham_sta, EpoxCham_spa);
 	logic_EpoxCham = new G4LogicalVolume(solid_EpoxCham, EpoxyTungsten, "logical_EpoxCham", 0, 0, 0);
-	physi_EpoxCham = new G4PVPlacement(rotm_EpoCham, G4ThreeVector(x_EpoxCham, y_EpoxCham, z_EpoxCham), logic_EpoxCham, "physical_EpoxCham", logic_w, false, 0);
+	physi_EpoxCham = new G4PVPlacement(0, G4ThreeVector(x_EpoxCham, y_EpoxCham, z_EpoxCham), logic_EpoxCham, "physical_EpoxCham", logic_w, false, 0);
 
 	// Al Chamber Shim 1
-	G4double AlChShim1_d = 2 * mm; // depth
+	G4double AlChShim1_d = 2.0 * mm; // depth
 	G4double AlChShim1_hd = 0.5 * AlChShim1_d * mm; // half depth
 	G4double AlChShim1_ir = 0.0 * mm; // inner radius
-	G4double AlChShim1_or = 29.3 * mm; // outer radius
+	G4double AlChShim1_or = 25.8 * mm; // outer radius
 	G4double AlChShim1_sta = 0.0 * deg; // start angle
 	G4double AlChShim1_spa = 360 * deg; // span angle
 	G4double x_AlChShim1 = 0 * mm;
 	G4double y_AlChShim1 = 0 * mm;
-	G4double z_AlChShim1 = d9_z + 0.54 * mm + 0.5 * mm;
-
-	G4RotationMatrix* rotm_AlCham = new G4RotationMatrix();
-	rotm_AlCham->rotateX(-90. * deg);
-	rotm_AlCham->rotateY(180. * deg);
+	G4double z_AlChShim1 = d9_z + 1.0 * mm + AlChShim1_hd;
+	G4Tubs* solid_AlChShim1 = new G4Tubs("solid_AlChShim1", AlChShim1_ir, AlChShim1_or, AlChShim1_hd, AlChShim1_sta, AlChShim1_spa);
 	logic_AlChShim1 = new G4LogicalVolume(solid_AlChShim1, Alalloy, "logical_AlChShim1", 0, 0, 0);
-	physi_AlChShim1 = new G4PVPlacement(rotm_AlCham, G4ThreeVector(x_AlChShim1, y_AlChShim1, z_AlChShim1), logic_AlChShim1, "physical_AlChShim1", logic_w, false, 0);
+	physi_AlChShim1 = new G4PVPlacement(0, G4ThreeVector(x_AlChShim1, y_AlChShim1, z_AlChShim1), logic_AlChShim1, "physical_AlChShim1", logic_w, false, 0);
 
-	// tungsten end plate
+	// Back W Shielding
 	G4double BackW_d = 5.0 * mm; // depth
 	G4double BackW_hd = 0.5 * BackW_d * mm; // half depth
 	G4double BackW_ir = 0.0 * mm; // inner radius
@@ -646,174 +574,116 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 	G4double BackW_spa = 360 * deg; // span angle
 	G4double x_BackW = 0 * mm;
 	G4double y_BackW = 0 * mm;
-	G4double z_BackW = z_EpoxCham + 5 * mm + 24.86 * mm;
-
-	G4RotationMatrix* rotm_BackW = new G4RotationMatrix();
-	rotm_BackW->rotateX(90. * deg);
-	rotm_BackW->rotateY(90. * deg);
+	G4double z_BackW = -2 * mm + WFrIn1_d + EpoxCham_d + BackW_hd;
+	G4Tubs* solid_BackW = new G4Tubs("solid_BackW", BackW_ir, BackW_or, BackW_hd, BackW_sta, BackW_spa);
 	logic_BackW = new G4LogicalVolume(solid_BackW, W, "logical_BackW", 0, 0, 0);
-	physi_BackW = new G4PVPlacement(rotm_BackW, G4ThreeVector(x_BackW, y_BackW, z_BackW), logic_BackW, "physical_BackW", logic_w, false, 0);
+	physi_BackW = new G4PVPlacement(0, G4ThreeVector(x_BackW, y_BackW, z_BackW), logic_BackW, "physical_BackW", logic_w, false, 0);
 
 	// Al Back Shim 1
-	G4double AlBkShim1_d = 2 * mm; // depth
+	G4double AlBkShim1_d = 1.0 * mm; // depth
 	G4double AlBkShim1_hd = 0.5 * AlBkShim1_d * mm; // half depth
 	G4double AlBkShim1_ir = 0.0 * mm; // inner radius
-	G4double AlBkShim1_or = 29.3 * mm; // outer radius
+	G4double AlBkShim1_or = 34.35 * mm; // outer radius
 	G4double AlBkShim1_sta = 0.0 * deg; // start angle
 	G4double AlBkShim1_spa = 360 * deg; // span angle
 	G4double x_AlBkShim1 = 0 * mm;
 	G4double y_AlBkShim1 = 0 * mm;
-	G4double z_AlBkShim1 = z_BackW + 0 * mm;
-
-	G4RotationMatrix* rotm_AlBackShim = new G4RotationMatrix();
-	rotm_AlBackShim->rotateX(-90. * deg);
-	rotm_AlBackShim->rotateY(180. * deg);
+	G4double z_AlBkShim1 = z_BackW + BackW_hd + AlBkShim1_hd;
+	G4Tubs* solid_AlBkShim1 = new G4Tubs("solid_AlBkShim1", AlBkShim1_ir, AlBkShim1_or, AlBkShim1_hd, AlBkShim1_sta, AlBkShim1_spa);
 	logic_AlBkShim1 = new G4LogicalVolume(solid_AlBkShim1, Alalloy, "logical_AlBkShim1", 0, 0, 0);
-	physi_AlBkShim1 = new G4PVPlacement(rotm_AlBackShim, G4ThreeVector(x_AlBkShim1, y_AlBkShim1, z_AlBkShim1), logic_AlBkShim1, "physical_AlBkShim1", logic_w, false, 0);
+	physi_AlBkShim1 = new G4PVPlacement(0, G4ThreeVector(x_AlBkShim1, y_AlBkShim1, z_AlBkShim1), logic_AlBkShim1, "physical_AlBkShim1", logic_w, false, 0);
 
 	// Al Back Plate
-	G4double AlBkShim1_d = 12 * mm; // depth
-	G4double AlBkShim1_hd = 0.5 * AlBkShim1_d * mm; // half depth
-	G4double AlBkShim1_ir = 0.0 * mm; // inner radius
-	G4double AlBkShim1_or = 29.3 * mm; // outer radius
-	G4double AlBkShim1_sta = 0.0 * deg; // start angle
-	G4double AlBkShim1_spa = 360 * deg; // span angle
+	G4double AlBkPlate_d = 5.0 * mm; // depth
+	G4double AlBkPlate_hd = 0.5 * AlBkPlate_d * mm; // half depth
+	G4double AlBkPlate_ir = 0.0 * mm; // inner radius
+	G4double AlBkPlate_or = 41.0 * mm; // outer radius
+	G4double AlBkPlate_sta = 0.0 * deg; // start angle
+	G4double AlBkPlate_spa = 360 * deg; // span angle
 	G4double x_AlBkPlate = 0 * mm;
 	G4double y_AlBkPlate = 0 * mm;
-	G4double z_AlBkPlate = z_AlBkShim1 + 6 * mm;
-
-	G4RotationMatrix* rotm_AlBackPlate = new G4RotationMatrix();
-	rotm_AlBackPlate->rotateX(-90. * deg);
-	rotm_AlBackPlate->rotateZ(180. * deg);
-
+	G4double z_AlBkPlate = z_AlHousing + AlHousing_hd + AlBkPlate_hd;
+	G4Tubs* solid_AlBkPlate = new G4Tubs("solid_AlBkPlate", AlBkPlate_ir, AlBkPlate_or, AlBkPlate_hd, AlBkPlate_sta, AlBkPlate_spa);
 	logic_AlBkPlate = new G4LogicalVolume(solid_AlBkPlate, Alalloy, "logical_AlBkPlate", 0, 0, 0);
-	physi_AlBkPlate = new G4PVPlacement(rotm_AlBackPlate, G4ThreeVector(x_AlBkPlate, y_AlBkPlate, z_AlBkPlate), logic_AlBkPlate, "physical_AlBkPlate", logic_w, false, 0);
+	physi_AlBkPlate = new G4PVPlacement(0, G4ThreeVector(x_AlBkPlate, y_AlBkPlate, z_AlBkPlate), logic_AlBkPlate, "physical_AlBkPlate", logic_w, false, 0);
 
 	//____________________ visible attributes ____________________
 
-    VisAtt_w = new G4VisAttributes(G4Colour(0.0,0.0,0.0));
-    VisAtt_w->SetVisibility(true);
+    VisAtt_w = new G4VisAttributes(true, G4Colour(0.0,0.0,0.0));
     logic_w->SetVisAttributes(VisAtt_w);
-    
-	//collimator and its teeth
-	VisAtt_frontcoll = new G4VisAttributes(G4Colour(1.0, 0.0, 1.0));
-	VisAtt_frontcoll->SetVisibility(true);
-	logic_frontcoll->SetVisAttributes(VisAtt_frontcoll);
 
-	VisAtt_coll = new G4VisAttributes(G4Colour(1.0, 0.0, 1.0));
-	VisAtt_coll->SetVisibility(true);
-	logic_coll->SetVisAttributes(VisAtt_coll);
+	//Detectors
+	//VisAtt_detectors = new G4VisAttributes(true, G4Colour(1.0, 1.0, 0.0)); // lighter color
+	VisAtt_detectors = new G4VisAttributes(true, G4Colour(0.9, 0.7, 0)); 
+	logic_d1->SetVisAttributes(VisAtt_detectors);
+	logic_d2->SetVisAttributes(VisAtt_detectors);
+	logic_d3->SetVisAttributes(VisAtt_detectors);
+	logic_d4->SetVisAttributes(VisAtt_detectors);
+	logic_d5->SetVisAttributes(VisAtt_detectors);
+	logic_d6->SetVisAttributes(VisAtt_detectors);
+	logic_d7->SetVisAttributes(VisAtt_detectors);
+	logic_d8->SetVisAttributes(VisAtt_detectors);
+	logic_d9->SetVisAttributes(VisAtt_detectors);
 
-	VisAtt_coll_embed5 = new G4VisAttributes(G4Colour(0.0, 1.0, 1.0));  //embeded heavy shielding
-	VisAtt_coll_embed5->SetVisibility(true);
-	logic_coll_embed5->SetVisAttributes(VisAtt_coll_embed5);
+	//collimator and its teeth (Tantalum)
+	VisAtt_coll_embed = new G4VisAttributes(true, G4Colour(0.6, 0, 0.8));
+	logic_coll_embed->SetVisAttributes(VisAtt_coll_embed);
+    logic_TaTooth5->SetVisAttributes(VisAtt_coll_embed);
+	logic_TaTooth4->SetVisAttributes(VisAtt_coll_embed);
+	logic_TaTooth3->SetVisAttributes(VisAtt_coll_embed);
+	logic_TaTooth2->SetVisAttributes(VisAtt_coll_embed);
+	logic_TaTooth1->SetVisAttributes(VisAtt_coll_embed);
 
-	VisAtt_coll_tooth_W1 = new G4VisAttributes(G4Colour(0.0, 1.0, 1.0));  //W1
-	VisAtt_coll_tooth_W1->SetVisibility(true);
-	logic_coll_tooth_W1->SetVisAttributes(VisAtt_coll_tooth_W1);
-
-	VisAtt_coll_tooth_W2 = new G4VisAttributes(G4Colour(0.0, 1.0, 1.0));  //W2
-	VisAtt_coll_tooth_W2->SetVisibility(true);
-	logic_coll_tooth_W2->SetVisAttributes(VisAtt_coll_tooth_W2);
-
-	VisAtt_coll_tooth_W3 = new G4VisAttributes(G4Colour(0.0, 1.0, 1.0));  //W3
-	VisAtt_coll_tooth_W3->SetVisibility(true);
-	logic_coll_tooth_W3->SetVisAttributes(VisAtt_coll_tooth_W3);
-
-	VisAtt_coll_tooth_W4 = new G4VisAttributes(G4Colour(0.0, 1.0, 1.0));  //W4
-	VisAtt_coll_tooth_W4->SetVisibility(true);
-	logic_coll_tooth_W4->SetVisAttributes(VisAtt_coll_tooth_W4);
-
-	VisAtt_coll_tooth_W5 = new G4VisAttributes(G4Colour(0.0, 1.0, 1.0));  //W5
-	VisAtt_coll_tooth_W5->SetVisibility(true);
-	logic_coll_tooth_W5->SetVisAttributes(VisAtt_coll_tooth_W5);
-
-	VisAtt_al_ann1 = new G4VisAttributes(G4Colour(1.0, 0.0, 1.0));
-	VisAtt_al_ann1->SetVisibility(true);
-	logic_al_ann1->SetVisAttributes(VisAtt_al_ann1);
-
-	VisAtt_al_chm = new G4VisAttributes(G4Colour(1.0, 0.0, 1.0));
-	VisAtt_al_chm->SetVisibility(true);
-	logic_al_chm->SetVisAttributes(VisAtt_al_chm);
-
-	VisAtt_al_end = new G4VisAttributes(G4Colour(1.0, 0.0, 1.0));
-	VisAtt_al_end->SetVisibility(true);
-	logic_al_end->SetVisAttributes(VisAtt_al_end);
-
-	VisAtt_be = new G4VisAttributes(G4Colour(0.0, 0.0, 1.0));
-	VisAtt_be->SetVisibility(true);
+	//Be Window
+	VisAtt_be = new G4VisAttributes(true, G4Colour(0, 0.9, 0.9));
 	logic_BeWin->SetVisAttributes(VisAtt_be);
 
-	VisAtt_w_ann = new G4VisAttributes(G4Colour(0.5, 0.0, 1.0));
-	VisAtt_w_ann->SetVisibility(true);
-	logic_w_ann->SetVisAttributes(VisAtt_w_ann);
-	logic_w_ann1->SetVisAttributes(VisAtt_w_ann);
+	//Tungsten Parts
+	VisAtt_tungsten = new G4VisAttributes(true, G4Colour(0.6, 0.6, 0.6)); 
+	//Front Plates
+	logic_WFr1->SetVisAttributes(VisAtt_tungsten);
+	//logic_WFr2->SetVisAttributes(VisAtt_tungsten);
+	//logic_WFr3->SetVisAttributes(VisAtt_tungsten);
+	//logic_WFr4->SetVisAttributes(VisAtt_tungsten);
+	//logic_WFr5->SetVisAttributes(VisAtt_tungsten);
+	//logic_WFr6->SetVisAttributes(VisAtt_tungsten);
+	//logic_WFr7->SetVisAttributes(VisAtt_tungsten);
+	logic_WFrIn1->SetVisAttributes(VisAtt_tungsten);
+	//logic_WFrIn2->SetVisAttributes(VisAtt_tungsten);
+	//logic_WFrIn3->SetVisAttributes(VisAtt_tungsten);
 
-	VisAtt_w_ann_Al1 = new G4VisAttributes(G4Colour(1.0, 0.0, 1.0));
-	VisAtt_w_ann_Al1->SetVisibility(true);
-	logic_w_ann_Al1->SetVisAttributes(VisAtt_w_ann_Al1);
+	//Back Shielding
+	logic_BackW->SetVisAttributes(VisAtt_tungsten);
 
-	VisAtt_EpoxCham = new G4VisAttributes(G4Colour(0.5, 0.5, 0.5));
-	VisAtt_EpoxCham->SetVisibility(true);
-	logic_EpoxCham->SetVisAttributes(VisAtt_EpoxCham);
+	//Epoxy Tungsten
+	VisAtt_w_chm = new G4VisAttributes(true, G4Colour(0.2,0.5,1.0));
+	logic_EpoxCham->SetVisAttributes(VisAtt_w_chm);
 
-	VisAtt_w_end = new G4VisAttributes(G4Colour(0.5, 0.0, 1.0));
-	VisAtt_w_end->SetVisibility(true);
-	logic_w_end->SetVisAttributes(VisAtt_w_end);
+	//Aluminum Parts
+    VisAtt_al = new G4VisAttributes(G4Colour(1.0, 0.0, 1.0));
+	logic_coll->SetVisAttributes(VisAtt_al);		// Collimator exterior
+	logic_frontcoll->SetVisAttributes(VisAtt_al);	// Collimator front
+	logic_AlHousing->SetVisAttributes(VisAtt_al);	// Housing
+	logic_AlBkPlate->SetVisAttributes(VisAtt_al);	// Backplate
 
-	VisAtt_AlChShim1 = new G4VisAttributes(G4Colour(1.0, 0.0, 1.0));
-	VisAtt_AlChShim1->SetVisibility(true);
-	logic_AlChShim1->SetVisAttributes(VisAtt_AlChShim1);
+	//Shims
+	logic_AlFrShim->SetVisAttributes(VisAtt_al);
+	logic_AlChShim1->SetVisAttributes(VisAtt_al);
+	//logic_AlChShim2->SetVisAttributes(VisAtt_al);
+	//logic_AlChShim3->SetVisAttributes(VisAtt_al);
+	//logic_AlChShim4->SetVisAttributes(VisAtt_al);
+    logic_AlBkShim1->SetVisAttributes(VisAtt_al);
+	//logic_AlBkShim2->SetVisAttributes(VisAtt_al);
 
-	VisAtt_w_end_Al2 = new G4VisAttributes(G4Colour(1.0, 0.0, 1.0));
-	VisAtt_w_end_Al2->SetVisibility(true);
-	logic_w_end_Al2->SetVisAttributes(VisAtt_w_end_Al2);
-  
-	VisAtt_d1 = new G4VisAttributes(G4Colour(1.0, 1.0, 0.0));
-	VisAtt_d1->SetVisibility(true);
-	logic_d1->SetVisAttributes(VisAtt_d1);
-
-	VisAtt_d2 = new G4VisAttributes(G4Colour(1.0, 1.0, 0.0));
-	VisAtt_d2->SetVisibility(true);
-	logic_d2->SetVisAttributes(VisAtt_d2);
-
-	VisAtt_d3 = new G4VisAttributes(G4Colour(1.0, 1.0, 0.0));
-	VisAtt_d3->SetVisibility(true);
-	logic_d3->SetVisAttributes(VisAtt_d3);
-
-	VisAtt_d4 = new G4VisAttributes(G4Colour(1.0, 1.0, 0.0));
-	VisAtt_d4->SetVisibility(true);
-	logic_d4->SetVisAttributes(VisAtt_d4);
-
-	VisAtt_d5 = new G4VisAttributes(G4Colour(1.0, 1.0, 0.0));
-	VisAtt_d5->SetVisibility(true);
-	logic_d5->SetVisAttributes(VisAtt_d5);
-
-	VisAtt_d6 = new G4VisAttributes(G4Colour(1.0, 1.0, 0.0));
-	VisAtt_d6->SetVisibility(true);
-	logic_d6->SetVisAttributes(VisAtt_d6);
-
-	VisAtt_d7 = new G4VisAttributes(G4Colour(1.0, 1.0, 0.0));
-	VisAtt_d7->SetVisibility(true);
-	logic_d7->SetVisAttributes(VisAtt_d7);
-
-	VisAtt_d8 = new G4VisAttributes(G4Colour(1.0, 1.0, 0.0));
-	VisAtt_d8->SetVisibility(true);
-	logic_d8->SetVisAttributes(VisAtt_d8);
-
-	VisAtt_d9 = new G4VisAttributes(G4Colour(1.0, 1.0, 0.0));
-	VisAtt_d9->SetVisibility(true);
-	logic_d9->SetVisAttributes(VisAtt_d9);
-
-// designate as sensitive detectors 
-sdManager = G4SDManager::GetSDMpointer();
+  // designate as sensitive detectors 
+  sdManager = G4SDManager::GetSDMpointer();
 
  //BEGIN NEW CODE FOR 8 SENSITIVE DETECTORS
  //BY DLT 3 APRIL 2008
  //Revised codes for 16 sensitive detectors
  //By H. Zhao Aug 17, 2020
 
- //Modified CODE FOR 9 SENSITIVE DETECTORS for Whole config
+   //Modified CODE FOR 9 SENSITIVE DETECTORS for Whole config
  //BY Skyler Krantz 6/8/2022
  
  G4String SiliconSensDetNames[17] = {"detector_1","detector_2","detector_3","detector_4","detector_5","detector_6","detector_7","detector_8","detector_9"};
@@ -847,6 +717,7 @@ sdManager = G4SDManager::GetSDMpointer();
  logic_d7->SetSensitiveDetector(SiSD[6]);
  logic_d8->SetSensitiveDetector(SiSD[7]);
  logic_d9->SetSensitiveDetector(SiSD[8]);
+ //END NEW CODE FOR 16 DETECTORS
 	return physi_w;
 }
 
@@ -855,6 +726,7 @@ void DetectorConstruction::SetWindowMaterial(G4String materialChoice)
 
   if (materialChoice == "Al") {
 	  logic_BeWin-> SetMaterial(windowMaterialAl);
+     //windowMaterial = windowMaterialAl;
      
      G4cout 
           << G4endl 
@@ -865,6 +737,7 @@ void DetectorConstruction::SetWindowMaterial(G4String materialChoice)
     }
   if (materialChoice == "Be") {
 	  logic_BeWin-> SetMaterial(windowMaterialBe);
+     //windowMaterial = windowMaterialBe;
      
      G4cout 
           << G4endl 
@@ -872,6 +745,7 @@ void DetectorConstruction::SetWindowMaterial(G4String materialChoice)
   }
 
     G4RunManager::GetRunManager()->GeometryHasBeenModified();
+    //G4RunManager::GetRunManager()->ReinitializeGeometry();
     G4cout 
           << G4endl 
           << "----> The window is made of " << logic_BeWin->GetMaterial() << G4endl;
@@ -881,6 +755,7 @@ void DetectorConstruction::SetWindowMaterial(G4String materialChoice)
 void DetectorConstruction::SetWindowDepth(G4double val) {
     if (val > 0.0) {
         windowDepth = val;
+        //G4RunManager::GetRunManager()->GeometryHasBeenModified(); 
         G4RunManager::GetRunManager()->ReinitializeGeometry();
          G4cout 
           << G4endl 
