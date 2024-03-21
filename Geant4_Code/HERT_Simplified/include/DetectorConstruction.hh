@@ -104,6 +104,7 @@ class DetectorConstruction : public G4VUserDetectorConstruction
 	
 	// Visible attributes
 	G4VisAttributes* VisAtt_w;
+	G4VisAttributes* VisAtt_detectors;
 	G4VisAttributes* VisAtt_coll;
 	G4VisAttributes* VisAtt_coll_embed;
 	G4VisAttributes* VisAtt_TaColl;
@@ -112,7 +113,6 @@ class DetectorConstruction : public G4VUserDetectorConstruction
 	G4VisAttributes* VisAtt_be;
 	G4VisAttributes* VisAtt_w_chm;
 	G4VisAttributes* VisAtt_StStl;
-	G4VisAttributes* VisAtt_detectors;
 	G4VisAttributes* VisAtt_fastener1;
 	G4VisAttributes* VisAtt_fastener2;
 	G4VisAttributes* VisAtt_fastener3;

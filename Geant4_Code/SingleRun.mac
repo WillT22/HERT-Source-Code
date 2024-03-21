@@ -16,8 +16,8 @@
 #/control/alias energyValue 50			# Assign energyValue (for descrete energy run)
 /control/alias energyMin 0				# Assign energy minimum
 /control/alias energyMax 8				# Assign energy maximum
-/control/alias particleCount 1000000	# Assign particleCount
-/control/alias runNumber 2				# Assign a run number for randomized runs
+/control/alias particleCount 1000000 	# Assign particleCount
+/control/alias runNumber 19				# Assign a run number for randomized runs
 
 ### Randomization Seed Restoration ###
 # Descretized energy file name

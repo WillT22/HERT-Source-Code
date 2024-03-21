@@ -1,4 +1,4 @@
-///
+//
 /// Step: 1) Define the detectors (box --> logical volume (material) --> physical volume (locations etc))
 ///       2) SetSensDet (based on the material, it will identify which detector it is and set the sensitivity accordingly)
 ///       3) SetSensitiveDetector
@@ -383,7 +383,7 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 	physi_coll_embed = new G4PVPlacement(0, G4ThreeVector(coll_x_embed, coll_y_embed, coll_z_embed), logic_coll_embed, "physical_embedcoll", logic_w, false, 0);
 	
 	// Ta Last Tooth
-	G4double TaTooth5_d = 1.0 * mm; // depth
+	G4double TaTooth5_d = 0.8 * mm; // depth (really 1.0 but changed for easy visualization)
 	G4double TaTooth5_hd = 0.5 * TaTooth5_d * mm; // half depth
 	G4double TaTooth5_ir = 9.00 * mm; // inner radius
 	G4double TaTooth5_or = 17.00 * mm; // outer radius | (5 mm thick Al collimator, sits underneath of collimator shielding)
@@ -391,7 +391,7 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 	G4double TaTooth5_spa = 360 * deg; // span angle
 	G4double x_TaTooth5 = 0 * mm;
 	G4double y_TaTooth5 = 0 * mm;
-	G4double z_TaTooth5 = - 1.8 * mm - TaTooth5_hd;
+	G4double z_TaTooth5 = - 2.0 * mm - TaTooth5_hd; //use -1.8mm for real depth
 	G4Tubs* solid_TaTooth5 = new G4Tubs("solid_TaTooth5", TaTooth5_ir, TaTooth5_or, TaTooth5_hd, TaTooth5_sta, TaTooth5_spa);
 	logic_TaTooth5 = new G4LogicalVolume(solid_TaTooth5, Ta, "logical_TaTooth5", 0, 0, 0);
 	physi_TaTooth5 = new G4PVPlacement(0, G4ThreeVector(x_TaTooth5, y_TaTooth5, z_TaTooth5), logic_TaTooth5, "physical_TaTooth5", logic_w, false, 0);
@@ -411,7 +411,7 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 	physi_BeWin = new G4PVPlacement(0, G4ThreeVector(x_BeWin, y_BeWin, z_BeWin), logic_BeWin, "physical_BeWin", logic_w, false, 0);
 
 	// Ta 4th Tooth
-	G4double TaTooth4_d = 1.0 * mm; // depth | 40.0 - 3.5 - 5.0 mm
+	G4double TaTooth4_d = 1.0 * mm; // depth
 	G4double TaTooth4_hd = 0.5 * TaTooth4_d * mm; // half depth
 	G4double TaTooth4_ir = 9.00 * mm; // inner radius
 	G4double TaTooth4_or = 15.00 * mm; // outer radius | (5 mm thick Al collimator)
@@ -425,7 +425,7 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 	physi_TaTooth4 = new G4PVPlacement(0, G4ThreeVector(x_TaTooth4, y_TaTooth4, z_TaTooth4), logic_TaTooth4, "physical_TaTooth4", logic_w, false, 0);
 
 	// Ta 3rd Tooth
-	G4double TaTooth3_d = 1.0 * mm; // depth | 40.0 - 3.5 - 5.0 mm
+	G4double TaTooth3_d = 1.0 * mm; // depth
 	G4double TaTooth3_hd = 0.5 * TaTooth3_d * mm; // half depth
 	G4double TaTooth3_ir = 9.00 * mm; // inner radius
 	G4double TaTooth3_or = 15.00 * mm; // outer radius | (5 mm thick Al collimator)
@@ -439,7 +439,7 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 	physi_TaTooth3 = new G4PVPlacement(0, G4ThreeVector(x_TaTooth3, y_TaTooth3, z_TaTooth3), logic_TaTooth3, "physical_TaTooth4", logic_w, false, 0);
 
 	// Ta 2nd Tooth
-	G4double TaTooth2_d = 1.0 * mm; // depth | 40.0 - 3.5 - 5.0 mm
+	G4double TaTooth2_d = 1.0 * mm; // depth 
 	G4double TaTooth2_hd = 0.5 * TaTooth2_d * mm; // half depth
 	G4double TaTooth2_ir = 9.00 * mm; // inner radius
 	G4double TaTooth2_or = 15.00 * mm; // outer radius | (5 mm thick Al collimator)
@@ -453,7 +453,7 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 	physi_TaTooth2 = new G4PVPlacement(0, G4ThreeVector(x_TaTooth2, y_TaTooth2, z_TaTooth2), logic_TaTooth2, "physical_TaTooth2", logic_w, false, 0);
 
 	// Ta 1st Tooth
-	G4double TaTooth1_d = 1.0 * mm; // depth | 40.0 - 3.5 - 5.0 mm
+	G4double TaTooth1_d = 1.0 * mm; // depth
 	G4double TaTooth1_hd = 0.5 * TaTooth2_d * mm; // half depth
 	G4double TaTooth1_ir = 9.00 * mm; // inner radius
 	G4double TaTooth1_or = 17.00 * mm; // outer radius | (5 mm thick Al collimator, sits on top of collimator shielding)
@@ -467,7 +467,7 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 	physi_TaTooth1 = new G4PVPlacement(0, G4ThreeVector(x_TaTooth1, y_TaTooth1, z_TaTooth1), logic_TaTooth1, "physical_TaTooth1", logic_w, false, 0);
 
 	// Aluminum Collimator Front
-	G4double frontcoll_d = 1.00 * mm; // depth | 40.0 - 3.5 - 5.0 mm
+	G4double frontcoll_d = 1.00 * mm; // depth
 	G4double frontcoll_hd = 0.5 * frontcoll_d * mm; // half depth
 	G4double frontcoll_ir = 9.00 * mm; // inner radius
 	G4double frontcoll_or = 17.125 * mm; // outer radius | (5 mm thick Al collimator)
@@ -482,7 +482,7 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 
 	/* BUILDING THE INTSTRUMENT HEAD */
 	// W Second Layer of Shielding
-	G4double WFrIn1_d = 1.50 * mm; // depth | 40.0 - 3.5 - 5.0 mm
+	G4double WFrIn1_d = 1.50 * mm; // depth
 	G4double WFrIn1_hd = 0.5 * WFrIn1_d * mm; // half depth
 	G4double WFrIn1_ir = 11.50 * mm; // inner radius
 	G4double WFrIn1_or = 34.75 * mm; // outer radius | (5 mm thick Al collimator)
@@ -495,6 +495,7 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 	logic_WFrIn1 = new G4LogicalVolume(solid_WFrIn1, W, "logical_WFrIn1", 0, 0, 0);
 	physi_WFrIn1 = new G4PVPlacement(0, G4ThreeVector(x_WFrIn1, y_WFrIn1, z_WFrIn1), logic_WFrIn1, "physical_WFrIn1", logic_w, false, 0);
 
+	/*
 	// Al Front Shim 
 	G4double AlFrShim_d = 0.5 * mm; // depth
 	G4double AlFrShim_hd = 0.5 * AlFrShim_d * mm; // half depth
@@ -508,9 +509,10 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 	G4Tubs* solid_AlFrShim = new G4Tubs("solid_AlFrShim", AlFrShim_ir, AlFrShim_or, AlFrShim_hd, AlFrShim_sta, AlFrShim_spa);
 	logic_AlFrShim = new G4LogicalVolume(solid_AlFrShim, Alalloy, "logical_AlFrShim", 0, 0, 0);
 	physi_AlFrShim = new G4PVPlacement(0, G4ThreeVector(x_AlFrShim, y_AlFrShim, z_AlFrShim), logic_AlFrShim, "physical_AlFrShim", logic_w, false, 0);
+	*/
 
 	// W Front Plate 1 
-	G4double WFr1_d = 3.5 * mm; // depth
+	G4double WFr1_d = 4.0 * mm; // depth (Use 3.5 with aluminum shim_
 	G4double WFr1_hd = 0.5 * WFr1_d * mm; // half depth
 	G4double WFr1_ir = 17.125 * mm; // inner radius
 	G4double WFr1_or = 34.75 * mm; // outer radius
@@ -518,7 +520,7 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 	G4double WFr1_spa = 360 * deg; // span angle
 	G4double x_WFr1 = 0 * mm;
 	G4double y_WFr1 = 0 * mm;
-	G4double z_WFr1 = z_AlFrShim - AlFrShim_hd - WFr1_hd;
+	G4double z_WFr1 = z_WFrIn1 - WFrIn1_hd /*-0.5 * mm with aluminum shim*/ - WFr1_hd;
 	G4Tubs* solid_WFr1 = new G4Tubs("solid_WFr1", WFr1_ir, WFr1_or, WFr1_hd, WFr1_sta, WFr1_spa);
 	logic_WFr1 = new G4LogicalVolume(solid_WFr1, W, "logical_WFr1", 0, 0, 0);
 	physi_WFr1 = new G4PVPlacement(0, G4ThreeVector(x_WFr1, y_WFr1, z_WFr1), logic_WFr1, "physical_WFr1", logic_w, false, 0);
@@ -626,7 +628,7 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 	logic_d9->SetVisAttributes(VisAtt_detectors);
 
 	//collimator and its teeth (Tantalum)
-	VisAtt_coll_embed = new G4VisAttributes(true, G4Colour(0.6, 0, 0.8));
+	VisAtt_coll_embed = new G4VisAttributes(true, G4Colour(0.6, 0.2, 0.85));
 	logic_coll_embed->SetVisAttributes(VisAtt_coll_embed);
     logic_TaTooth5->SetVisAttributes(VisAtt_coll_embed);
 	logic_TaTooth4->SetVisAttributes(VisAtt_coll_embed);
@@ -639,7 +641,7 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 	logic_BeWin->SetVisAttributes(VisAtt_be);
 
 	//Tungsten Parts
-	VisAtt_tungsten = new G4VisAttributes(true, G4Colour(0.6, 0.6, 0.6)); 
+	VisAtt_tungsten = new G4VisAttributes(true, G4Colour(0.55, 0.55, 0.55));
 	//Front Plates
 	logic_WFr1->SetVisAttributes(VisAtt_tungsten);
 	//logic_WFr2->SetVisAttributes(VisAtt_tungsten);
@@ -660,14 +662,14 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 	logic_EpoxCham->SetVisAttributes(VisAtt_w_chm);
 
 	//Aluminum Parts
-    VisAtt_al = new G4VisAttributes(G4Colour(1.0, 0.0, 1.0));
+    VisAtt_al = new G4VisAttributes(G4Colour(1.0, 0.0, 0.8));
 	logic_coll->SetVisAttributes(VisAtt_al);		// Collimator exterior
 	logic_frontcoll->SetVisAttributes(VisAtt_al);	// Collimator front
 	logic_AlHousing->SetVisAttributes(VisAtt_al);	// Housing
 	logic_AlBkPlate->SetVisAttributes(VisAtt_al);	// Backplate
 
 	//Shims
-	logic_AlFrShim->SetVisAttributes(VisAtt_al);
+	//logic_AlFrShim->SetVisAttributes(VisAtt_al);
 	logic_AlChShim1->SetVisAttributes(VisAtt_al);
 	//logic_AlChShim2->SetVisAttributes(VisAtt_al);
 	//logic_AlChShim3->SetVisAttributes(VisAtt_al);

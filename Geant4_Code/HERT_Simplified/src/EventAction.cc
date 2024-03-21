@@ -49,7 +49,7 @@ G4String EventAction::BeName = "solid_BeWin";
 //std::vector<int> trackParticles = {}; // Track all particles
 // Track only certain particles
 bool EventAction::particleTrack = true; // boolean used to determine if particle should be tracked and written
-std::vector<int> trackParticles = { 1015, 265557, 505827 }; // Vector used to select which particles to record;
+std::vector<int> trackParticles = {};// { 1015, 265557, 505827 }; // Vector used to select which particles to record;
 
 std::fstream f;
 
