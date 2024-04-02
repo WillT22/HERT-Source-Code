@@ -627,7 +627,7 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 	logic_d9->SetVisAttributes(VisAtt_detectors);
 
 	//collimator and its teeth (Tantalum)
-	VisAtt_coll_embed = new G4VisAttributes(true, G4Colour(0.2, 0.4, 1));
+	VisAtt_coll_embed = new G4VisAttributes(true, G4Colour(0.2, 0.8, 0.8));
 	logic_coll_embed->SetVisAttributes(VisAtt_coll_embed);
     logic_TaTooth5->SetVisAttributes(VisAtt_coll_embed);
 	logic_TaTooth4->SetVisAttributes(VisAtt_coll_embed);
@@ -636,11 +636,11 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 	logic_TaTooth1->SetVisAttributes(VisAtt_coll_embed);
 
 	//Be Window
-	VisAtt_be = new G4VisAttributes(true, G4Colour(0.2, 0.85, 0.2));//0.15, 0.9, 0.85
+	VisAtt_be = new G4VisAttributes(true, G4Colour(0.2, 0.3, 1));//0.1, 0.9, 0.75
 	logic_BeWin->SetVisAttributes(VisAtt_be);
 
 	//Tungsten Parts
-	VisAtt_tungsten = new G4VisAttributes(true, G4Colour(0.85, 0, 1));
+	VisAtt_tungsten = new G4VisAttributes(true, G4Colour(0.8, 0, 1));
 	//Front Plates
 	logic_WFr1->SetVisAttributes(VisAtt_tungsten);
 	//logic_WFr2->SetVisAttributes(VisAtt_tungsten);
@@ -657,11 +657,11 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 	logic_BackW->SetVisAttributes(VisAtt_tungsten);
 
 	//Epoxy Tungsten
-	VisAtt_w_chm = new G4VisAttributes(true, G4Colour(0.95,0.65,1));
+	VisAtt_w_chm = new G4VisAttributes(true, G4Colour(1,0.6,1));
 	logic_EpoxCham->SetVisAttributes(VisAtt_w_chm);
 
 	//Aluminum Parts
-    VisAtt_al = new G4VisAttributes(G4Colour(0.45, 0.45, 0.45));
+    VisAtt_al = new G4VisAttributes(G4Colour(0.35, 0.35, 0.35));
 	logic_coll->SetVisAttributes(VisAtt_al);		// Collimator exterior
 	logic_frontcoll->SetVisAttributes(VisAtt_al);	// Collimator front
 	logic_AlHousing->SetVisAttributes(VisAtt_al);	// Housing
