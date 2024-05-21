@@ -1,4 +1,4 @@
-function [hit_energy_channels, run_number, beam_number, energy_beam, non_energy_beam, back_energy_beam] = oneEnergyEffDistWhole(file_name, inputfolder, energy_channels, detector_threshold, back_threshold)
+function [hit_deposited_energy, hit_energy_channels, run_number, beam_number, energy_beam, non_energy_beam, back_energy_beam] = oneEnergyEffDistWhole(file_name, inputfolder, energy_channels, detector_threshold, back_threshold)
 % Author: Yinbo Chen
 % Date: 6/15/2021
 % Modified by: Skyler Krantz, Will Teague
@@ -57,13 +57,13 @@ back_hits = nnz(back_hits_logic);
 count_reject = nnz(count_reject_logic) + nnz(back_hits_logic);
     
 % Calculate the sum of energy deposits over all detectors for each particle
-WholeSum = sum(Detector_Energy,2); 
+hit_deposited_energy = sum(Detector_Energy,2); 
 
 hit_energy_channels = zeros(1,length(energy_beam));
 % Update singleMatrix for each energy channel
 for ec = 1:size(energy_channels,1)                                                     % For each energy channel
     for i = 1:size(Detector_Energy,1)                                                       % For each particle
-        if WholeSum(i) >= energy_channels(ec, 1) && WholeSum(i) < energy_channels(ec, 2)      % Sort total deposited energies into an energy channel
+        if hit_deposited_energy(i) >= energy_channels(ec, 1) && hit_deposited_energy(i) < energy_channels(ec, 2)      % Sort total deposited energies into an energy channel
             hit_energy_channels(i) = ec; %replace with variable sized matrix that takes all good hits
         end
     end

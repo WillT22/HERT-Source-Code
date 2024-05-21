@@ -4,19 +4,18 @@ close all;
 clc;
 addpath 'E:\HERT_Drive\MATLAB Main'
 
-files = dir('E:\HERT_Drive\MATLAB Main\Result\Process');
+files = dir('E:\HERT_Drive\Matlab Main\Result\Proton\RAW_data');
 % Grabs all the names of the files in a vector (nx1 matrix)
 filenames = {files.name};
-filenames = filenames(3:end-1);
+filenames = filenames(3:end);
 file_name = filenames{1};
 beam_number = str2double(regexp(file_name, '\d+', 'match', 'once'));
 
 Einc = zeros(beam_number,size(filenames,2));
 
 for f = 1:size(filenames,2)
-    file_name = filenames{f};
     % Opens the file to be processed
-    fide = fopen(file_name, 'r');
+    fide = fopen(filenames{f}, 'r');
     % Sorts each line in the .txt file into a cell array
     header = fgetl(fide);  % Read 11 strings directly into a cell array
     data = textscan(fide, '%f %f %f %f %f %f %f %f %f %f', 'Delimiter','');  % Skip header

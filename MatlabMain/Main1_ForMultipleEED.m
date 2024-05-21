@@ -16,8 +16,9 @@ addpath 'E:\HERT_Drive\MATLAB Main'
 detector_threshold = 0.1; % Detector Threshold (MeV)
 back_threshold = 0.1; % Back Detector Threshold (MeV)
 numDetect = 9;
-bins = 300;         % number of energy bins to create (recommend ~100 for every million particles)    
-textsize = 18;
+bins = 50; 
+textsize = 24;
+titlesize = 28;
 
 %% Calculate GEANT4 Results
 % Read files from ./Result folder and store into a 1*C array
@@ -47,11 +48,10 @@ addin = inputfolder;
 % Assuming the Collimator Knife Edge Stops All Particles (Min GeoFactor)
 L_12 = 6.0; % cm distance between first and last collimator teeth
 L_23 = 0.3; % cm distance between last collimator tooth and first detector
+L_13 = L_12 + L_23;
 r1 = 0.9;   % cm radius of the first collimator tooth
 r2 = 0.9;   % cm radius of the last collimator tooth
 r3 = 1.0;   % cm radius of the first detector
-
-L_13 = L_12 + L_23;
 
 G3_whole_min = findG3whole(L_12, L_23, L_13, r1, r2, r3);
 
@@ -59,27 +59,18 @@ G3_whole_min = findG3whole(L_12, L_23, L_13, r1, r2, r3);
 parttype_choice = menu('Particle Type', 'Electron', 'Proton');
 switch parttype_choice
     case 1
+        parttype = 0;
         fprintf('Particle Type: Electron \n')
         % Assuming the Collimator Knife Edge Stops No Particles (Max GeoFactor)
-        L_12 = 6.0; % cm distance between first and last collimator teeth
-        L_23 = 0.3; % cm distance between last collimator tooth and first detector
         r1 = 1.0;   % cm radius of the first collimator tooth (larger than above)
         r2 = 1.0;   % cm radius of the last collimator tooth (larger than above)
-        r3 = 1.0;   % cm radius of the first detector
-        
-        L_13 = L_12 + L_23;
-        
         G3_whole_max = findG3whole(L_12, L_23, L_13, r1, r2, r3);
+
     case 2
+        parttype = 1;
         fprintf('Particle Type: Proton \n')
         % Protons penetrate entirety of collimator teeth
-        L_12 = 6.0; % cm distance between first and last collimator teeth
-        L_23 = 0.3; % cm distance between last collimator tooth and first detector
         r1 = 1.5;   % cm radius of the collimator tube interior
-        r3 = 1.0;   % cm radius of the first detector
-        
-        L_13 = L_12 + L_23;
-        
         G3_whole_max = 0.5*(pi^2)*((r1^2+r3^2+L_13^2)-(((r1^2+r3^2+L_13^2)^2-4*(r1^2)*(r3^2))^0.5));
 end
 
@@ -171,7 +162,8 @@ while choice ~= 1 % Choice 1 is to exit the program
                 disp(addin);
                 
                 % Creates matrix to store data
-                M_output_Mult = [];
+                M_hit_dep = [];
+                M_hit_channels = [];
                 M_run_number = zeros(1,file_number);
                 M_beam_number = zeros(1,file_number);
                 M_energy_beam = [];
@@ -183,11 +175,12 @@ while choice ~= 1 % Choice 1 is to exit the program
                     % For every .txt file in Results, it will run
                     % oneEnergyEffDist and add the results to finalMatrix
                     % and finalMatrix2
-                    [output_Mult, run_number, beam_number, energy_beam, non_energy_beam, back_energy_beam]...
+                    [hit_deposited_energy, hit_energy_channels, run_number, beam_number, energy_beam, non_energy_beam, back_energy_beam]...
                         = oneEnergyEffDistWhole(filename{i}, inputfolder, energy_channels, detector_threshold, back_threshold);
                         
                     % This will be Y in our plot
-                    M_output_Mult = [M_output_Mult, output_Mult];
+                    M_hit_dep = [M_hit_dep, hit_deposited_energy'];
+                    M_hit_channels = [M_hit_channels, hit_energy_channels];
                     
                     % final_matrix is a matrix with
                     % Energy Channel x number of different energy levels tested
@@ -212,22 +205,25 @@ while choice ~= 1 % Choice 1 is to exit the program
 
                 % Y has a column for every energy channel and rows up to
                 % the number of .txt. files
-                hits_whole_EC = histcounts(M_output_Mult);
+                hits_whole_EC = histcounts(M_hit_channels);
                 
                 % Bin the energy for every particle simulated (hits or no)
-                energy_edges = logspace(log10(min_incident_energy), log10(max_incident_energy), bins + 1);
-                [M_energy_bin, ~ ,M_energy_bin_indicies] = histcounts([M_energy_beam, M_back_beam, M_non_energy_beam],energy_edges);
-                
-                M_energy_midpoints = zeros(1,length(energy_edges)-1);
-                for edge = 1:length(energy_edges)-1
-                    M_energy_midpoints(edge) = (energy_edges(edge)+energy_edges(edge+1))/2;
+                % logrithmic binning
+                %energy_edges = logspace(log10(min_incident_energy-0.0001), log10(max_incident_energy+0.0001), bins + 1);
+                %[M_energy_bin, ~ ,M_energy_bin_indicies] = histcounts([M_energy_beam, M_back_beam, M_non_energy_beam],energy_edges);
+                % linear binning 
+                [M_energy_bin,M_energy_edges,M_energy_bin_indicies] = histcounts([M_energy_beam, M_non_energy_beam],bins);
+
+                M_energy_midpoints = zeros(1,length(M_energy_edges)-1);
+                for edge = 1:length(M_energy_edges)-1
+                    M_energy_midpoints(edge) = (M_energy_edges(edge)+M_energy_edges(edge+1))/2;
                 end
 
                 % Get bin indices for all energy beam values for hit counts
-                [~,~,beam_bin_indices] = histcounts(M_energy_beam, energy_edges);
+                [~,~,beam_bin_indices] = histcounts(M_energy_beam, M_energy_edges);
                 
                 % Find the bin number for each back hit
-                [~,~,back_bin_indices] = histcounts(M_back_beam, energy_edges);
+                [~,~,back_bin_indices] = histcounts(M_back_beam, M_energy_edges);
 
                 back_counts = zeros(1,bins);
                 for bin = 1:bins
@@ -246,8 +242,8 @@ while choice ~= 1 % Choice 1 is to exit the program
                 hits_log = zeros(size(energy_channels,1),bins);
                 geo_EC = zeros(size(energy_channels,1),bins);
                 for channel = 1:size(energy_channels,1)
-                    for particle_index = 1:length(M_output_Mult)
-                        if M_output_Mult(particle_index) == channel
+                    for particle_index = 1:length(M_hit_channels)
+                        if M_hit_channels(particle_index) == channel
                             hits_log(channel,beam_bin_indices(particle_index))= hits_log(channel,beam_bin_indices(particle_index)) + 1;
                         end
                     end
@@ -263,35 +259,68 @@ while choice ~= 1 % Choice 1 is to exit the program
                 save(Var_String)
                 
                 addin = regexprep(addin, '_', ' ');
-                
-%% Total Geometric Factor Comparison
+                               
+%% Total Hits Comparison
                 line_width = 2;
-                f1 = gcf;
-                f1.Position = [0 0 2048 1600];
+                f2 = figure;
+                f2.Position = [0 0 1920 1080];
                 
                 hold on
+                plot(M_energy_midpoints, sum(hits_log,1) ./ M_energy_bin *100, 'DisplayName', 'Counted Hits', 'LineWidth', line_width)
+                plot(M_energy_midpoints, back_counts ./ M_energy_bin *100, 'DisplayName', 'Last Detector Triggered', 'LineWidth', line_width)
+
+                 % Put in Penetration Limits
+                if parttype == 1
+                    xline([14,35,51],'--',{'Beryllium Window Penetration','Collimator Teeth Penetration','Veto Detector Triggering'}, ...
+                    'LineWidth', 1.5,'FontSize', 16,'LabelOrientation','horizontal')
+                end
+
+                legend({'Counted Hits','Last Detector Triggered'},'Location','southeast')
+                grid on
+                set(gca,'FontSize', textsize)
+                titlestr = append(sprintf('Hits %.2f MeV - %.2f MeV ', min_incident_energy, max_incident_energy), addin);
+                title(titlestr, 'FontSize', titlesize)
+                ylabel('Percent of Hits')
+                xlabel('Energy (MeV)')
+                hold off
+                
+                % Saving the figure as a jpg then returning to the main directory
+                effsave = append('Counted Hits', string(datetime("today")), addin, '.jpg');
+                saveas(f2, effsave)
+
+%% Total Geometric Factor Comparison
+                line_width = 2;
+                f1 = figure;
+                f1.Position = [0 0 1800 1000];
+
+                hold on
                 % Plot Theory Bands
-                plot([10, 80], G3_whole_min * ones(1,2), '--g', 'LineWidth', line_width);
-                plot([10, 80], G3_whole_max * ones(1,2), '--b', 'LineWidth', line_width);
+                plot([0,min_incident_energy,max_incident_energy], G3_whole_min * ones(1,3), '--g', 'LineWidth', line_width);
+                plot([0,min_incident_energy,max_incident_energy], G3_whole_max * ones(1,3), '--b', 'LineWidth', line_width);
                 
                 % Plot Simulation Value
                 total_geo = sum(geo_EC,1);
-                total_geo(total_geo < 1e-5) = 1e-5;
+                total_geo(total_geo==0) = 1e-31;
                 
-                plot(M_energy_midpoints, total_geo, '-k', 'LineWidth', line_width);
+                plot([min_incident_energy,M_energy_midpoints], [1e-31,total_geo], '-k', 'LineWidth', line_width);
 
-                 % Put in Penetration Limits
-                xline([14,36,51],'--',{'Beryllium Window Penetration','Collimator Teeth Penetration','Veto Detector Triggering'}, ...
-                    'LineWidth', 1.5,'FontSize', 19,'LabelOrientation','horizontal')
-                 
+                % Put in Penetration Limits
+                %{
+                if parttype == 1
+                    xline([14,35,51],'--',{'Beryllium Window Penetration','Collimator Teeth Penetration','Veto Detector Triggering'}, ...
+                    'LineWidth', 1.5,'FontSize', 16,'LabelOrientation','horizontal')
+                end
+                %}
+
                 % Sets y-axis to log scale. Comment out to keep plot linear
                 set(gca, 'YScale', 'log')
-                xlim([10,80])
+                xlim([0,max_incident_energy])
                 ylim([10^-4, 10^0])
                 set(gca, 'FontSize', textsize)
                 
                 titlestr = append(sprintf('Total GF: %.2f MeV - %.2f MeV ', min_incident_energy, max_incident_energy), addin);
-                title(titlestr, 'FontSize', 20)
+                title(titlestr, 'FontSize', titlesize)
+                %title('Proton Total Geometric Factor', 'FontSize', titlesize-2);
                 ylabel('Geometric Factor (cm^2 sr)', 'FontSize', textsize)
                 xlabel('Incident Energy (MeV)', 'FontSize', textsize)
 
@@ -302,44 +331,16 @@ while choice ~= 1 % Choice 1 is to exit the program
                     legend_entries = {'Theoretical Min', 'Theoretical Max', 'GEANT4 Sphere'};
                 end
                 
-                legend(legend_entries, 'FontSize', 20, 'Location', 'southeast');
+                legend(legend_entries, 'FontSize', titlesize, 'Location', 'southeast');
                 
                 hold off
                 
                 % Saving the figure as a jpg then returning to the main directory
                 effsave = append('Total GF_', string(datetime("today")), '_', addin, '.jpg');
-                saveas(gcf, effsave)
-                               
-%% Total Hits Comparison
-                line_width = 2;
-                f2 = figure;
-                f2.Position = [0 0 2048 1600];
-                
-                hold on
-                plot(M_energy_midpoints, sum(hits_log,1) ./ M_energy_bin *100, 'DisplayName', 'Counted Hits', 'LineWidth', line_width)
-                plot(M_energy_midpoints, back_counts ./ M_energy_bin *100, 'DisplayName', 'Last Detector Triggered', 'LineWidth', line_width)
-
-                 % Put in Penetration Limits
-                xline([14,35,51],'--',{'Beryllium Window Penetration','Collimator Teeth Penetration','Veto Detector Triggering'}, ...
-                    'LineWidth', 1.5,'FontSize', 19,'LabelOrientation','horizontal')
-
-                legend({'Counted Hits','Last Detector Triggered'})
-                grid on
-                % ylim([0 100])
-                % yticks((0:5:100))
-                set(gca, 'FontSize', textsize)
-                titlestr = append(sprintf('Hits %.2f MeV - %.2f MeV ', min_incident_energy, max_incident_energy), addin);
-                title(titlestr, 'FontSize', 20)
-                ylabel('Percent of Hits')
-                xlabel('Energy (MeV)')
-                hold off
-                
-                % Saving the figure as a jpg then returning to the main directory
-                effsave = append('Counted Hits', string(datetime("today")), addin, '.jpg');
-                saveas(f2, effsave)
+                saveas(f1, effsave)
 
 %% Geometric Factor by Energy Channel
-                geo_EC(geo_EC == 0) = 10^-31;
+                geo_EC(geo_EC==0)=1e-31;
                 line_width = 2;
                 y_label = round(max(max(geo_EC)), 2);
                 
@@ -348,43 +349,52 @@ while choice ~= 1 % Choice 1 is to exit the program
                 end
                 
                 f3 = figure;
-                f3.Position = [0 0 2000 1650];
-                EngLegend_EC = strings(1, length(energy_channels));
-                color_iter = 1;
+                f3.Position = [0 0 1920 1080];
                 hold on
                 
                 % All Channels
-                
                 % Select which channels to highlight
                 % channel_select = [2,10,20,30,35];
                 % channel_select = [10];
-                
-                hold on
+                colors = [];
                 for channel = 1:size(energy_channels, 1)
-                    plot(M_energy_midpoints, geo_EC(channel,:), 'Color', Effplotcolor(color_iter, :), 'LineWidth', line_width);
-                    EngLegend_EC(channel) = append(sprintf('Channel #%.0f: ', channel), EngLegend(channel));
-                    EngLegend_EC(channel) = EngLegend(channel);
-                    color_iter = color_iter + 1;
+                    if exist('channel_select','var')
+                        if find(channel_select == channel)>0
+                            colors = [colors;plot(M_energy_midpoints, geo_EC(channel,:), 'Color', Effplotcolor(channel, :), 'LineWidth', line_width, 'DisplayName', EngLegend{channel})];
+                        else
+                            plot(M_energy_midpoints, geo_EC(channel,:), 'Color', [0.7,0.7,0.7,0.7], 'LineWidth', line_width);
+                        end
+                    else
+                        plot(M_energy_midpoints, geo_EC(channel,:), 'Color', Effplotcolor(channel, :), 'LineWidth', line_width);
+                    end
                 end
+
                 % Put in Penetration Limits
-                xline([14,35,51],'--',{'Beryllium Window Penetration','Collimator Teeth Penetration','Veto Detector Triggering'}, ...
-                    'LineWidth', 1.5,'FontSize', 19,'LabelOrientation','horizontal')
+                %{
+                if parttype == 1
+                    xline([14,35,51],'--',{'Beryllium Window Penetration','Collimator Teeth Penetration','Veto Detector Triggering'}, ...
+                    'LineWidth', 1.5,'FontSize', 16,'LabelOrientation','horizontal')
+                end
+                %}
 
                 hold off
                 
                 set(gca, 'FontSize', textsize)
-                hold off
                 titlestr_whole = append(sprintf('Geometric Factor by EC %.2f MeV - %.2f MeV ', min_incident_energy, max_incident_energy), addin);
                 title(titlestr_whole, 'FontSize', textsize)
+                %title('Proton Energy Channel Geometric Factor', 'FontSize', textsize)
                 ylabel('Geometric Factor (cm^2 sr)', 'FontSize', textsize)
                 xlabel('Incident Energy (MeV)', 'FontSize', textsize)
                 
                 % Sets y-axis to log scale. Comment out to keep the plot linear
                 set(gca, 'YScale', 'log')
-                
-                ylim([10^-3, 10^0])
+                ylim([10^-4, 10^0])
                 grid on
-                legend(EngLegend_EC, 'Location', 'southoutside', 'NumColumns', 6)
+                if exist('channel_select','var')
+                    legend(colors, EngLegend(channel_select), 'Location', 'southoutside', 'NumColumns', 6);
+                else
+                    legend(EngLegend, 'Location', 'southoutside', 'NumColumns', 6);
+                end
                 
                 % Saving the figure as a jpg then returning to the main directory
                 effsave = append('Geometric Factor Whole by EC_', string(datetime("today")), addin, '.jpg');
@@ -394,10 +404,10 @@ while choice ~= 1 % Choice 1 is to exit the program
             else
                     disp('Start the oneEnergyEffDist.m');  
                     % Runs oneEnergyEffDistWhole for the one .txt file
-                    [output_Mult,energy_beam,beam_number,back_whole,detector_energy_whole,hits_detectors_whole]...
+                    [hit_energy_channels,energy_beam,beam_number,back_whole,detector_energy_whole,hits_detectors_whole]...
                         = oneEnergyEffDistWhole(filename,energy_channels,back_threshold,inputfolder,detector_threshold);
                 
-                    hits_whole_EC = output_Mult;
+                    hits_whole_EC = hit_energy_channels;
                     r_source = 8.5; % 8.5 cm for HERT-CAD
                     part_tot_EC = 2 .* beam_number / (1 - cosd(15));
                     geo_EC = (hits_whole_EC ./ part_tot_EC) * (4 * (pi^2) * (r_source^2));

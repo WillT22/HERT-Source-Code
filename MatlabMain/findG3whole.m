@@ -12,13 +12,6 @@ theta_m_12 = atan((r1+r2)/L_12); %first to last collimator tooth
 theta_m_13 = atan((r1+r3)/L_13); %first tooth to first detector
 theta_m_23 = atan((r2+r3)/L_23); %last tooth to detector
 
-%geometric factor of first collimator tooth and first detector (high E particles)
-G13 = 0.5*(pi^2)*((r1^2+r3^2+L_13^2)-((r1^2+r3^2+L_13^2)^2-4*(r1^2)*(r3^2))^0.5);
-%geometric factor of last collimator tooth and first detector (low E particles)
-G12 = 0.5*(pi^2)*((r1^2+r2^2+L_12^2)-((r1^2+r2^2+L_12^2)^2-4*(r1^2)*(r2^2))^0.5); 
-%geometric factor of first to last collimator tooth
-G23 = 0.5*(pi^2)*((r2^2+r3^2+L_23^2)-((r2^2+r3^2+L_23^2)^2-4*(r2^2)*(r3^2))^0.5); 
-
 %Apply Simlifying Criteria
 %if the 'always hits' critical angle is defined from the first tooth and the detector
 if theta_c_12 >= theta_c_13

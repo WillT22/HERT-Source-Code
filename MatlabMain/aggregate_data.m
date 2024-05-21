@@ -58,14 +58,15 @@ for i = 1:file_number
 end
 
 aggregate = [M_Einc, M_hit_dep];
+aggregate = round(aggregate,6);
 
 tot_Edep = sum(NumEnergyDeposit);
 fprintf('Total Energy Depositing Particles %g \n',tot_Edep);
 
 cd 'Aggregate Data'\
-fid = fopen('Aggregate Electron Data 1-100.txt', 'wt');
+fid = fopen('Aggregate Proton Data 1-50.txt', 'wt');
 fprintf(fid, '%s \n', header);
-fprintf(fid, '%9.6g          %10.6g%10.6g%10.6g%10.6g%10.6g%10.6g%10.6g%10.6g%10.6g\n', aggregate');
+fprintf(fid, '%9.6g           %9.6g %9.6g %9.6g %9.6g %9.6g %9.6g %9.6g %9.6g %9.6g \n', aggregate');
 fclose(fid);
 
 % Return to MATLAB Main

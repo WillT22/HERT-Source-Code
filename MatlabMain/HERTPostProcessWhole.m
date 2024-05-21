@@ -48,6 +48,7 @@ Einc_non = Einc(idx_positive==0);
 Edep_data = Detector_Energy(idx_positive==1, :);
 
 Energy_output = [Einc_new, Edep_data];
+Energy_output = round(Energy_output,6);
 
 HitsLog = nnz(idx_positive);
 NoEnergyDep = nnz(idx_positive == 0); 
@@ -55,7 +56,7 @@ NoEnergyDep = nnz(idx_positive == 0);
 %% Writes Output to Text File
 fprintf(fid, 'Sims with Energy Deposited: %.f\n', HitsLog);
 fprintf(fid, '%s \n', header);
-fprintf(fid, '%9.6g          %10.6g%10.6g%10.6g%10.6g%10.6g%10.6g%10.6g%10.6g%10.6g\n', Energy_output');
+fprintf(fid, '%9.6g           %9.6g %9.6g %9.6g %9.6g %9.6g %9.6g %9.6g %9.6g %9.6g \n', Energy_output');
 fprintf(fid, '\nSims with No Energy Deposited: %.f\n',NoEnergyDep);
 fprintf(fid, 'Einc(MeV) \n');
 fprintf(fid, '%9.6g \n', Einc_non);
