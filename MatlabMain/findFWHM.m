@@ -1,10 +1,11 @@
-function [FWHM,xr,xl] = findFWHM(x, fx)
+function [FWHM] = findFWHM(x, fx)
 %findFWHM: Finds the full width half max (FWHM) of a function
 %
 %	FWHM = findFWHM(x, fx);
 
-if max(abs(fx)) == 0
+if max(abs(fx)) == 1e-31
     FWHM = 0;
+
 else
     [m, n] = max(fx);		%	Find maximum value and index
     ind = find(fx>=m/2);	%	Find indicies where I>=max(I)/2
