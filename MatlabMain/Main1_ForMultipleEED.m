@@ -16,7 +16,8 @@ addpath 'E:\HERT_Drive\MATLAB Main'
 detector_threshold = 0.1; % Detector Threshold (MeV)
 back_threshold = 0.1; % Back Detector Threshold (MeV)
 numDetect = 9;
-bins = 50; 
+% Skyler had 379 descrete energy levels in his simulations (75.8 million particles)
+bins = 400; % aim is to get 400 bins for comparable results
 textsize = 24;
 titlesize = 28;
 
@@ -81,11 +82,11 @@ switch simtype_choice
     case 1
         sim_type = 0;
         fprintf('Sim Type: Spherical Cap (15 deg) \n')
-        addin = append(addin, ' SC ');
+        addin = append(addin, ' SC');
     case 2
         sim_type = 1;
         fprintf('Sim Type: Full Sphere \n')
-        addin = append(addin, ' FS ');
+        addin = append(addin, ' FS');
 end
 
 % Creates a search string for result .txt files
@@ -134,18 +135,18 @@ while choice ~= 1 % Choice 1 is to exit the program
 %% Start Data Processing            
         case 4 % Start Run
             % Print detector threshold information
-            detector_string = sprintf(' %.2f MeV ', detector_threshold); % Format with 2 decimal places
+            detector_string = sprintf(' %.2f MeV', detector_threshold); % Format with 2 decimal places
             addin = append(detector_string,addin);
             fprintf('Detector Threshold: %.2f MeV\n', detector_threshold)
 
             % Print back threshold information
-            back_string = sprintf(' %.2f MeV ', back_threshold); % Format with 2 decimal places
+            back_string = sprintf(' %.2f MeV', back_threshold); % Format with 2 decimal places
             addin = append(back_string,addin);
             fprintf('Back Detector Threshold: %.2f MeV\n', back_threshold)
             
             % Print energy channel selection
-            fprintf('%.g Energy Channels Selected \n', size(energy_channels, 1))
-            addin = append(' ', erase(channels(energy_channel_choice).name, '.txt'), addin);
+            fprintf(' %.g Energy Channels Selected \n', size(energy_channels, 1))
+            addin = append(erase(channels(energy_channel_choice).name, '.txt'), addin);
             
             % Creates energy channel string array for plot legend
             EngLegend = strings([1, length(energy_channels)]);
@@ -170,6 +171,8 @@ while choice ~= 1 % Choice 1 is to exit the program
                 M_non_energy_beam = [];
                 M_back_beam = [];
                 
+                run_interest = 0;
+
                 % Nested For loops to create final matrix 1 and 2
                 for i = 1:file_number
                     % For every .txt file in Results, it will run
@@ -182,7 +185,6 @@ while choice ~= 1 % Choice 1 is to exit the program
                     M_hit_dep = [M_hit_dep, hit_deposited_energy'];
                     M_hit_channels = [M_hit_channels, hit_energy_channels];
                     
-                    % final_matrix is a matrix with
                     % Energy Channel x number of different energy levels tested
                     % This will be X in our plot
                     M_run_number(i) = run_number;
@@ -190,6 +192,14 @@ while choice ~= 1 % Choice 1 is to exit the program
                     M_energy_beam = [M_energy_beam, energy_beam];
                     M_non_energy_beam = [M_non_energy_beam, non_energy_beam];
                     M_back_beam = [M_back_beam,back_energy_beam];
+
+                    % To determine the file that a particle belongs
+                    %{
+                    if run_interest == 0 && length(M_energy_beam)>245668
+                        run_interest = run_number;
+                        fprintf('RUN NUMBER %.0f \n',run_number)
+                    end
+                    %}
                 end
                 
 %% Obtain Data for Plotting
@@ -212,7 +222,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                 %energy_edges = logspace(log10(min_incident_energy-0.0001), log10(max_incident_energy+0.0001), bins + 1);
                 %[M_energy_bin, ~ ,M_energy_bin_indicies] = histcounts([M_energy_beam, M_back_beam, M_non_energy_beam],energy_edges);
                 % linear binning 
-                [M_energy_bin,M_energy_edges,M_energy_bin_indicies] = histcounts([M_energy_beam, M_non_energy_beam],bins);
+                [M_energy_bin,M_energy_edges,M_energy_bin_indicies] = histcounts([M_energy_beam, M_non_energy_beam],linspace(0,8,bins+1));
 
                 M_energy_midpoints = zeros(1,length(M_energy_edges)-1);
                 for edge = 1:length(M_energy_edges)-1
@@ -241,6 +251,8 @@ while choice ~= 1 % Choice 1 is to exit the program
                 % Find the number of particles in each bin for each energy channel
                 hits_log = zeros(size(energy_channels,1),bins);
                 geo_EC = zeros(size(energy_channels,1),bins);
+                low_bins = zeros(size(energy_channels,1),bins);
+                
                 for channel = 1:size(energy_channels,1)
                     for particle_index = 1:length(M_hit_channels)
                         if M_hit_channels(particle_index) == channel
@@ -249,7 +261,16 @@ while choice ~= 1 % Choice 1 is to exit the program
                     end
                     % Calculates the geometric factor for each channel
                     geo_EC(channel,:) = (hits_log(channel,:) ./ M_energy_bin * (4 * (pi^2) * (r_source^2)));
+
+                    % Determine which bins do not contain more than one particle
+                    for bin_index = 3:bins
+                        if geo_EC(channel,bin_index) < 10^-4 && geo_EC(channel,bin_index-2) ~= 0
+                            low_bins(channel,bin_index) = 1;
+                        end
+                    end
                 end
+
+                [low_bin_channel,low_bin_number] = find(low_bins ~= 0);
 
                 % Calculates total geometric factor
                 geo_total = sum(geo_EC);
@@ -278,7 +299,8 @@ while choice ~= 1 % Choice 1 is to exit the program
                 legend({'Counted Hits','Last Detector Triggered'},'Location','southeast')
                 grid on
                 set(gca,'FontSize', textsize)
-                titlestr = append(sprintf('Hits %.2f MeV - %.2f MeV ', min_incident_energy, max_incident_energy), addin);
+                titlestr = append(sprintf('Hits %.2f MeV - %.2f MeV ', min_incident_energy, max_incident_energy), ...
+                    addin, sprintf(' %.0f Bins', bins));
                 title(titlestr, 'FontSize', titlesize)
                 ylabel('Percent of Hits')
                 xlabel('Energy (MeV)')
@@ -318,7 +340,8 @@ while choice ~= 1 % Choice 1 is to exit the program
                 ylim([10^-4, 10^0])
                 set(gca, 'FontSize', textsize)
                 
-                titlestr = append(sprintf('Total GF: %.2f MeV - %.2f MeV ', min_incident_energy, max_incident_energy), addin);
+                titlestr = append(sprintf('Total GF: %.2f MeV - %.2f MeV ', min_incident_energy, max_incident_energy), ...
+                    addin, sprintf(' %.0f Bins', bins));
                 title(titlestr, 'FontSize', titlesize)
                 %title('Proton Total Geometric Factor', 'FontSize', titlesize-2);
                 ylabel('Geometric Factor (cm^2 sr)', 'FontSize', textsize)
@@ -380,7 +403,8 @@ while choice ~= 1 % Choice 1 is to exit the program
                 hold off
                 
                 set(gca, 'FontSize', textsize)
-                titlestr_whole = append(sprintf('Geometric Factor by EC %.2f MeV - %.2f MeV ', min_incident_energy, max_incident_energy), addin);
+                titlestr_whole = append(sprintf('Geometric Factor by EC %.2f MeV - %.2f MeV ', min_incident_energy, max_incident_energy), ...
+                    addin, sprintf(' %.0f Bins', bins));
                 title(titlestr_whole, 'FontSize', textsize)
                 %title('Proton Energy Channel Geometric Factor', 'FontSize', textsize)
                 ylabel('Geometric Factor (cm^2 sr)', 'FontSize', textsize)
@@ -388,7 +412,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                 
                 % Sets y-axis to log scale. Comment out to keep the plot linear
                 set(gca, 'YScale', 'log')
-                ylim([10^-4, 10^0])
+                ylim([10^-6, 10^0])
                 grid on
                 if exist('channel_select','var')
                     legend(colors, EngLegend(channel_select), 'Location', 'southoutside', 'NumColumns', 6);

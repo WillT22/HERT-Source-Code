@@ -6,14 +6,14 @@ clc
 close all
 
 %% Bow Tie Analysis-Selesnick/Blake
-%Changes directory for jpg of graphs
+%Changes directory for png of graphs
 cd '..\Bow Tie'
 
 %Sets Ei and Range of Eo
 %Ei is the incident energy from the GEANT4 results
 Ei = (M_energy_edges(2:end) + M_energy_edges(1:end-1)) / 2;
 %Eo set by user.
-Eo = 0.2:0.1:2.0;
+Eo = 0.2:0.2:2.0;
 
 %Sets up color vectors for plotting the different Eo curves
 Eo_color = magma(length(Eo)+1);
@@ -22,7 +22,7 @@ Eo_color = magma(length(Eo)+1);
 J_e = zeros(length(Ei),length(Eo));
 
 G_int = zeros(length(Ei),length(Eo),length(energy_channels));
-G_term = zeros(length(energy_channels),length(Eo));
+G_term = zeros(length(Eo),length(energy_channels));
 G_E_eff = zeros(length(Ei),length(Eo),length(energy_channels));
 
 xi = zeros(sum(1:length(Eo)-1),length(energy_channels));
@@ -122,7 +122,7 @@ for c=1:height(energy_channels)
     labelpoints(E_eff(c),G_eff_dE(c),append('E_Eff = ',num2str(E_eff(c)),' MeV'),'SE',0.15)
     %labelpoints(E_eff(c),G_eff_dE(c),append('G_eff_dE = ',num2str(G_eff_dE(c)),' cm^2 sr MeV'),'SE',0.65)
     
-    legend(BowTieLegend,'Location', 'southoutside','NumColumns',round(length(BowTieLegend)/3))
+    legend(BowTieLegend,'Location', 'southoutside','NumColumns',round(length(BowTieLegend)/2))
     xlim_l = round(min(xi(:,c))*0.95,3);
     xlim_u = round(max(xi(:,c))*1.05,3);
     xlim([xlim_l xlim_u])
@@ -132,7 +132,7 @@ for c=1:height(energy_channels)
     xlabel('Nominal Energy (MeV)','FontSize',textsize)
     hold off
     
-    effsave = append(date(),'Bow Tie Energy Channel ',num2str(c),' Eo ',num2str(min(Eo)),' to ',num2str(max(Eo)),' MeV','_',addin,num2str(length(energy_channels)),'.jpg');
+    effsave = append(date(),'Bow Tie Energy Channel ',num2str(c),' Eo ',num2str(min(Eo)),' to ',num2str(max(Eo)),' MeV','_',addin,num2str(length(energy_channels)),'.png');
     saveas(gcf,effsave)
     
 end
@@ -156,7 +156,7 @@ ylabel('G_{eff} * \Delta E ')
 xlabel('Nominal Effective Energy (MeV)')
 hold off
 
-effsave = append(date(),' Bow Tie  All Energy Channels',' Eo',num2str(min(Eo)),' to ',num2str(max(Eo)),' MeV','_',addin,num2str(length(energy_channels)),'.jpg');
+effsave = append(date(),' Bow Tie  All Energy Channels',' Eo',num2str(min(Eo)),' to ',num2str(max(Eo)),' MeV','_',addin,num2str(length(energy_channels)),'.png');
 saveas(gcf,effsave)
 
 f = figure;
@@ -174,7 +174,7 @@ ylabel('Effective Geometric Factor','FontSize',28)
 xlabel('Nominal Effective Energy (MeV)','FontSize',28)
 hold off
 
-effsave = append(date(),' Energy Channel Bins',' Eo ',num2str(min(Eo)),' to ',num2str(max(Eo)),' MeV','_',addin,num2str(length(energy_channels)),'.jpg');
+effsave = append(date(),' Energy Channel Bins',' Eo ',num2str(min(Eo)),' to ',num2str(max(Eo)),' MeV','_',addin,num2str(length(energy_channels)),'.png');
 saveas(gcf,effsave)
 
 
@@ -217,7 +217,7 @@ plot([min(min(M_energy_beam)),max(max(M_energy_beam))],[12,12],'k--','LineWidth'
 legend([strings(1,length(energy_channels)),'Energy Resolution Requirement'],'Location', 'northeast','NumColumns',8)
 
 hold off
-effsave = append(date(),' Energy Resolution',' Eo ',num2str(min(Eo)),' to ',num2str(max(Eo)),' MeV','_',addin,num2str(length(energy_channels)),'.jpg');
+effsave = append(date(),' Energy Resolution',' Eo ',num2str(min(Eo)),' to ',num2str(max(Eo)),' MeV','_',addin,num2str(length(energy_channels)),'.png');
 saveas(gcf,effsave)
 
 
