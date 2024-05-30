@@ -248,6 +248,8 @@ while choice ~= 1 % Choice 1 is to exit the program
                     error('Error on Sim Type')
                 end
                 
+                hits_whole_bins = histcounts(M_hit_dep, M_energy_edges);
+
                 % Find the number of particles in each bin for each energy channel
                 hits_log = zeros(size(energy_channels,1),bins);
                 geo_EC = zeros(size(energy_channels,1),bins);
@@ -423,7 +425,21 @@ while choice ~= 1 % Choice 1 is to exit the program
                 % Saving the figure as a jpg then returning to the main directory
                 effsave = append('Geometric Factor Whole by EC_', string(datetime("today")), addin, '.jpg');
                 saveas(f3, effsave)
-                
+
+%% Plot counts for each energy channeldetector_threshold
+%{
+                f4 = figure;
+                f4.Position = [0 0 1920 1080];
+                hold on
+
+                plot(1:length(energy_channels),hits_whole_EC, 'LineWidth', line_width)
+
+                hold off
+                set(gca, 'FontSize', textsize)
+                ylabel('Counts', 'FontSize', textsize)
+                xlabel('Energy Channel', 'FontSize', textsize)
+%}
+
 %% One file selected?
             else
                     disp('Start the oneEnergyEffDist.m');  

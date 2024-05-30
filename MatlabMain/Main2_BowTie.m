@@ -1,6 +1,6 @@
 %%BowTie.m
 % BowTie and Count Rate Analysis for HERT
-% Last modified: 5/22/2024
+% Last modified: 5/29/2024
 
 clc
 close all
@@ -29,7 +29,7 @@ xi = zeros(sum(1:length(Eo)-1),length(energy_channels));
 yi = zeros(sum(1:length(Eo)-1),length(energy_channels));
 
 E_eff = zeros(1,length(energy_channels));
-G_eff_dE= E_eff;
+G_eff_dE= zeros(1,length(energy_channels));
 BowTieLegend = strings([1,length(Eo)]);
 
 %Count_Rate =  zeros(length(energy_channels),length(Eo));
@@ -94,14 +94,18 @@ for c=1:length(energy_channels)
     %Calculate Bin Characteristics
     Geff(c) = G_eff_dE(c)/fwhm(c);
     BinWidth(c) = fwhm(c);
-    
 end
+
+% Calculate Flux
+j_nom = hits_whole_EC./G_eff_dE;
+
 fprintf('\n');
 
 %% Plots for Config
 textsize = 28;
 %Plots Graph for each energy channel
 ymax = round(max(G_eff_dE)*1.1,3);
+%{
 for c=1:height(energy_channels)
     
     f = figure;
@@ -133,9 +137,9 @@ for c=1:height(energy_channels)
     hold off
     
     effsave = append(date(),'Bow Tie Energy Channel ',num2str(c),' Eo ',num2str(min(Eo)),' to ',num2str(max(Eo)),' MeV','_',addin,num2str(length(energy_channels)),'.png');
-    saveas(gcf,effsave)
-    
+    saveas(gcf,effsave)  
 end
+%}
 
 %Plots graph of all the average intersection points of each energy channel
 f = figure;
@@ -145,9 +149,8 @@ for c=1:length(energy_channels)
     plot(E_eff(c),G_eff_dE(c),'o','Color',Effplotcolor(c,:))
 end
 legend(EngLegend,'Location', 'southoutside','NumColumns',8)
-ylim([0 ymax])
-yticks((0:0.005:ymax))
-
+%ylim([0 ymax])
+%yticks((0:0.005:ymax))
 xlim([1 7])
 xticks((1:1:7))
 
@@ -159,11 +162,29 @@ hold off
 effsave = append(date(),' Bow Tie  All Energy Channels',' Eo',num2str(min(Eo)),' to ',num2str(max(Eo)),' MeV','_',addin,num2str(length(energy_channels)),'.png');
 saveas(gcf,effsave)
 
+% Plot nominal effective energies with counts
+%{
+f = figure;
+f.Position = [100 100 1200 720];
+hold on
+for c=1:length(energy_channels)
+    plot(E_eff(c),hits_whole_EC(c),'o','Color',Effplotcolor(c,:))
+end
+legend(EngLegend,'Location', 'southoutside','NumColumns',8)
+
+xlim([1 7])
+xticks((1:1:7))
+
+title(append('Bow Tie Analysis Configuration All Energy Channels ',' Eo Range: ',num2str(min(Eo)),' to ',num2str(max(Eo)),' MeV'))
+ylabel('Counts')
+xlabel('Nominal Effective Energy (MeV)')
+hold off
+%}
+
+%Plots each energy channel FWHM value in the same color as the Eff. Curve
 f = figure;
 f.Position = [100 100 1600 720];
 hold on
-%Plots each energy channel FWHM value in the same color as
-%the Eff. Curve
 for c = 1:length(energy_channels)
     bar(E_eff(c),G_eff_dE(c)/fwhm(c),fwhm(c),'EdgeColor','k','FaceColor',Effplotcolor(c,:))
     
@@ -176,6 +197,28 @@ hold off
 
 effsave = append(date(),' Energy Channel Bins',' Eo ',num2str(min(Eo)),' to ',num2str(max(Eo)),' MeV','_',addin,num2str(length(energy_channels)),'.png');
 saveas(gcf,effsave)
+
+% Plots calculated flux
+lsqr_flux = load('E:\HERT_Drive\Matlab Main\Bow Tie\lsqr_flux.txt');
+f = figure;
+f.Position = [100 100 1200 720];
+hold on
+
+for c=1:length(energy_channels)
+    plot(E_eff(c),j_nom(c),'*','Color',Effplotcolor(c,:))
+end
+
+legend(EngLegend,'Location', 'southoutside','NumColumns',8)
+
+xlim([1 7])
+xticks((1:1:7))
+set(gca, 'YScale', 'log')
+ylim([10^5, 10^5.5])
+
+ylabel('Flux')
+%ylabel('I_{nom} (#/(cm^2 sr s MeV)')
+xlabel('Nominal Effective Energy (MeV)')
+hold off
 
 
 %% Energy Resolution Plot
