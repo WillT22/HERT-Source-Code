@@ -228,6 +228,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                 for edge = 1:length(M_energy_edges)-1
                     M_energy_midpoints(edge) = (M_energy_edges(edge)+M_energy_edges(edge+1))/2;
                 end
+                bin_width = mean(M_energy_edges(2:end)-M_energy_edges(1:end-1));
 
                 % Get bin indices for all energy beam values for hit counts
                 [~,~,beam_bin_indices] = histcounts(M_energy_beam, M_energy_edges);
@@ -247,8 +248,6 @@ while choice ~= 1 % Choice 1 is to exit the program
                 else
                     error('Error on Sim Type')
                 end
-                
-                hits_whole_bins = histcounts(M_hit_dep, M_energy_edges);
 
                 % Find the number of particles in each bin for each energy channel
                 hits_log = zeros(size(energy_channels,1),bins);
@@ -271,6 +270,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                         end
                     end
                 end
+                hits_log_total = sum(hits_log,1);
 
                 [low_bin_channel,low_bin_number] = find(low_bins ~= 0);
 

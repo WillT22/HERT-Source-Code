@@ -198,28 +198,6 @@ hold off
 effsave = append(date(),' Energy Channel Bins',' Eo ',num2str(min(Eo)),' to ',num2str(max(Eo)),' MeV','_',addin,num2str(length(energy_channels)),'.png');
 saveas(gcf,effsave)
 
-% Plots calculated flux
-lsqr_flux = load('E:\HERT_Drive\Matlab Main\Bow Tie\lsqr_flux.txt');
-f = figure;
-f.Position = [100 100 1200 720];
-hold on
-
-for c=1:length(energy_channels)
-    plot(E_eff(c),j_nom(c),'*','Color',Effplotcolor(c,:))
-end
-
-legend(EngLegend,'Location', 'southoutside','NumColumns',8)
-
-xlim([1 7])
-xticks((1:1:7))
-set(gca, 'YScale', 'log')
-ylim([10^5, 10^5.5])
-
-ylabel('Flux')
-%ylabel('I_{nom} (#/(cm^2 sr s MeV)')
-xlabel('Nominal Effective Energy (MeV)')
-hold off
-
 
 %% Energy Resolution Plot
 Energy_Resolution= 100*BinWidth./E_eff;
