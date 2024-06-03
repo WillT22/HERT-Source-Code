@@ -9,9 +9,11 @@ close all
 %Changes directory for png of graphs
 cd '..\Bow Tie'
 
+geo_EC = readmatrix('E:\HERT_Drive\Matlab Main\Result\geometric_factor_EC.txt');
+
 %Sets Ei and Range of Eo
 %Ei is the incident energy from the GEANT4 results
-Ei = (M_energy_edges(2:end) + M_energy_edges(1:end-1)) / 2;
+Ei = (energy_edges(2:end) + energy_edges(1:end-1)) / 2;
 %Eo set by user.
 Eo = 0.2:0.2:2.0;
 
@@ -240,5 +242,14 @@ legend([strings(1,length(energy_channels)),'Energy Resolution Requirement'],'Loc
 hold off
 effsave = append(date(),' Energy Resolution',' Eo ',num2str(min(Eo)),' to ',num2str(max(Eo)),' MeV','_',addin,num2str(length(energy_channels)),'.png');
 saveas(gcf,effsave)
+
+%% Write to Text File
+
+fileID = fopen('effective_energies_v1.txt','w');
+for i = 1:length(E_eff)
+fprintf(fileID,'%.6f \n',E_eff(i));
+end
+fclose(fileID);
+
 
 

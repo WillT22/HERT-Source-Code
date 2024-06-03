@@ -75,6 +75,9 @@ switch parttype_choice
         G3_whole_max = 0.5*(pi^2)*((r1^2+r3^2+L_13^2)-(((r1^2+r3^2+L_13^2)^2-4*(r1^2)*(r3^2))^0.5));
 end
 
+% r_source
+r_source = 8.5; % 8.5 cm for HERT-CAD
+
 %% Select Run Information
 % Menu to select spherical cap or full spherical
 simtype_choice = menu('Simulation Type', 'Spherical Cap (15 deg)', 'Full Sphere');
@@ -100,9 +103,11 @@ list_fileNames = {list.name};
 file_number = size(list_fileNames, 2);
 
 % Menu to determine energy channels
-channels = dir('*.txt');
-energy_channel_choice = menu('Choose Energy Channels', channels.name);
-energy_channels = readmatrix(channels(energy_channel_choice).name);
+channel_path = 'channel_select';
+channels = dir(fullfile(channel_path, '/*.txt'));
+channel_names = {channels.name};
+energy_channel_choice = menu('Choose Energy Channels', channel_names);
+energy_channels = readmatrix(fullfile(channel_path, channels(energy_channel_choice).name));
 Selected_Channel_name = channels(energy_channel_choice).name;
 
 % Display a menu and get a choice
@@ -156,7 +161,20 @@ while choice ~= 1 % Choice 1 is to exit the program
             
             % Creates plot colors for each energy channel
             Effplotcolor = plasma(length(energy_channels)); % Requires MatPlotLib Perceptually Uniform Colormaps
-                       
+            
+            % Finds energy edges and midpoints based off of bins
+            % logrithmic binning
+                %energy_edges = logspace(log10(min_incident_energy-0.0001), log10(max_incident_energy+0.0001), bins + 1);
+                %[M_energy_bin, ~ ,M_energy_bin_indicies] = histcounts([M_energy_beam, M_back_beam, M_non_energy_beam],energy_edges);
+            % linear binning 
+                energy_edges = linspace(0,8,bins+1);
+            % finding midpoints
+            energy_midpoints = zeros(1,length(energy_edges)-1);
+            for edge = 1:length(energy_edges)-1
+                    energy_midpoints(edge) = (energy_edges(edge)+energy_edges(edge+1))/2;
+            end
+            bin_width = mean(energy_edges(2:end)-energy_edges(1:end-1));
+
             % More than one file selected
             if iscell(filename)
                 disp('Start to loop oneEnergyEffDist.m');
@@ -207,34 +225,22 @@ while choice ~= 1 % Choice 1 is to exit the program
                 % Eff Curve Plot
                 cd ../Plots/Efficiency_Curves
 
-                r_source = 8.5; % 8.5 cm for HERT-CAD
-
                 % Find the indices that would sort M_output_energy
                 min_incident_energy = min(M_energy_beam,[],"all");
                 max_incident_energy = max(M_energy_beam,[],"all");
 
-                % Y has a column for every energy channel and rows up to
-                % the number of .txt. files
-                hits_whole_EC = histcounts(M_hit_channels);
+                % Count the number of hits in each energy channel
+                hits_whole_EC = histcounts(M_hit_channels,0.5:length(energy_channels)+0.5);
                 
                 % Bin the energy for every particle simulated (hits or no)
-                % logrithmic binning
-                %energy_edges = logspace(log10(min_incident_energy-0.0001), log10(max_incident_energy+0.0001), bins + 1);
-                %[M_energy_bin, ~ ,M_energy_bin_indicies] = histcounts([M_energy_beam, M_back_beam, M_non_energy_beam],energy_edges);
-                % linear binning 
-                [M_energy_bin,M_energy_edges,M_energy_bin_indicies] = histcounts([M_energy_beam, M_non_energy_beam],linspace(0,8,bins+1));
-
-                M_energy_midpoints = zeros(1,length(M_energy_edges)-1);
-                for edge = 1:length(M_energy_edges)-1
-                    M_energy_midpoints(edge) = (M_energy_edges(edge)+M_energy_edges(edge+1))/2;
-                end
-                bin_width = mean(M_energy_edges(2:end)-M_energy_edges(1:end-1));
+                [M_energy_bin,energy_edges_temp,M_energy_bin_indicies] = histcounts([M_energy_beam, M_non_energy_beam],energy_edges);
+                %clear energy_edges_temp;
 
                 % Get bin indices for all energy beam values for hit counts
-                [~,~,beam_bin_indices] = histcounts(M_energy_beam, M_energy_edges);
+                [~,~,beam_bin_indices] = histcounts(M_energy_beam, energy_edges);
                 
                 % Find the bin number for each back hit
-                [~,~,back_bin_indices] = histcounts(M_back_beam, M_energy_edges);
+                [~,~,back_bin_indices] = histcounts(M_back_beam, energy_edges);
 
                 back_counts = zeros(1,bins);
                 for bin = 1:bins
@@ -277,6 +283,18 @@ while choice ~= 1 % Choice 1 is to exit the program
                 % Calculates total geometric factor
                 geo_total = sum(geo_EC);
                 
+                % Saves geo_EC for later use
+                %{
+                fileID = fopen('geometric_factor_EC.txt','w');
+                for channel = 1:length(energy_channels)
+                    for bin = 1:bins
+                        fprintf(fileID,'%.6E ',geo_EC(channel,bin));
+                    end
+                    fprintf(fileID,'\n');
+                end
+                fclose(fileID);
+                %}                
+
                 % Saves variables for later graph making
                 Var_String = append('OutputVariables', addin, '.mat');
                 save(Var_String)
@@ -289,8 +307,8 @@ while choice ~= 1 % Choice 1 is to exit the program
                 f2.Position = [0 0 1920 1080];
                 
                 hold on
-                plot(M_energy_midpoints, sum(hits_log,1) ./ M_energy_bin *100, 'DisplayName', 'Counted Hits', 'LineWidth', line_width)
-                plot(M_energy_midpoints, back_counts ./ M_energy_bin *100, 'DisplayName', 'Last Detector Triggered', 'LineWidth', line_width)
+                plot(energy_midpoints, sum(hits_log,1) ./ M_energy_bin *100, 'DisplayName', 'Counted Hits', 'LineWidth', line_width)
+                plot(energy_midpoints, back_counts ./ M_energy_bin *100, 'DisplayName', 'Last Detector Triggered', 'LineWidth', line_width)
 
                  % Put in Penetration Limits
                 if parttype == 1
@@ -309,7 +327,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                 hold off
                 
                 % Saving the figure as a jpg then returning to the main directory
-                effsave = append('Counted Hits', string(datetime("today")), addin, '.jpg');
+                effsave = append('Counted Hits', string(datetime("today")), addin, '.png');
                 saveas(f2, effsave)
 
 %% Total Geometric Factor Comparison
@@ -326,7 +344,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                 total_geo = sum(geo_EC,1);
                 total_geo(total_geo==0) = 1e-31;
                 
-                plot([min_incident_energy,M_energy_midpoints], [1e-31,total_geo], '-k', 'LineWidth', line_width);
+                plot([min_incident_energy,energy_midpoints], [1e-31,total_geo], '-k', 'LineWidth', line_width);
 
                 % Put in Penetration Limits
                 %{
@@ -361,7 +379,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                 hold off
                 
                 % Saving the figure as a jpg then returning to the main directory
-                effsave = append('Total GF_', string(datetime("today")), '_', addin, '.jpg');
+                effsave = append('Total GF_', string(datetime("today")), '_', addin, '.png');
                 saveas(f1, effsave)
 
 %% Geometric Factor by Energy Channel
@@ -385,12 +403,15 @@ while choice ~= 1 % Choice 1 is to exit the program
                 for channel = 1:size(energy_channels, 1)
                     if exist('channel_select','var')
                         if find(channel_select == channel)>0
-                            colors = [colors;plot(M_energy_midpoints, geo_EC(channel,:), 'Color', Effplotcolor(channel, :), 'LineWidth', line_width, 'DisplayName', EngLegend{channel})];
+                            colors = [colors;plot(energy_midpoints(energy_midpoints>0.52),...
+                                geo_EC(channel,energy_midpoints>0.52),...
+                                'Color', Effplotcolor(channel, :),...
+                                'LineWidth', line_width, 'DisplayName', EngLegend{channel})];
                         else
-                            plot(M_energy_midpoints, geo_EC(channel,:), 'Color', [0.7,0.7,0.7,0.7], 'LineWidth', line_width);
+                            plot(energy_midpoints(energy_midpoints>0.52), geo_EC(channel,energy_midpoints>0.52), 'Color', [0.7,0.7,0.7,0.7], 'LineWidth', line_width);
                         end
                     else
-                        plot(M_energy_midpoints, geo_EC(channel,:), 'Color', Effplotcolor(channel, :), 'LineWidth', line_width);
+                        plot(energy_midpoints(energy_midpoints>0.52), geo_EC(channel,energy_midpoints>0.52), 'Color', Effplotcolor(channel, :), 'LineWidth', line_width);
                     end
                 end
 
@@ -414,7 +435,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                 
                 % Sets y-axis to log scale. Comment out to keep the plot linear
                 set(gca, 'YScale', 'log')
-                ylim([10^-6, 10^0])
+                ylim([10^-5, 10^0])
                 grid on
                 if exist('channel_select','var')
                     legend(colors, EngLegend(channel_select), 'Location', 'southoutside', 'NumColumns', 6);
@@ -423,7 +444,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                 end
                 
                 % Saving the figure as a jpg then returning to the main directory
-                effsave = append('Geometric Factor Whole by EC_', string(datetime("today")), addin, '.jpg');
+                effsave = append('Geometric Factor Whole by EC_', string(datetime("today")), addin, '.png');
                 saveas(f3, effsave)
 
 %% Plot counts for each energy channeldetector_threshold
@@ -444,13 +465,30 @@ while choice ~= 1 % Choice 1 is to exit the program
             else
                     disp('Start the oneEnergyEffDist.m');  
                     % Runs oneEnergyEffDistWhole for the one .txt file
-                    [hit_energy_channels,energy_beam,beam_number,back_whole,detector_energy_whole,hits_detectors_whole]...
-                        = oneEnergyEffDistWhole(filename,energy_channels,back_threshold,inputfolder,detector_threshold);
+                    [hit_deposited_energy, hit_energy_channels, run_number, beam_number, energy_beam, non_energy_beam, back_energy_beam]...
+                        = oneEnergyEffDistWhole(filename, inputfolder, energy_channels, detector_threshold, back_threshold);
+                      
+                    hits_whole_EC = histcounts(hit_energy_channels,0.5:length(energy_channels)+0.5);
+                    % Get bin indices for all energy beam values for hit counts
+                    [~,~,beam_bin_indices] = histcounts(energy_beam, energy_edges);
+
+                    [M_energy_bin,energy_edges_temp,M_energy_bin_indicies] = histcounts([energy_beam, non_energy_beam],energy_edges);
+                    
+                    hits_log = zeros(size(energy_channels,1),bins);
+                    geo_EC = zeros(size(energy_channels,1),bins);
                 
-                    hits_whole_EC = hit_energy_channels;
-                    r_source = 8.5; % 8.5 cm for HERT-CAD
-                    part_tot_EC = 2 .* beam_number / (1 - cosd(15));
-                    geo_EC = (hits_whole_EC ./ part_tot_EC) * (4 * (pi^2) * (r_source^2));
+                    for channel = 1:size(energy_channels,1)
+                        for particle_index = 1:length(hit_energy_channels)
+                            if hit_energy_channels(particle_index) == channel
+                                hits_log(channel,beam_bin_indices(particle_index))= hits_log(channel,beam_bin_indices(particle_index)) + 1;
+                            end
+                        end
+                        % Calculates the geometric factor for each channel
+                        geo_EC(channel,:) = (hits_log(channel,:) ./ M_energy_bin * (4 * (pi^2) * (r_source^2)));
+                    end
+                    hits_log_total = sum(hits_log,1);
+
+                    
                     %{
                     save('output_singleParticleArray.mat','output_Mult')
                     disp('output_singleParticleArray.mat');

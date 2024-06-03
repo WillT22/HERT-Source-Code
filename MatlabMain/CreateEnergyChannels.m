@@ -2,30 +2,28 @@
 clc
 clear all
 %% Electrons
-%{
-ExLimit = 0.1;
-Limit = 0.5;
-MedLimit = 1.0;
+ExLow_Limit = 0.1;
+Low_Limit = 0.5;
+Med_Limit = 1.0;
 High_Limit = 2.5;
 Max_Limit = 7;
-%}
 
 %% Protons
-%
+%{
 ExLow_Limit = 0.1;
 Low_Limit = 5;
 Med_Limit = 10;
 High_Limit = 20;
 Max_Limit = 50;
 ExHigh_Limit = 100;
-%
+%}
 
 % Number of channels in each range:
 ExLownum = 2; %2
 Lownum = 12; %12
-Mednum = 12; %16
+Mednum = 16; %16
 Highnum = 10; %10
-ExHighnum = 2; %2
+%ExHighnum = 2; %2
 
 % Excluded energy channels (below threshold)
 x = 1:(ExLownum+1);
@@ -76,10 +74,12 @@ for i = 1:(length(x_high)-1)
     HighChannels(i,2) = High_Limit(i+1);
 end
 
+%{
 % Max energy channels
 x_max = 1:(ExHighnum+1);
 
 DE_max = (log10(ExHigh_Limit)-log10(Max_Limit(1)))/ExHighnum;
+
 
 for i = 1:(length(x_max)-1)
     Max_Limit(i+1) = 10^(DE_max+log10(Max_Limit(i)));
@@ -87,9 +87,11 @@ for i = 1:(length(x_max)-1)
     MaxChannels(i,1) = Max_Limit(i);
     MaxChannels(i,2) = Max_Limit(i+1);
 end
+%}
 
 % Combining energy channels into one variable
-Channels = [ExLowChannels;LowChannels;MedChannels;HighChannels;MaxChannels]
+%Channels = [ExLowChannels;LowChannels;MedChannels;HighChannels;MaxChannels]
+Channels = [ExLowChannels;LowChannels;MedChannels;HighChannels]
 NumChannels = length(Channels)
 
 % Combining enery resolution of each channel
@@ -100,7 +102,7 @@ Resolution
 
 %% Write to Text File
 
-fileID = fopen('proton_channels_v2.txt','w');
+fileID = fopen('electron_channels_v1.txt','w');
 for i = 1:size(Channels,1)
 fprintf(fileID,'%6.3f,%6.3f \n',Channels(i,:));
 end

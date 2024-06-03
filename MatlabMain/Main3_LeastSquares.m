@@ -5,7 +5,7 @@
 %% Least Squares Function for Energy Channels
 
 % Define least-squares function (anonymous function)
-func = @(flux, count_rate, geo_factor) trapz(M_energy_midpoints, flux' .* geo_factor');
+func = @(flux, count_rate, geo_factor) trapz(energy_midpoints, flux' .* geo_factor');
 
 % Define chi-square function
 chisq = @(flux, count_rate, geo_factor) count_rate - func(flux, count_rate, geo_factor);
