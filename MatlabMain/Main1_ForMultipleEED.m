@@ -463,45 +463,51 @@ while choice ~= 1 % Choice 1 is to exit the program
 
 %% One file selected?
             else
-                    disp('Start the oneEnergyEffDist.m');  
-                    % Runs oneEnergyEffDistWhole for the one .txt file
-                    [hit_deposited_energy, hit_energy_channels, run_number, beam_number, energy_beam, non_energy_beam, back_energy_beam]...
-                        = oneEnergyEffDistWhole(filename, inputfolder, energy_channels, detector_threshold, back_threshold);
+                disp('Start the oneEnergyEffDist.m');  
+                % Runs oneEnergyEffDistWhole for the one .txt file
+                [hit_deposited_energy, hit_energy_channels, run_number, beam_number, M_energy_beam, M_non_energy_beam, back_energy_beam]...
+                    = oneEnergyEffDistWhole(filename, inputfolder, energy_channels, detector_threshold, back_threshold);
                       
-                    hits_whole_EC = histcounts(hit_energy_channels,0.5:length(energy_channels)+0.5);
-                    % Get bin indices for all energy beam values for hit counts
-                    [~,~,beam_bin_indices] = histcounts(energy_beam, energy_edges);
+                hits_whole_EC = histcounts(hit_energy_channels,0.5:length(energy_channels)+0.5);
+                % Get bin indices for all energy beam values for hit counts
+                [~,~,beam_bin_indices] = histcounts(M_energy_beam, energy_edges);
 
-                    [M_energy_bin,energy_edges_temp,M_energy_bin_indicies] = histcounts([energy_beam, non_energy_beam],energy_edges);
+                [M_energy_bin,energy_edges_temp,M_energy_bin_indicies] = histcounts([M_energy_beam, M_non_energy_beam],energy_edges);
                     
-                    hits_log = zeros(size(energy_channels,1),bins);
-                    geo_EC = zeros(size(energy_channels,1),bins);
+                if sim_type == 0
+                    % Scales up simulated particles to the total number of particles
+                    M_energy_bin = 2 .* M_energy_bin / (1 - cosd(15));
+                    
+                else
+                    error('Error on Sim Type')
+                end
                 
-                    for channel = 1:size(energy_channels,1)
-                        for particle_index = 1:length(hit_energy_channels)
-                            if hit_energy_channels(particle_index) == channel
-                                hits_log(channel,beam_bin_indices(particle_index))= hits_log(channel,beam_bin_indices(particle_index)) + 1;
-                            end
+                hits_log = zeros(size(energy_channels,1),bins);
+                geo_EC = zeros(size(energy_channels,1),bins);
+                
+                for channel = 1:size(energy_channels,1)
+                    for particle_index = 1:length(hit_energy_channels)
+                        if hit_energy_channels(particle_index) == channel
+                            hits_log(channel,beam_bin_indices(particle_index))= hits_log(channel,beam_bin_indices(particle_index)) + 1;
                         end
-                        % Calculates the geometric factor for each channel
-                        geo_EC(channel,:) = (hits_log(channel,:) ./ M_energy_bin * (4 * (pi^2) * (r_source^2)));
                     end
-                    hits_log_total = sum(hits_log,1);
+                    % Calculates the geometric factor for each channel
+                    geo_EC(channel,:) = (hits_log(channel,:) ./ M_energy_bin * (4 * (pi^2) * (r_source^2)));
+                 end
+                 hits_log_total = sum(hits_log,1);
 
-                    
-                    %{
-                    save('output_singleParticleArray.mat','output_Mult')
-                    disp('output_singleParticleArray.mat');
-                    x= linspace(0,120,length(energy_channels));
-                    figure
-                    plot(x,output_Mult)
-                    ylabel('Beam Counts')
-                    xlabel('Incident Energy (MeV)')
-                    %}
+                 %{
+                 save('output_singleParticleArray.mat','output_Mult')
+                 disp('output_singleParticleArray.mat');
+                 x= linspace(0,120,length(energy_channels));
+                 figure
+                 plot(x,output_Mult)
+                 ylabel('Beam Counts')
+                 xlabel('Incident Energy (MeV)')
+                 %}
             end
     end 
     choice = menu('Choose an option', 'Exit Program', 'Load one file','Load all files','Start Run');
-    
 end
 cd 'E:\HERT_Drive\MATLAB Main\Result'
 close all
