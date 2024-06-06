@@ -30,47 +30,58 @@ flux_approx = lsqr(geo_EC,hits_whole_EC',1e-6,20)'/bin_width;
 
 %% Least Squares Function for Energy Channels (Selesnick/Khoo)
 % Initialize variables
-C_d = zeros(size(energy_channels,1));
-for channel = 1:size(energy_channels,1)
-    C_d(channel,channel) = (hits_whole_EC(channel)*dt+1)/dt^2;
-end
-inv_C_d = inv(C_d);
+    it_max = 100;   % maximum number of possible iterations 
 
-C_m = zeros(bins);
-for bin= 1:bins
-    C_m(bin,bin) = 8;
-end
-inv_C_m = inv(C_m);
+% Setting up constant matrices
+    G = geo_EC; % or geo_EC*bin_width
+    
+    C_d = zeros(size(energy_channels,1));
+    for channel = 1:size(energy_channels,1)
+        C_d(channel,channel) = (hits_whole_EC(channel)*dt+1)/dt^2;
+    end
+    inv_C_d = inv(C_d);
+    
+    C_m = zeros(bins);
+    for bin= 1:bins
+        C_m(bin,bin) = 8;
+    end
+    inv_C_m = inv(C_m);
+    
+    mat_mult = inv(G'* inv_C_d * G + inv_C_m) * G' * inv_C_d;
 
+% Defining constants over each iteration
+    d_obs = log(hits_whole_EC');
 
+% Defining initial values 
+    mn = zeros(bins,it_max);
+    m_0 = ones(bins,1).*log(10^3);
+    mn(:,1) = m_0;
+    
+    x = log(energy_midpoints');
+    G_n = 1./hits_whole_EC' * G * exp(m_0 + x);
+    
+    g_mn = log(G * exp(m_0 + x)); 
+    
+    mn(2,:) = mn(1,:) + mat_mult * (d_obs-g_mn);
+    
+    error = zeros(it_max,1);
+    error(1) = mean(abs(log(hits_whole_EC')-g_mn));
+    
+    iteration = 2;
 
-mn(iteration+1,:) = mn(iteration,:) + inv(G'*inv_C_d*G+inv_C_m)...
-    *G'*inv_C_d*(d_obs-g_mn+G_n*(mn(iteration,:)-mn(1,:)));
+% Begin iterations
+while error(iteration-1) >= 1e-8 && iteration <= it_max
+    G_n = 1./hits_whole_EC' * G * exp(mn(iteration,:) + x);
+    g_mn = log(G * exp(mn(iteration,:) + x));
+    mn(iteration+1,:) = mn(iteration,:) + mat_mult * (d_obs-g_mn+G_n*(mn(iteration,:)-mn(1,:)));
 
-% Initialize iteration variables
-it_max = 1000;
-mn = zeros(bins,it_max);
-mn(:,1) = ones(bins,1).*log(10^3);
-G = geo_EC.*bin_width;
-d_0 = log(sum(geo_EC*exp(mn(:,1) + log(energy_midpoints')),2));
-G_n = 1./hits_whole_EC' .* geo_EC.*exp(mn(:,1) + log(energy_midpoints'))';
-d_obs = log(hits_whole_EC');
-error = zeros(it_max,1);
-error(1) = mean(abs(log(hits_whole_EC')-d_n));
+    error(iteration) = mean(abs(log(hits_whole_EC')-g_mn));
 
-iteration = 1;
-% Iterate to desired tolerance or iterations
-while error(iteration) >= 1e-8 && iteration <= it_max
     iteration = iteration + 1;
-    G_n = 1./hits_whole_EC' .* geo_EC.*exp(mn(:,iteration) + log(energy_midpoints'))';
-    d_n = d_n + G_n * (mn(:,iteration)-mn(:,1));
-    mn(:,iteration+1) = mn(:,iteration) +  inv(G' * inv_C_d * G + inv_C_m)...
-        * G' * inv_C_d * (d_obs - d_n + G_n*(mn(:,iteration)-mn(:,1)));
-    error(iteration) = mean(abs(d_obs-d_n));
 end
 
 fprintf("Iteration Number: %.0d \n",iteration-1)
-fprintf("Tolerance: %.6e \n",error(iteration))
+fprintf("Tolerance: %.6e \n",error(iteration-1))
 
 flux_lsqr = exp(mn(:,iteration));
 
