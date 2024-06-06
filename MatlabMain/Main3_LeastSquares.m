@@ -21,11 +21,11 @@ inv_C_m = inv(C_m);
 flux_approx = lsqr(geo_EC,hits_whole_EC',1e-6,20)'/bin_width;
 
 % Define chi-square function
-chisq = @(m, d, G) (G * m - d)'/(G * C_m * G' + C_d)*(G * m - d);
+%chisq = @(m, d, G) (G * m - d)'/(G * C_m * G' + C_d)*(G * m - d);
 
 % Use 'lsqnonlin' for least-squares minimization (similar to 'lm' in scipy)
-m_output = lsqnonlin(@(flux) chisq(flux,log(hits_whole_EC'),geo_EC), zeros(bins,1));
-int_flux = exp(m_output);
+%m_output = lsqnonlin(@(flux) chisq(flux,log(hits_whole_EC'),geo_EC), zeros(bins,1));
+%int_flux = exp(m_output);
 
 
 %% Least Squares Function for Energy Channels (Selesnick/Khoo)
@@ -38,36 +38,38 @@ inv_C_d = inv(C_d);
 
 C_m = zeros(bins);
 for bin= 1:bins
-    C_m(bin,bin) = 1000;
+    C_m(bin,bin) = 8;
 end
 inv_C_m = inv(C_m);
 
+
+
+mn(iteration+1,:) = mn(iteration,:) + inv(G'*inv_C_d*G+inv_C_m)...
+    *G'*inv_C_d*(d_obs-g_mn+G_n*(mn(iteration,:)-mn(1,:)));
+
 % Initialize iteration variables
-iteration = 1;
 it_max = 1000;
 mn = zeros(bins,it_max);
 mn(:,1) = ones(bins,1).*log(10^3);
-mn_int = geo_EC.*exp(mn(:,1) + log(energy_midpoints'))';
-G_n = 1./hits_whole_EC' .* mn_int;
-d_n = zeros(size(energy_channels,1),1);
-for channel = 1:size(energy_channels,1)
-    d_n(channel) = log(trapz(energy_midpoints,mn_int(channel,:)));
-end
-error = zeros(1,it_max);
+G = geo_EC.*bin_width;
+d_0 = log(sum(geo_EC*exp(mn(:,1) + log(energy_midpoints')),2));
+G_n = 1./hits_whole_EC' .* geo_EC.*exp(mn(:,1) + log(energy_midpoints'))';
+d_obs = log(hits_whole_EC');
+error = zeros(it_max,1);
 error(1) = mean(abs(log(hits_whole_EC')-d_n));
 
+iteration = 1;
 % Iterate to desired tolerance or iterations
-while error(iteration) >= 1e-8 && iteration+1 <= it_max
+while error(iteration) >= 1e-8 && iteration <= it_max
     iteration = iteration + 1;
-    mn(:,iteration) = mn(:,1) +  inv(G_n' * inv_C_d * G_n + inv_C_m) * G_n' * inv_C_d * (log(hits_whole_EC') - d_n + G_n*(mn(:,iteration-1)-mn(:,1)));
-    mn_int = geo_EC.*exp(mn(:,iteration) + log(energy_midpoints'))';
-    G_n = 1./hits_whole_EC' .* mn_int;
-    for channel = 1:size(energy_channels,1)
-        d_n(channel) = log(trapz(energy_midpoints,mn_int(channel,:)));
-    end
-    error(iteration) = mean(abs(log(hits_whole_EC')-d_n));
+    G_n = 1./hits_whole_EC' .* geo_EC.*exp(mn(:,iteration) + log(energy_midpoints'))';
+    d_n = d_n + G_n * (mn(:,iteration)-mn(:,1));
+    mn(:,iteration+1) = mn(:,iteration) +  inv(G' * inv_C_d * G + inv_C_m)...
+        * G' * inv_C_d * (d_obs - d_n + G_n*(mn(:,iteration)-mn(:,1)));
+    error(iteration) = mean(abs(d_obs-d_n));
 end
-fprintf("Iteration Number: %.0d \n",iteration)
+
+fprintf("Iteration Number: %.0d \n",iteration-1)
 fprintf("Tolerance: %.6e \n",error(iteration))
 
 flux_lsqr = exp(mn(:,iteration));
@@ -95,7 +97,7 @@ indices = energy_midpoints > 1;
 plot(energy_midpoints(indices),flux_lsqr(indices),'.', 'Color', 'r', 'MarkerSize',12);
 
 % Plot LSQR Khoo Method
-plot(energy_midpoints(indices),int_flux(indices),'o', 'Color', 'b', 'MarkerSize',10);
+%plot(energy_midpoints(indices),int_flux(indices),'o', 'Color', 'b', 'MarkerSize',10);
 
 % Plot LSQR Summation Method
 plot(energy_midpoints(indices),flux_approx(indices),'x','Color','#77AC30','MarkerSize',10)
@@ -105,13 +107,13 @@ plot(energy_midpoints(indices),flux_approx(indices),'x','Color','#77AC30','Marke
 legend({['Incident Particle Measurements'],['Bowtie Method'],['Bowtie Method (Best Fit)'], ...
                  ['Least Squares Method (Integral)'], ['Least Squares Method (Summation)'],['Least Squares Method (Summation Best Fit)']},...
                  'Location', 'northeast','FontSize',18);
-%}
+%
 legend({['Incident Particle Measurements'], ['Least Squares Method (Selesnick)'],...
     ['Least Squares Method (Khoo)'],['Least Squares Method (Will)']},...
                  'Location', 'northeast','FontSize',18);
-%
-%legend({['Incident Particle Measurements'],['Least Squares Method (Selesnick/Khoo)'],['Least Squares Method (Summation)']},...
-%                 'Location', 'northeast','FontSize',18);
+%}
+legend({['Incident Particle Measurements'],['Least Squares Method (Selesnick)'],['Least Squares Method (Summation)']},...
+                 'Location', 'northeast','FontSize',18);
 
 set(gca, 'FontSize', textsize)
 xlim([0 8])
