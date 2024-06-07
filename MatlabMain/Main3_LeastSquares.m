@@ -6,34 +6,14 @@ geo_EC = readmatrix('E:\HERT_Drive\Matlab Main\Result\geometric_factor_EC.txt');
 dt = 1;
 
 %% Least Squares Function for Energy Channels (initial attempt)
-C_d = zeros(size(energy_channels,1));
-for channel = 1:size(energy_channels,1)
-    C_d(channel,channel) = (hits_whole_EC(channel)*dt+1)/dt^2;
-end
-inv_C_d = inv(C_d);
-
-C_m = zeros(bins);
-for bin= 1:bins
-    C_m(bin,bin) = 0.85;
-end
-inv_C_m = inv(C_m);
-
-flux_approx = lsqr(geo_EC,hits_whole_EC',1e-6,20)'/bin_width;
-
-% Define chi-square function
-%chisq = @(m, d, G) (G * m - d)'/(G * C_m * G' + C_d)*(G * m - d);
-
-% Use 'lsqnonlin' for least-squares minimization (similar to 'lm' in scipy)
-%m_output = lsqnonlin(@(flux) chisq(flux,log(hits_whole_EC'),geo_EC), zeros(bins,1));
-%int_flux = exp(m_output);
-
+flux_approx = lsqr(geo_EC,hits_whole_EC',1e-2,100)'/bin_width;
 
 %% Least Squares Function for Energy Channels (Selesnick/Khoo)
 % Initialize variables
-    it_max = 100;   % maximum number of possible iterations 
+    it_max = 50000;   % maximum number of possible iterations 
 
 % Setting up constant matrices
-    G = geo_EC; % or geo_EC*bin_width
+    G = geo_EC*bin_width;
     
     C_d = zeros(size(energy_channels,1));
     for channel = 1:size(energy_channels,1)
@@ -54,28 +34,34 @@ flux_approx = lsqr(geo_EC,hits_whole_EC',1e-6,20)'/bin_width;
 
 % Defining initial values 
     mn = zeros(bins,it_max);
-    m_0 = ones(bins,1).*log(10^3);
-    mn(:,1) = m_0;
+    mn(:,1) = ones(1,bins).*log(10^3);
     
     x = log(energy_midpoints');
-    G_n = 1./hits_whole_EC' * G * exp(m_0 + x);
     
-    g_mn = log(G * exp(m_0 + x)); 
+    %G_n = zeros(size(energy_channels,1),1);
+    g_mn = zeros(size(energy_channels,1),1);
+    for channel = 1:size(energy_channels,1)
+        %G_n(channel) = 1/hits_whole_EC(channel) * trapz(x,(geo_EC(channel,:)' .* exp(mn(:,1) + x)));
+        g_mn(channel) = log(trapz(x,(geo_EC(channel,:)' .* exp(mn(:,1) + x))));
+    end
     
-    mn(2,:) = mn(1,:) + mat_mult * (d_obs-g_mn);
+    mn(:,2) = mn(:,1) + mat_mult * (d_obs-g_mn);
     
     error = zeros(it_max,1);
-    error(1) = mean(abs(log(hits_whole_EC')-g_mn));
+    error(1) = mean(abs(d_obs-g_mn));
     
     iteration = 2;
 
 % Begin iterations
-while error(iteration-1) >= 1e-8 && iteration <= it_max
-    G_n = 1./hits_whole_EC' * G * exp(mn(iteration,:) + x);
-    g_mn = log(G * exp(mn(iteration,:) + x));
-    mn(iteration+1,:) = mn(iteration,:) + mat_mult * (d_obs-g_mn+G_n*(mn(iteration,:)-mn(1,:)));
+while error(iteration-1) >= 1e-2 && iteration <= it_max
+    for channel = 1:size(energy_channels,1)
+        %G_n(channel) = 1/hits_whole_EC(channel) * trapz(x,(geo_EC(channel,:)' .* exp(mn(:,iteration) + x)));
+        g_mn(channel) = log(trapz(x,(geo_EC(channel,:)' .* exp(mn(:,iteration) + x))));
+    end
 
-    error(iteration) = mean(abs(log(hits_whole_EC')-g_mn));
+    mn(:,iteration+1) = mn(:,iteration) + mat_mult * (d_obs-g_mn);
+
+    error(iteration) = mean(abs(d_obs-g_mn));
 
     iteration = iteration + 1;
 end
@@ -93,13 +79,9 @@ hold on
 % Plot simulated flux
 plot(energy_midpoints,M_energy_bin/(4*pi^2*r_source^2)/bin_width, 'Color', 'black','LineWidth',2.5);
 
-%{
-% Plot Bowtie points and line of best fit
+%
+% Plot Bowtie points
 plot(E_eff,j_nom,'o', 'Color', '#0072BD','MarkerSize',10);
-fit_result = fit(E_eff',j_nom','exp1');
-fitted_curve = @(x) feval(fit_result, x);
-plot(E_eff, fitted_curve(E_eff), 'LineStyle', '--','LineWidth',2,'Color', '#0072BD');
-%}
 
 % using idicies for E>0.5
 indices = energy_midpoints > 1;
@@ -107,32 +89,26 @@ indices = energy_midpoints > 1;
 % Plot LSQR Selesnick Method
 plot(energy_midpoints(indices),flux_lsqr(indices),'.', 'Color', 'r', 'MarkerSize',12);
 
-% Plot LSQR Khoo Method
-%plot(energy_midpoints(indices),int_flux(indices),'o', 'Color', 'b', 'MarkerSize',10);
-
 % Plot LSQR Summation Method
 plot(energy_midpoints(indices),flux_approx(indices),'x','Color','#77AC30','MarkerSize',10)
 
 
-%{
-legend({['Incident Particle Measurements'],['Bowtie Method'],['Bowtie Method (Best Fit)'], ...
-                 ['Least Squares Method (Integral)'], ['Least Squares Method (Summation)'],['Least Squares Method (Summation Best Fit)']},...
-                 'Location', 'northeast','FontSize',18);
 %
-legend({['Incident Particle Measurements'], ['Least Squares Method (Selesnick)'],...
-    ['Least Squares Method (Khoo)'],['Least Squares Method (Will)']},...
+legend({['Incident Particle Measurements'],['Bowtie Method'], ...
+                 ['Least Squares Method (Selesnick)'], ['Least Squares Method (Summation)']},...
                  'Location', 'northeast','FontSize',18);
-%}
-legend({['Incident Particle Measurements'],['Least Squares Method (Selesnick)'],['Least Squares Method (Summation)']},...
-                 'Location', 'northeast','FontSize',18);
+
+%legend({['Incident Particle Measurements'],['Least Squares Method (Selesnick)'],['Least Squares Method (Summation)']},...
+%                 'Location', 'northeast','FontSize',18);
+
 
 set(gca, 'FontSize', textsize)
 xlim([0 8])
 xticks((0:1:8))
 set(gca, 'YScale', 'log')
-%ylim([10^5.5, 10^6.5])
+ylim([10^2.5, 10^4])
 
 %ylabel('Flux')
-ylabel('I (#/(cm^2 sr s MeV)','FontSize',textsize)
+ylabel('I  #/(cm^2 sr s MeV)','FontSize',textsize)
 xlabel('Energy (MeV)','FontSize',textsize)
 hold off
