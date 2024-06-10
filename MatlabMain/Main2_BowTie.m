@@ -104,6 +104,7 @@ j_nom = hits_whole_EC./G_eff_dE;
 fprintf('\n');
 
 %% Plots for Config
+%{
 textsize = 28;
 %Plots Graph for each energy channel
 ymax = round(max(G_eff_dE)*1.1,3);
@@ -250,6 +251,6 @@ for i = 1:length(E_eff)
 fprintf(fileID,'%.6f \n',E_eff(i));
 end
 fclose(fileID);
-
+%}
 
 

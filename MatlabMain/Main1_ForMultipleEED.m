@@ -169,11 +169,11 @@ while choice ~= 1 % Choice 1 is to exit the program
             % linear binning 
                 energy_edges = linspace(0,8,bins+1);
             % finding midpoints
-            energy_midpoints = zeros(1,length(energy_edges)-1);
-            for edge = 1:length(energy_edges)-1
-                    energy_midpoints(edge) = (energy_edges(edge)+energy_edges(edge+1))/2;
+            energy_midpoints = zeros(1,bins);
+            for bin = 1:bins
+                    energy_midpoints(bin) = (energy_edges(bin+1)+energy_edges(bin))/2;
             end
-            bin_width = mean(energy_edges(2:end)-energy_edges(1:end-1));
+            bin_width = energy_edges(2:end)-energy_edges(1:end-1);
 
             % More than one file selected
             if iscell(filename)
@@ -234,7 +234,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                 
                 % Bin the energy for every particle simulated (hits or no)
                 [M_energy_bin,energy_edges_temp,M_energy_bin_indicies] = histcounts([M_energy_beam, M_non_energy_beam],energy_edges);
-                %clear energy_edges_temp;
+                clear energy_edges_temp;
 
                 % Get bin indices for all energy beam values for hit counts
                 [~,~,beam_bin_indices] = histcounts(M_energy_beam, energy_edges);
