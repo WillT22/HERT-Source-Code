@@ -20,8 +20,9 @@ fit_result = fit(energy_midpoints(indices)',flux_approx(indices)','exp1');
     G = geo_EC.*bin_width;
     
     C_d = zeros(size(energy_channels,1));
+    sigma_d = sqrt(hits_whole_EC(channel)*dt+1)/dt;
     for channel = 1:size(energy_channels,1)
-        C_d(channel,channel) = (hits_whole_EC(channel)*dt+1)/dt^2;
+        C_d(channel,channel) = sigma_d^2;
     end
     inv_C_d = inv(C_d);
     
@@ -57,7 +58,7 @@ fit_result = fit(energy_midpoints(indices)',flux_approx(indices)','exp1');
     g_mn(:,1) = log(sum(integ,2));
       
     error = zeros(it_max,1);
-    error(1) = mean(abs((d_obs-g_mn(:,1))./d_obs));
+    error(1) = sum((d_obs-g_mn(:,1)).^2 ./ sigma_d);
 
     iteration = 2;
     error_cond = false;
@@ -68,7 +69,7 @@ while error_cond == false && iteration <= it_max
     integ = geo_EC .* dx .* exp(mn(:,iteration) + x)';
     G_n = 1./hits_whole_EC' .* integ;
     g_mn(:,iteration) = log(sum(integ,2));
-    error(iteration) = mean(abs((d_obs-g_mn(:,iteration))./d_obs));
+    error(iteration) = sum((d_obs-g_mn(:,iteration)).^2 ./ sigma_d);
     if error(iteration) > error(iteration-1)
         error_cond = true;
     else
