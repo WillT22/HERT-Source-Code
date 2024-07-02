@@ -26,9 +26,31 @@ fit_result = fit(energy_midpoints(indices)',flux_approx(indices)','exp1');
     end
     inv_C_d = inv(C_d);
     
+    % Initialize variance parameter
+    sigma_flux = 16;
+
+    % Calculate delta variable
+    fwhm = zeros(1,length(energy_channels));
+    for u = 1:length(energy_channels)
+        fwhm(u) = findFWHM(energy_midpoints,geo_EC(u,:));
+    end
+    [~, max_geo_EC] = max(geo_EC, [], 2);
+    channel_peak = energy_midpoints(max_geo_EC);
+    delta = fwhm./channel_peak;
+    for bin = 1:bins
+        for channel = 1:size(energy_channels,1)
+            if energy_midpoints(bin) >= energy_channels(channel,1) && energy_midpoints(bin) < energy_channels(channel,2)
+                delta_vect(bin) = delta(channel);
+            end
+        end
+    end
+    
+    % Create C_m covariance matrix
     C_m = zeros(bins);
-    for bin= 1:bins
-        C_m(bin,bin) = 5000;
+    for i = 1:bins
+        for j = 1:bins
+            C_m(i,j) = sigma_flux^2 * exp(-(energy_midpoints(i)-energy_midpoints(j)).^2./(2*max(delta_vect(i),delta_vect(j)).^2));
+        end
     end
     inv_C_m = inv(C_m);
     
@@ -58,6 +80,9 @@ fit_result = fit(energy_midpoints(indices)',flux_approx(indices)','exp1');
     g_mn(:,1) = log(sum(integ,2));
       
     error = zeros(it_max,1);
+    error_max = zeros(it_max,1);
+    error_temp = (d_obs-g_mn(:,1)).^2 ./ sigma_d;
+    error_max(1) = max(error_temp);
     error(1) = sum((d_obs-g_mn(:,1)).^2 ./ sigma_d);
 
     iteration = 2;
@@ -69,6 +94,8 @@ while error_cond == false && iteration <= it_max
     integ = geo_EC .* dx .* exp(mn(:,iteration) + x)';
     G_n = 1./hits_whole_EC' .* integ;
     g_mn(:,iteration) = log(sum(integ,2));
+    error_temp = (d_obs-g_mn(:,iteration)).^2 ./ sigma_d;
+    error_max(iteration) = max(error_temp);
     error(iteration) = sum((d_obs-g_mn(:,iteration)).^2 ./ sigma_d);
     if error(iteration) > error(iteration-1)
         error_cond = true;
@@ -79,6 +106,7 @@ end
 
 fprintf("Iteration Number: %.0d \n",iteration-1)
 fprintf("Tolerance: %.6e \n",error(iteration-1))
+fprintf("Max Error: %.6e \n",error_max(iteration-1))
 
 flux_lsqr = exp(mn(:,iteration-1));
 
@@ -92,7 +120,7 @@ plot(energy_midpoints,M_energy_bin/(4*pi^2*r_source^2)./bin_width, 'Color', 'bla
 
 %
 % Plot Bowtie points
-plot(E_eff,j_nom,'o', 'Color', '#0072BD','MarkerSize',10);
+%plot(E_eff,j_nom,'o', 'Color', '#0072BD','MarkerSize',10);
 
 % Plot LSQR Selesnick Method
 plot(energy_midpoints(indices),flux_lsqr(indices),'.', 'Color', 'r', 'MarkerSize',12);
@@ -104,14 +132,15 @@ fitted_curve = @(x) feval(fit_result, x);
 plot(energy_midpoints, fitted_curve(energy_midpoints),...
     'LineStyle', '--','LineWidth',2,'Color', '#77AC30');
 
-%
+%{
 legend({['Incident Particle Measurements'],['Bowtie Method'], ...
-                 ['Least Squares Method (Selesnick)'], ['Least Squares Method (Summation)']},...
+                 ['Least Squares Method (Selesnick)'], ['Least Squares Method (Simple)']},...
                  'Location', 'northeast','FontSize',18);
-
-%legend({['Incident Particle Measurements'],['Least Squares Method (Selesnick)'],['Least Squares Method (Summation)']},...
-%                 'Location', 'northeast','FontSize',18);
-
+%}
+%
+legend({['Incident Particle Measurements'],['Least Squares Method (Selesnick)'],['Least Squares Method (Simple)']},...
+                 'Location', 'northeast','FontSize',18);
+%
 
 set(gca, 'FontSize', textsize)
 xlim([0 8])

@@ -167,12 +167,13 @@ while choice ~= 1 % Choice 1 is to exit the program
                 %energy_edges = logspace(log10(min_incident_energy-0.0001), log10(max_incident_energy+0.0001), bins + 1);
                 %[M_energy_bin, ~ ,M_energy_bin_indicies] = histcounts([M_energy_beam, M_back_beam, M_non_energy_beam],energy_edges);
             % linear binning 
-                energy_edges = linspace(0,8,bins+1);
-            % finding midpoints
-            energy_midpoints = zeros(1,bins);
-            for bin = 1:bins
-                    energy_midpoints(bin) = (energy_edges(bin+1)+energy_edges(bin))/2;
+            if parttype == 0
+                energy_edges = linspace(0.1,8,bins+1);
+            elseif parttype == 1
+                energy_edges = linspace(0,80,bins+1);
             end
+            % finding midpoints
+            energy_midpoints = (energy_edges(2:end) + energy_edges(1:end-1))/2;
             bin_width = energy_edges(2:end)-energy_edges(1:end-1);
 
             % More than one file selected
@@ -258,7 +259,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                 % Find the number of particles in each bin for each energy channel
                 hits_log = zeros(size(energy_channels,1),bins);
                 geo_EC = zeros(size(energy_channels,1),bins);
-                low_bins = zeros(size(energy_channels,1),bins);
+                low_bins_logic = zeros(size(energy_channels,1),bins);
                 
                 for channel = 1:size(energy_channels,1)
                     for particle_index = 1:length(M_hit_channels)
@@ -269,23 +270,23 @@ while choice ~= 1 % Choice 1 is to exit the program
                     % Calculates the geometric factor for each channel
                     geo_EC(channel,:) = (hits_log(channel,:) ./ M_energy_bin * (4 * (pi^2) * (r_source^2)));
 
-                    % Determine which bins do not contain more than one particle
-                    for bin_index = 3:bins
-                        if geo_EC(channel,bin_index) < 10^-4 && geo_EC(channel,bin_index-2) ~= 0
-                            low_bins(channel,bin_index) = 1;
+                    % Determine which bins do not contain more than two particles
+                    for bin = 3:bins
+                        if geo_EC(channel,bin)<10^-4 && hits_log(channel,bin-1)~=0 && hits_log(channel,bin-2)~=0
+                            low_bins_logic(channel,bin) = 1;
                         end
                     end
                 end
                 hits_log_total = sum(hits_log,1);
 
-                [low_bin_channel,low_bin_number] = find(low_bins ~= 0);
+                [low_bins(:,1),low_bins(:,2)] = find(low_bins_logic ~= 0);
 
                 % Calculates total geometric factor
                 geo_total = sum(geo_EC);
                 
                 % Saves geo_EC for later use
                 %{
-                fileID = fopen('geometric_factor_EC.txt','w');
+                fileID = fopen('geometric_factor_EC_1.txt','w');
                 for channel = 1:length(energy_channels)
                     for bin = 1:bins
                         fprintf(fileID,'%.6E ',geo_EC(channel,bin));
@@ -293,7 +294,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                     fprintf(fileID,'\n');
                 end
                 fclose(fileID);
-                %}                
+                %}             
 
                 % Saves variables for later graph making
                 Var_String = append('OutputVariables', addin, '.mat');
@@ -398,6 +399,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                 % All Channels
                 % Select which channels to highlight
                 % channel_select = [2,10,20,30,35];
+                % channel_select = [1,5,10,15,18];
                 % channel_select = [10];
                 colors = [];
                 for channel = 1:size(energy_channels, 1)
@@ -428,14 +430,14 @@ while choice ~= 1 % Choice 1 is to exit the program
                 set(gca, 'FontSize', textsize)
                 titlestr_whole = append(sprintf('Geometric Factor by EC %.2f MeV - %.2f MeV ', min_incident_energy, max_incident_energy), ...
                     addin, sprintf(' %.0f Bins', bins));
-                title(titlestr_whole, 'FontSize', textsize)
-                %title('Proton Energy Channel Geometric Factor', 'FontSize', textsize)
+                %title(titlestr_whole, 'FontSize', textsize)
+                title('Electron Energy Channel Geometric Factor', 'FontSize', textsize)
                 ylabel('Geometric Factor (cm^2 sr)', 'FontSize', textsize)
                 xlabel('Incident Energy (MeV)', 'FontSize', textsize)
                 
                 % Sets y-axis to log scale. Comment out to keep the plot linear
                 set(gca, 'YScale', 'log')
-                ylim([10^-5, 10^0])
+                ylim([10^-4, 10^0])
                 grid on
                 if exist('channel_select','var')
                     legend(colors, EngLegend(channel_select), 'Location', 'southoutside', 'NumColumns', 6);

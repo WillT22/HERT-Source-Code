@@ -13,7 +13,6 @@ geo_EC = readmatrix('E:\HERT_Drive\Matlab Main\Result\geometric_factor_EC.txt');
 
 %Sets Ei and Range of Eo
 %Ei is the incident energy from the GEANT4 results
-Ei = (energy_edges(2:end) + energy_edges(1:end-1)) / 2;
 %Eo set by user.
 Eo = 0.2:0.2:2.0;
 
@@ -21,11 +20,11 @@ Eo = 0.2:0.2:2.0;
 Eo_color = magma(length(Eo)+1);
 
 %Preallocates all variables prior to For Loops
-J_e = zeros(length(Ei),length(Eo));
+J_e = zeros(length(energy_midpoints),length(Eo));
 
-G_int = zeros(length(Ei),length(Eo),length(energy_channels));
+G_int = zeros(length(energy_midpoints),length(Eo),length(energy_channels));
 G_term = zeros(length(Eo),length(energy_channels));
-G_E_eff = zeros(length(Ei),length(Eo),length(energy_channels));
+G_E_eff = zeros(length(energy_midpoints),length(Eo),length(energy_channels));
 
 xi = zeros(sum(1:length(Eo)-1),length(energy_channels));
 yi = zeros(sum(1:length(Eo)-1),length(energy_channels));
@@ -41,7 +40,7 @@ Geff = zeros(1, length(energy_channels));
 
 %Creates J(e) and creates String Array for Plot Legends
 for i = 1:length(Eo)
-    J_e(:,i) = exp(-Ei/Eo(i));
+    J_e(:,i) = exp(-energy_midpoints/Eo(i));
     BowTieLegend(i) = num2str(Eo(i));
 end
 
@@ -58,7 +57,7 @@ fprintf('\nFull Width at Half Max Values:\n')
 fwhm = zeros(1,length(energy_channels));
 
 for u = 1:length(energy_channels)
-    fwhm(u) = findFWHM(Ei,geo_EC(u,:));
+    fwhm(u) = findFWHM(energy_midpoints,geo_EC(u,:));
     % Print full width half max values into command window
     fprintf('%.2f - %.2f MeV: %.4f\n',energy_channels(u,1),energy_channels(u,2),fwhm(u))
 end
@@ -75,7 +74,7 @@ for c=1:length(energy_channels)
     %Calculates line for each Eo
     for i = 1:length(Eo)
         G_int(:,i,c) = geo_EC(c,:)'.*J_e(:,i);
-        G_term(i,c) = trapz(Ei,G_int(:,i,c));
+        G_term(i,c) = trapz(energy_midpoints,G_int(:,i,c));
         G_E_eff(:,i,c)= G_term(i,c).*J_e_inv(:,i);
         
     end
@@ -84,7 +83,7 @@ for c=1:length(energy_channels)
     num = 0;
     for j = 1:(length(Eo)-1)
         for k = 1:(length(Eo)-j)
-            [xi(num+k,c),yi(num+k,c)] = polyxpoly(Ei,G_E_eff(:,j,c),Ei,G_E_eff(:,j+k,c),'unique');   
+            [xi(num+k,c),yi(num+k,c)] = polyxpoly(energy_midpoints,G_E_eff(:,j,c),energy_midpoints,G_E_eff(:,j+k,c),'unique');   
         end
         num = num + k;
     end
