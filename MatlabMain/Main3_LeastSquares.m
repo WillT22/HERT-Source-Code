@@ -6,7 +6,21 @@ geo_EC = readmatrix('E:\HERT_Drive\Matlab Main\Result\geometric_factor_EC.txt');
 dt = 1;
 
 %% Least Squares Function for Energy Channels (initial attempt)
-flux_approx = lsqr(geo_EC.*bin_width,hits_whole_EC',1e-6,20)';
+%{
+clear error_calc error_total error_max
+itt = unique(ceil(logspace(0,5,100)));
+for i = 1:length(itt);
+    flux_approx = lsqr(geo_EC.*bin_width,hits_whole_EC',1e-12,itt(i),C_d_new)';
+    error_calc(:,i) = M_energy_bin/(4*pi^2*r_source^2)./bin_width - flux_approx;
+    error_total(i) = sum(abs(error_calc(:,i)));
+    error_max(i) = max(abs(error_calc(:,i)));
+    disp(itt(i));
+end
+fprintf("Total Error: %.6e \n",min(error_total));
+fprintf("Max Error: %.6e \n",min(error_max));
+[~,min_index]=min(abs(error_calc),[],2);
+%}
+flux_approx = lsqr(geo_EC.*bin_width,hits_whole_EC',1e-6,5)';
 
 % using idicies for E>0.5
 indices = energy_midpoints > 1;
@@ -25,6 +39,11 @@ fit_result = fit(energy_midpoints(indices)',flux_approx(indices)','exp1');
         C_d(channel,channel) = sigma_d^2;
     end
     inv_C_d = inv(C_d);
+
+    C_d_new = zeros(bins);
+    for bin = 1:bins
+        C_d_new(bin,bin) = sigma_d^2;
+    end
     
     % Initialize variance parameter
     sigma_flux = 16;
@@ -56,6 +75,8 @@ fit_result = fit(energy_midpoints(indices)',flux_approx(indices)','exp1');
     
     mat_mult = inv(G'* inv_C_d * G + inv_C_m) * G' * inv_C_d;
 
+    
+%{
 % Defining constants over each iteration
     d_obs = log(hits_whole_EC');
 
@@ -109,7 +130,7 @@ fprintf("Tolerance: %.6e \n",error(iteration-1))
 fprintf("Max Error: %.6e \n",error_max(iteration-1))
 
 flux_lsqr = exp(mn(:,iteration-1));
-
+%}
 %% Plots calculated flux
 f = figure;
 f.Position = [0 0 1700 900];
@@ -123,7 +144,7 @@ plot(energy_midpoints,M_energy_bin/(4*pi^2*r_source^2)./bin_width, 'Color', 'bla
 %plot(E_eff,j_nom,'o', 'Color', '#0072BD','MarkerSize',10);
 
 % Plot LSQR Selesnick Method
-plot(energy_midpoints(indices),flux_lsqr(indices),'.', 'Color', 'r', 'MarkerSize',12);
+%plot(energy_midpoints(indices),flux_lsqr(indices),'.', 'Color', 'r', 'MarkerSize',12);
 
 % Plot LSQR Summation Method
 plot(energy_midpoints(indices),flux_approx(indices),'x','Color','#77AC30','MarkerSize',10)
@@ -137,10 +158,10 @@ legend({['Incident Particle Measurements'],['Bowtie Method'], ...
                  ['Least Squares Method (Selesnick)'], ['Least Squares Method (Simple)']},...
                  'Location', 'northeast','FontSize',18);
 %}
-%
+%{
 legend({['Incident Particle Measurements'],['Least Squares Method (Selesnick)'],['Least Squares Method (Simple)']},...
                  'Location', 'northeast','FontSize',18);
-%
+%}
 
 set(gca, 'FontSize', textsize)
 xlim([0 8])
