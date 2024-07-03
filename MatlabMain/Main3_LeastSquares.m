@@ -6,7 +6,7 @@ geo_EC = readmatrix('E:\HERT_Drive\Matlab Main\Result\geometric_factor_EC.txt');
 dt = 1;
 
 %% Least Squares Function for Energy Channels (initial attempt)
-flux_approx = lsqr(geo_EC.*bin_width,hits_whole_EC',1e-6,5)';
+flux_approx = lsqr(geo_EC.*bin_width,hits_whole_EC',0.025,20)';
 
 % using idicies for E>0.5
 indices = energy_midpoints > 1;
@@ -30,7 +30,7 @@ fit_result = fit(energy_midpoints(indices)',flux_approx(indices)','exp1');
     for bin = 1:bins
         C_d_new(bin,bin) = sigma_d^2;
     end
-    
+
     % Calculate delta variable
     fwhm = zeros(1,length(energy_channels));
     for u = 1:length(energy_channels)
@@ -48,8 +48,8 @@ fit_result = fit(energy_midpoints(indices)',flux_approx(indices)','exp1');
     end
 
     % Initialize variance parameter
-    sigma_flux = 16;
-    sigma_flux_array = logspace(-2,5,100);
+    %sigma_flux = 16;
+    sigma_flux_array = logspace(0,2,200);
 
     % Initialize arrays to store results
     chi_sq_array = zeros(length(sigma_flux_array),1);
@@ -58,7 +58,7 @@ fit_result = fit(energy_midpoints(indices)',flux_approx(indices)','exp1');
 for sf_i = 1:length(sigma_flux_array)
     % Current sigma_flux value
     sigma_flux = sigma_flux_array(sf_i);
-
+    
     % Create C_m covariance matrix
     C_m = zeros(bins);
     for i = 1:bins
@@ -70,7 +70,7 @@ for sf_i = 1:length(sigma_flux_array)
     
     mat_mult = inv(G'* inv_C_d * G + inv_C_m) * G' * inv_C_d;
 
-
+    
 % Defining constants over each iteration
     d_obs = log(hits_whole_EC');
 
@@ -112,20 +112,23 @@ while error_cond == false && iteration <= it_max
     error_temp = (d_obs-g_mn(:,iteration)).^2 ./ sigma_d;
     error_max(iteration) = max(error_temp);
     error(iteration) = sum((d_obs-g_mn(:,iteration)).^2 ./ sigma_d);
+    %{
     if error(iteration) > error(iteration-1)
         error_cond = true;
     else
+    %}
         iteration = iteration + 1;
-    end
+    %end
 end
 
-fprintf("Iteration Number: %.0d \n",iteration-1)
-fprintf("Tolerance: %.6e \n",error(iteration-1))
-fprintf("Max Error: %.6e \n",error_max(iteration-1))
+[~,min_error_ind] = min(error);
+fprintf("Iteration Number: %.0d \n",min_error_ind)
+fprintf("Tolerance: %.6e \n",error(min_error_ind))
+fprintf("Max Error: %.6e \n",error_max(min_error_ind))
 
-flux_lsqr = exp(mn(:,iteration-1));
+flux_lsqr = exp(mn(:,min_error_ind));
 
-chi_sq_array(sf_i) = error(iteration-1);
+chi_sq_array(sf_i) = error(min_error_ind);
 
 dx1 = (dx(2:end)-dx(1:end-1));
 flux_deriv = diff(flux_lsqr) ./ dx1';
@@ -151,7 +154,7 @@ plot(energy_midpoints,M_energy_bin/(4*pi^2*r_source^2)./bin_width, 'Color', 'bla
 %plot(E_eff,j_nom,'o', 'Color', '#0072BD','MarkerSize',10);
 
 % Plot LSQR Selesnick Method
-%plot(energy_midpoints(indices),flux_lsqr(indices),'.', 'Color', 'r', 'MarkerSize',12);
+plot(energy_midpoints(indices),flux_lsqr(indices),'.', 'Color', 'r', 'MarkerSize',12);
 
 % Plot LSQR Summation Method
 plot(energy_midpoints(indices),flux_approx(indices),'x','Color','#77AC30','MarkerSize',10)
@@ -181,9 +184,9 @@ ylabel('I  #/(cm^2 sr s MeV)','FontSize',textsize)
 xlabel('Energy (MeV)','FontSize',textsize)
 hold off
 
-
+figure
 % Create the log-log plot
-loglog(chi_sq_array, norm_array,');
+loglog(chi_sq_array, norm_array,'.','MarkerSize',12);
 
 % Label the axes
 xlabel('Data Misfit (chi-squared)');
@@ -191,3 +194,14 @@ ylabel('Model Norm');
 
 % Add title (optional)
 title('L-curve analysis for flux spectrum estimation');
+
+figure
+loglog(sigma_flux_array,chi_sq_array,'.','MarkerSize',12);
+xlabel('Sigma');
+ylabel('Data Misfit (chi-squared)');
+
+figure
+loglog(sigma_flux_array,norm_array,'.','MarkerSize',12);
+xlabel('Sigma')
+ylabel('Model Norm');
+
