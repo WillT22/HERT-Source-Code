@@ -10,7 +10,7 @@ flux_approx = lsqr(geo_EC.*bin_width,hits_whole_EC',0.025,20)';
 
 % using idicies for E>0.5
 indices = energy_midpoints > 1;
-fit_result = fit(energy_midpoints(indices)',flux_approx(indices)','exp1');
+fit_result = fit(energy_midpoints(indices)',flux_approx(indices)','exp2');
 
 %% Least Squares Function for Energy Channels (Selesnick/Khoo)
 % Initialize variables
@@ -38,32 +38,27 @@ fit_result = fit(energy_midpoints(indices)',flux_approx(indices)','exp1');
     end
     [~, max_geo_EC] = max(geo_EC, [], 2);
     channel_peak = energy_midpoints(max_geo_EC);
-    delta = fwhm./channel_peak;
-    for bin = 1:bins
-        for channel = 1:size(energy_channels,1)
-            if energy_midpoints(bin) >= energy_channels(channel,1) && energy_midpoints(bin) < energy_channels(channel,2)
-                delta_vect(bin) = delta(channel);
-            end
-        end
-    end
+    delta =2;
 
     % Initialize variance parameter
-    %sigma_flux = 16;
-    sigma_flux_array = logspace(0,2,200);
+    sigma_flux = 105;
+    %sigma_flux_array = logspace(0,3,2000);
+    %sigma_flux_array = linspace(0,20,2001);
 
     % Initialize arrays to store results
-    chi_sq_array = zeros(length(sigma_flux_array),1);
-    norm_array = zeros(length(sigma_flux_array),1);
+    %chi_sq_array = zeros(length(sigma_flux_array),1);
+    %norm_array = zeros(length(sigma_flux_array),1);
 
-for sf_i = 1:length(sigma_flux_array)
+% Loop over variance parameter
+%for sf_i = 1:length(sigma_flux_array)
     % Current sigma_flux value
-    sigma_flux = sigma_flux_array(sf_i);
+    %sigma_flux = sigma_flux_array(sf_i);
     
     % Create C_m covariance matrix
     C_m = zeros(bins);
     for i = 1:bins
         for j = 1:bins
-            C_m(i,j) = sigma_flux^2 * exp(-(energy_midpoints(i)-energy_midpoints(j)).^2./(2*max(delta_vect(i),delta_vect(j)).^2));
+            C_m(i,j) = sigma_flux^2 * exp(-((energy_midpoints(i)-energy_midpoints(j))^2)./(2*delta.^2));
         end
     end
     inv_C_m = inv(C_m);
@@ -78,9 +73,9 @@ for sf_i = 1:length(sigma_flux_array)
     mn = zeros(bins,it_max);
     %mn(:,1) = ones(1,bins).*log(10^3);
     % starting from best fit line of numeric lsqr
-    mn(:,1) = log(fit_result.a * exp(fit_result.b * energy_midpoints));
-    %mn(:,1) = log(fit_result.a * exp(fit_result.b * energy_midpoints)...
-    %    +fit_result.c * exp(fit_result.d * energy_midpoints));
+    %mn(:,1) = log(fit_result.a * exp(fit_result.b * energy_midpoints));
+    mn(:,1) = log(fit_result.a * exp(fit_result.b * energy_midpoints)...
+        +fit_result.c * exp(fit_result.d * energy_midpoints));
 
     
     x_edges = log(energy_edges);
@@ -127,7 +122,7 @@ fprintf("Tolerance: %.6e \n",error(min_error_ind))
 fprintf("Max Error: %.6e \n",error_max(min_error_ind))
 
 flux_lsqr = exp(mn(:,min_error_ind));
-
+%{
 chi_sq_array(sf_i) = error(min_error_ind);
 
 dx1 = (dx(2:end)-dx(1:end-1));
@@ -140,6 +135,7 @@ flux_d2 = diff(flux_deriv) ./ dx2';
 % Calculate norm (sum of squared second derivatives)
 norm_array(sf_i) = sum(flux_d2.^2);
 end
+%}
 
 %% Plots calculated flux
 f = figure;
@@ -148,6 +144,10 @@ hold on
 
 % Plot simulated flux
 plot(energy_midpoints,M_energy_bin/(4*pi^2*r_source^2)./bin_width, 'Color', 'black','LineWidth',2.5);
+fit_flux_result = fit(energy_midpoints',(M_energy_bin/(4*pi^2*r_source^2)./bin_width)','exp2');
+fitted_flux_curve = @(x) feval(fit_flux_result, x);
+plot(energy_midpoints, fitted_flux_curve(energy_midpoints),...
+    'LineStyle', '--','LineWidth',2,'Color', 'black');
 
 %
 % Plot Bowtie points
@@ -177,13 +177,14 @@ set(gca, 'FontSize', textsize)
 xlim([0 8])
 xticks((0:1:8))
 set(gca, 'YScale', 'log')
-ylim([10^2.5, 10^4])
+ylim([10^3, 10^4])
 
 %ylabel('Flux')
 ylabel('I  #/(cm^2 sr s MeV)','FontSize',textsize)
 xlabel('Energy (MeV)','FontSize',textsize)
 hold off
 
+%{
 figure
 % Create the log-log plot
 loglog(chi_sq_array, norm_array,'.','MarkerSize',12);
@@ -196,12 +197,14 @@ ylabel('Model Norm');
 title('L-curve analysis for flux spectrum estimation');
 
 figure
-loglog(sigma_flux_array,chi_sq_array,'.','MarkerSize',12);
+plot(sigma_flux_array,chi_sq_array,'.','MarkerSize',12);
 xlabel('Sigma');
 ylabel('Data Misfit (chi-squared)');
+set(gca, 'YScale', 'log')
 
 figure
-loglog(sigma_flux_array,norm_array,'.','MarkerSize',12);
+plot(sigma_flux_array,norm_array,'.','MarkerSize',12);
 xlabel('Sigma')
 ylabel('Model Norm');
-
+set(gca, 'YScale', 'log')
+%}
