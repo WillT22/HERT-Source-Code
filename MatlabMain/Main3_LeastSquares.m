@@ -5,10 +5,34 @@
 
 %% Inputs
 geo_EC = readmatrix('E:\HERT_Drive\Matlab Main\Result\geometric_factor_EC.txt');
+bins = size(geo_EC,2);
+energy_edges = linspace(0,8,bins+1);
+bin_width = energy_edges(2:end)-energy_edges(1:end-1);
+energy_midpoints = (energy_edges(2:end) + energy_edges(1:end-1))/2;
+
+energy_channels = readmatrix('E:\HERT_Drive\Matlab Main\Result\channel_select\electron_channels_v1.txt');
+
+r_source = 8.5;
+flux_fov = 10^4*exp(-energy_midpoints/1.5)./(4*pi^2*r_source^2)./bin_width;
+hits_whole_EC = zeros(1,size(geo_EC,1));
+for bin = 1:bins
+    for channel = 1:size(energy_channels,1)
+        if energy_midpoints(bin)>=energy_channels(channel,1) && energy_midpoints(bin)<energy_channels(channel,2)
+            hits_whole_EC(channel) = hits_whole_EC(channel) + flux_fov(bin);
+        end
+    end
+end
+ 
+hits_whole_EC(hits_whole_EC==0)=1;
+
+flux = flux_fov.*(4*pi^2*r_source^2).*bin_width;
+
 dt = 1;
 
 %% Least Squares Function for Energy Channels (Selesnick/Khoo)
 % Initialize variables
+    flux_lsqr = 0;
+    jsig = 0;
     it_max = 100;   % maximum number of possible iterations 
 
 % Setting up constant matrices
@@ -130,21 +154,25 @@ f.Position = [0 0 1700 900];
 hold on
 
 % Plot simulated flux
-plot(energy_midpoints,M_energy_bin/(4*pi^2*r_source^2)./bin_width, 'Color', 'black','LineWidth',2.5);
+plot(energy_midpoints,flux, 'Color', 'black','LineWidth',2.5);
+
+%plot(energy_midpoints,M_energy_bin/(4*pi^2*r_source^2)./bin_width,'x', 'Color', 'black','MarkerSize',8);
+%plot(energy_midpoints,10^6*0.5*exp(-(energy_midpoints)/0.5), 'Color', 'black','LineWidth',2.5);
 
 % Plot Bowtie points
 %plot(E_eff,j_nom,'o', 'Color', '#0072BD','MarkerSize',10);
 
 % Plot LSQR Selesnick Method
 plot(energy_midpoints,flux_lsqr, 'Color', 'r', 'LineWidth',3);
-plot(energy_midpoints,flux_lsqr+jsig,'blue--','LineWidth',2);
-plot(energy_midpoints,flux_lsqr-jsig,'blue--','LineWidth',2);
+plot(energy_midpoints,flux_lsqr+jsig,'r--','LineWidth',2);
+plot(energy_midpoints,flux_lsqr-jsig,'r--','LineWidth',2);
 
-legend({['Incident Particle Measurements'],['LSQR'],['Standard Deviation']},...
+legend({['Theoretical Flux'],['LSQR'],['Standard Deviation']},...
                  'Location', 'northeast','FontSize',18);
 
 set(gca, 'FontSize', textsize)
 xlim([0 8])
+ylim([10^0 10^6])
 xticks((0:1:8))
 set(gca, 'YScale', 'log')
 
