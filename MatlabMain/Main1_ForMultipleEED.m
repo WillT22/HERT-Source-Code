@@ -16,7 +16,6 @@ addpath 'E:\HERT_Drive\MATLAB Main'
 detector_threshold = 0.1; % Detector Threshold (MeV)
 back_threshold = 0.1; % Back Detector Threshold (MeV)
 numDetect = 9;
-% Skyler had 379 descrete energy levels in his simulations (75.8 million particles)
 bins = 400; % aim is to get 400 bins for comparable results
 textsize = 24;
 titlesize = 28;
@@ -168,7 +167,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                 %[M_energy_bin, ~ ,M_energy_bin_indicies] = histcounts([M_energy_beam, M_back_beam, M_non_energy_beam],energy_edges);
             % linear binning 
             if parttype == 0
-                energy_edges = linspace(0.1,8,bins+1);
+                energy_edges = linspace(0,8,bins+1);
             elseif parttype == 1
                 energy_edges = linspace(0,80,bins+1);
             end
@@ -303,6 +302,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                 addin = regexprep(addin, '_', ' ');
                                
 %% Total Hits Comparison
+%{
                 line_width = 2;
                 f2 = figure;
                 f2.Position = [0 0 1920 1080];
@@ -448,7 +448,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                 % Saving the figure as a jpg then returning to the main directory
                 effsave = append('Geometric Factor Whole by EC_', string(datetime("today")), addin, '.png');
                 saveas(f3, effsave)
-
+%}
 %% Plot counts for each energy channeldetector_threshold
 %{
                 f4 = figure;
