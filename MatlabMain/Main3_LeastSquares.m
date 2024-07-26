@@ -15,9 +15,10 @@ energy_midpoints = (energy_edges(2:end) + energy_edges(1:end-1))/2;
 energy_channels = readmatrix('E:\HERT_Drive\Matlab Main\Result\channel_select\electron_channels_v1.txt');
 
 % Creating Test Fluxes
+flux_Lin = M_energy_bin./(4*pi^2*r_source^2)./bin_width./10^2;
 %flux = ones(1,bins)*10^3;
 %flux = 10^6 * exp(-(energy_midpoints)/1.5) ./ (4*pi^2*r_source^2) ./bin_width;
-flux = 10^2 * exp(log(energy_midpoints.^-0.69)+exp(-(log(energy_midpoints)-log(3)).^2)./(2*0.14));
+flux = flux_Lin .* exp(log(energy_midpoints.^-0.69)+ 1/0.8 * exp(-(log(energy_midpoints)-log(4)).^2)./(2*0.14));
 
 %
 hits_whole_EC = zeros(1,size(geo_EC,1));
@@ -53,12 +54,12 @@ dt = 1;
     inv_Cd = inv(Cd); % finding the inverse for later use
 
     % Initialize variance parameter
-    sigma_m = 10000;
+    sigma_m = 1000;
     %sigma_m_array = logspace(0,5,50);
     %sigma_m_array = linspace(70,90,81);
 
     % Initialize smoothness parameter
-    delta = 10;
+    delta = 7;
     %delta_array = logspace(0,5,50);
     %delta_array = linspace(35,45,41);
 
@@ -111,8 +112,8 @@ for sf_i = 1:length(sigma_m_array)
     convergence = false;
 
     % actual error initialization & calculation (REMOVE BEFORE ACTUAL USE)
-    actual_flux = log(M_energy_bin(red_logic)/(4*pi^2*r_source^2)./bin_width(red_logic));
-    %actual_flux = flux;
+    %actual_flux = log(M_energy_bin(red_logic)/(4*pi^2*r_source^2)./bin_width(red_logic));
+    actual_flux = flux;
     actual_error = zeros(it_max,length(energy_midpoints));
     actual_error_avg = zeros(it_max,1);
     actual_error_max = zeros(it_max,1);
@@ -167,14 +168,14 @@ plot(energy_midpoints,flux, 'Color', 'black','LineWidth',4);
 %plot(energy_midpoints,M_energy_bin(red_logic)./(4*pi^2*r_source^2)./bin_width(red_logic),'x', 'Color', 'black','MarkerSize',10);
 
 % Plot Bowtie points
-%plot(E_eff,j_nom,'o', 'Color', '#0072BD','MarkerSize',10);
+plot(E_eff,j_nom,'o', 'Color', '#0072BD','MarkerSize',10);
 
 % Plot LSQR Selesnick Method
 plot(energy_midpoints,flux_lsqr, 'Color', 'r', 'LineWidth',2);
 plot(energy_midpoints,flux_lsqr+jsig,'r--','LineWidth',2);
 plot(energy_midpoints,flux_lsqr-jsig,'r--','LineWidth',2);
 
-legend({['Incident Particle Measurement'],['LSQR'],['Standard Deviation']},...
+legend({['Incident Particle Measurement'],['Bowtie Analysis'],['LSQR'],['Standard Deviation']},...
                  'Location', 'northeast','FontSize',18);
 
 %legend({['Theoretical Flux'],['Incident Particle Measurement'],['Bowtie Analysis'],['LSQR'],['Standard Deviation']},...
@@ -183,7 +184,7 @@ legend({['Incident Particle Measurement'],['LSQR'],['Standard Deviation']},...
 textsize = 24;
 set(gca, 'FontSize', textsize)
 xlim([0 8])
-%ylim([10^0 10^6])
+ylim([10^0 10^4])
 xticks((0:1:8))
 %set(gca, 'XScale', 'log')
 set(gca, 'YScale', 'log')
