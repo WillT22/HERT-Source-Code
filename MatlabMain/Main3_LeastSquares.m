@@ -17,10 +17,10 @@ energy_channels = readmatrix('E:\HERT_Drive\Matlab Main\Result\channel_select\el
 % Creating Test Fluxes
 %flux = ones(1,bins)*10^3;
 %flux = 10^6 * exp(-(energy_midpoints)/1) ./ (4*pi^2*r_source^2) ./bin_width;
-flux = 1/0.01 * exp(log(energy_midpoints.^-0.69))+ 1/0.001 .* exp(-(log(energy_midpoints)-log(2.365)).^2./(2*0.14));
+%flux = 1/0.01 * exp(log(energy_midpoints.^-0.69))+ 1/0.001 .* exp(-(log(energy_midpoints)-log(2.365)).^2./(2*0.14));
 %flux = 1/0.01 * exp(log(energy_midpoints.^-1.2))+ 1/0.001 .* exp(-(log(energy_midpoints)-log(4)).^2./(2*0.08));
-%flux = 10^5 .* energy_midpoints.^-4.73;
-%flux = 10^5 .* energy_midpoints.^-3.14;
+%flux = 10^5 .* energy_midpoints.^-6;
+flux = 1/0.000001 .* exp(-(log(energy_midpoints)-log(2)).^2./(2*0.004));
 
 %
 hits_whole_EC = zeros(1,size(geo_EC,1));
@@ -60,12 +60,12 @@ dt = 10;
     inv_Cd = inv(Cd); % finding the inverse for later use
 
     % Initialize variance parameter
-    sigma_m = 10^7;
+    sigma_m = 4000;
     %sigma_m_array = logspace(0,8,100);
 
     % Initialize smoothness parameter
-    delta = 4; 
-    %delta_array = logspace(-2,2,40);
+    delta = 62; 
+    %delta_array = logspace(0,4,40);
 
 
 % Loop over variance and smoothness parameters
@@ -185,10 +185,10 @@ legend({['Acutal Flux'],['Bowtie Analysis'],['LSQR'],['Standard Deviation']},...
 textsize = 24;
 set(gca, 'FontSize', textsize)
 %xlim([0 8])
-%ylim([10^0 10^4])
+ylim([10^0 10^6])
 xticks((0:1:8))
 %set(gca, 'XScale', 'log')
-set(gca, 'YScale', 'log')
+%set(gca, 'YScale', 'log')
 
 ylabel('I  #/(cm^2 sr s MeV)','FontSize',textsize)
 xlabel('Energy (MeV)','FontSize',textsize)

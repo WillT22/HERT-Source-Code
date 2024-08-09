@@ -1,7 +1,7 @@
 working_data = ind_act_error_avg;
 
 % Find indices where working_data is not zero
-valid_indices = working_data ~= 0 & ~isnan(working_data) & working_data <1;
+valid_indices = working_data ~= 0 & ~isnan(working_data);% & working_data <10;
 
 % Reshape sigma_array_full and delta_array_full to match working_data
 [sigma_array_full, delta_array_full] = meshgrid(sigma_m_array,delta_array);
@@ -18,6 +18,7 @@ error_interp = griddata(sigma_array_reshaped, delta_array_reshaped, working_data
 % Plot the surface
 f = figure;
 surf(sigma_mesh, delta_mesh, error_interp, 'FaceColor', 'interp')
+%plot3(sigma_array_full(valid_indices),delta_array_full(valid_indices),working_data(valid_indices),'.','Color','blue');
 
 set(gca, 'XScale', 'log','FontSize',textsize)
 set(gca, 'YScale', 'log','FontSize',textsize)
@@ -26,7 +27,7 @@ xlabel('Sigma','FontSize',textsize)
 ylabel('Delta','FontSize',textsize)
 zlabel('Average Error','FontSize',textsize)
 %zlim([0.08 0.09])
-title('BOT1')
+title('Power Law Alpha = 5')
 colorbar
 
 %{
@@ -48,6 +49,7 @@ end
 clear index_exp
 [index_exp(:,1),index_exp(:,2)] = find(logic_array_exp==1);
 %}
+%{
 logic_array_BOT = zeros(length(delta_array),length(sigma_m_array));
 for i = 1:length(delta_array)
     for j = 1:length(sigma_m_array)
@@ -60,6 +62,23 @@ for i = 1:length(delta_array)
 end
 clear index_BOT
 [index_BOT(:,1),index_BOT(:,2)] = find(logic_array_BOT==1);
+%}
+%
+logic_array_POW = zeros(length(delta_array),length(sigma_m_array));
+for i = 1:length(delta_array)
+    for j = 1:length(sigma_m_array)
+        if error_avg_POW_2(i,j) < 0.4 && error_avg_POW_2(i,j) > 0 ...
+                && error_avg_POW_314(i,j) < 0.4 && error_avg_POW_314(i,j) > 0 ...
+                && error_avg_POW_473(i,j) < 0.5 && error_avg_POW_473(i,j) > 0 ...
+                && error_avg_POW_5(i,j) < 0.8   && error_avg_POW_5(i,j) > 0 %...
+%                && error_avg_POW_6(i,j) < 0.8   && error_avg_POW_6(i,j) > 0
+            logic_array_POW(i,j) = 1;
+        end
+    end
+end
+clear index_POW
+[index_POW(:,1),index_POW(:,2)] = find(logic_array_POW==1);
+
 %{
 logic_array_comb = zeros(length(delta_array),length(sigma_m_array));
 for i = 1:length(delta_array)
@@ -75,14 +94,16 @@ clear index_comb
 %{
 sig_edges = [0.5:length(sigma_m_array)+0.5];
 del_edges = [0.5:length(delta_array)+0.5];
-[sig_counts,~] = histcounts(index_exp(:,2),sig_edges);
-[del_counts,~] = histcounts(index_exp(:,1),del_edges);
+[sig_counts,~] = histcounts(index_POW(:,2),sig_edges);
+[del_counts,~] = histcounts(index_POW(:,1),del_edges);
 
 f=figure;
 plot(sigma_m_array,sig_counts)
 set(gca, 'XScale', 'log','FontSize',textsize)
+xlabel('Sigma','FontSize',textsize)
 
 f=figure;
 plot(delta_array,del_counts)
 set(gca, 'XScale', 'log','FontSize',textsize)
+xlabel('Delta','FontSize',textsize)
 %}
