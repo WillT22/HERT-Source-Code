@@ -284,8 +284,8 @@ while choice ~= 1 % Choice 1 is to exit the program
                 geo_total = sum(geo_EC);
                 
                 % Saves geo_EC for later use
-                %{
-                fileID = fopen('geometric_factor_EC_1.txt','w');
+                %
+                fileID = fopen('geometric_factor_EC.txt','w');
                 for channel = 1:length(energy_channels)
                     for bin = 1:bins
                         fprintf(fileID,'%.6E ',geo_EC(channel,bin));
@@ -293,7 +293,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                     fprintf(fileID,'\n');
                 end
                 fclose(fileID);
-                %}             
+                %            
 
                 % Saves variables for later graph making
                 Var_String = append('OutputVariables', addin, '.mat');

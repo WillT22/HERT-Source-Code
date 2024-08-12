@@ -18,9 +18,9 @@ energy_channels = readmatrix('E:\HERT_Drive\Matlab Main\Result\channel_select\el
 %flux = ones(1,bins)*10^3;
 %flux = 10^6 * exp(-(energy_midpoints)/1) ./ (4*pi^2*r_source^2) ./bin_width;
 %flux = 1/0.01 * exp(log(energy_midpoints.^-0.69))+ 1/0.001 .* exp(-(log(energy_midpoints)-log(2.365)).^2./(2*0.14));
-%flux = 1/0.01 * exp(log(energy_midpoints.^-1.2))+ 1/0.001 .* exp(-(log(energy_midpoints)-log(4)).^2./(2*0.08));
-%flux = 10^5 .* energy_midpoints.^-6;
-flux = 1/0.000001 .* exp(-(log(energy_midpoints)-log(2)).^2./(2*0.004));
+flux = 1/0.01 * exp(log(energy_midpoints.^-1.2))+ 1/0.001 .* exp(-(log(energy_midpoints)-log(4)).^2./(2*0.08));
+%flux = 10^5 .* energy_midpoints.^-3;
+%flux = 1/0.000001 .* exp(-(log(energy_midpoints)-log(2)).^2./(2*0.004));
 
 %
 hits_whole_EC = zeros(1,size(geo_EC,1));
@@ -32,9 +32,8 @@ end
 % Reducing equations to remove zero hit counts
 energy_channels = energy_channels(hits_whole_EC~=0,:);
 energy_edges = energy_edges(energy_edges<energy_channels(end,2)+1);
-bounds = energy_midpoints>0.6 & energy_midpoints<7 & energy_midpoints<energy_edges(end);
+bounds = energy_midpoints<energy_edges(end);
 energy_midpoints = energy_midpoints(bounds);
-energy_edges = energy_edges(energy_edges>=0.6 & energy_edges<=7);
 geo_EC = geo_EC(hits_whole_EC~=0,bounds);
 hits_whole_EC = hits_whole_EC(hits_whole_EC~=0);
 %flux = M_energy_bin/(4*pi^2*r_source^2)./bin_width;
@@ -60,11 +59,11 @@ dt = 10;
     inv_Cd = inv(Cd); % finding the inverse for later use
 
     % Initialize variance parameter
-    sigma_m = 4000;
+    sigma_m = 700; % Exp = 15000, BOT = 700 (1200)
     %sigma_m_array = logspace(0,8,100);
 
     % Initialize smoothness parameter
-    delta = 62; 
+    delta = 2; % Exp = 1000, BOT = 2 (7)
     %delta_array = logspace(0,4,40);
 
 
@@ -119,9 +118,9 @@ for sf_i = 1:length(sigma_m_array)
     actual_error = zeros(it_max,length(energy_midpoints));
     actual_error_avg = zeros(it_max,1);
     actual_error_max = zeros(it_max,1);
-    actual_error(1,:) = (exp(mn(1,:))-flux)./flux;
-    actual_error_max(1) = max(abs(actual_error(1,:)));
-    actual_error_avg(1) = mean(abs(actual_error(1,:)));
+    actual_error(1,:) = abs(mn(1,:)-log(flux));
+    actual_error_max(1) = max(actual_error(1,actual_error(1,:)~=Inf));
+    actual_error_avg(1) = mean(actual_error(1,actual_error(1,:)~=Inf));
 
 % Begin iterations
 while convergence == false && iteration <= it_max
@@ -136,9 +135,9 @@ while convergence == false && iteration <= it_max
     Cmm = inv(Gn'* inv_Cd * Gn + inv_Cm);
 
     % actual error calculation (REMOVE BEFORE ACTUAL USE)
-    actual_error(iteration,:) = (exp(mn(iteration,:))-flux)./flux;
-    actual_error_max(iteration) = max(abs(actual_error(iteration,actual_error(iteration,:)~=Inf)));
-    actual_error_avg(iteration) = mean(abs(actual_error(iteration,actual_error(iteration,:)~=Inf)));
+    actual_error(iteration,:) = abs(mn(iteration,:)-log(flux));
+    actual_error_max(iteration) = max(actual_error(iteration,actual_error(iteration,:)~=Inf));
+    actual_error_avg(iteration) = mean(actual_error(iteration,actual_error(iteration,:)~=Inf));
 
     if max(abs(mn(iteration,:)- mn(iteration-1,:)))<0.1
         convergence = true;
@@ -163,20 +162,22 @@ f = figure;
 f.Position = [0 0 1700 900];
 hold on
 
-% Plot simulated flux
-plot(energy_midpoints,flux, 'Color', 'black','LineWidth',4);
+bounds = energy_midpoints >= 0.5 & energy_midpoints<=7;
 
-%plot(energy_midpoints,M_energy_bin(bounds)./(4*pi^2*r_source^2)./bin_width,'x', 'Color', 'black','MarkerSize',10);
+% Plot simulated flux
+plot(energy_midpoints(bounds),flux(bounds), 'Color', 'black','LineWidth',4);
+
+%plot(energy_midpoints(bounds),M_energy_bin(bounds)./(4*pi^2*r_source^2)./bin_width(bounds),'x', 'Color', 'black','MarkerSize',10);
 
 % Plot Bowtie points
-plot(E_eff,j_nom,'o', 'Color', '#0072BD','MarkerSize',10);
+%plot(E_eff,j_nom,'o', 'Color', '#0072BD','MarkerSize',10);
 
 % Plot LSQR Selesnick Method
-plot(energy_midpoints,flux_lsqr, 'Color', 'r', 'LineWidth',2);
-plot(energy_midpoints,flux_lsqr+jsig,'r--','LineWidth',2);
-plot(energy_midpoints,flux_lsqr-jsig,'r--','LineWidth',2);
+plot(energy_midpoints(bounds),flux_lsqr(bounds), 'Color', 'r', 'LineWidth',2);
+plot(energy_midpoints(bounds),flux_lsqr(bounds)+jsig(bounds),'r--','LineWidth',2);
+plot(energy_midpoints(bounds),flux_lsqr(bounds)-jsig(bounds),'r--','LineWidth',2);
 
-legend({['Acutal Flux'],['Bowtie Analysis'],['LSQR'],['Standard Deviation']},...
+legend({['Acutal Flux'],['LSQR'],['Standard Deviation']},...
                  'Location', 'northeast','FontSize',18);
 
 %legend({['Theoretical Flux'],['Incident Particle Measurement'],['Bowtie Analysis'],['LSQR'],['Standard Deviation']},...
@@ -185,10 +186,10 @@ legend({['Acutal Flux'],['Bowtie Analysis'],['LSQR'],['Standard Deviation']},...
 textsize = 24;
 set(gca, 'FontSize', textsize)
 %xlim([0 8])
-ylim([10^0 10^6])
+%ylim([10^0 10^6])
 xticks((0:1:8))
 %set(gca, 'XScale', 'log')
-%set(gca, 'YScale', 'log')
+set(gca, 'YScale', 'log')
 
 ylabel('I  #/(cm^2 sr s MeV)','FontSize',textsize)
 xlabel('Energy (MeV)','FontSize',textsize)
