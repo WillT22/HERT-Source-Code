@@ -1,4 +1,4 @@
-working_data = error_avg_BOT2;
+working_data = error_avg_E002;
 
 % Find indices where working_data is not zero
 valid_indices = working_data ~= 0 & ~isnan(working_data);% & working_data <10;
@@ -27,10 +27,10 @@ xlabel('Sigma','FontSize',textsize)
 ylabel('Delta','FontSize',textsize)
 zlabel('Average Error','FontSize',textsize)
 %zlim([0.08 0.09])
-title('BOT2')
+title('Power Law Alpha = 6')
 colorbar
 
-%{
+%
 logic_array_exp = zeros(length(delta_array),length(sigma_m_array));
 for i = 1:length(delta_array)
     for j = 1:length(sigma_m_array)
@@ -47,8 +47,8 @@ for i = 1:length(delta_array)
 end
 clear index_exp
 [index_exp(:,1),index_exp(:,2)] = find(logic_array_exp==1);
-%}
 %
+%{
 logic_array_BOT = zeros(length(delta_array),length(sigma_m_array));
 for i = 1:length(delta_array)
     for j = 1:length(sigma_m_array)
@@ -61,16 +61,16 @@ for i = 1:length(delta_array)
 end
 clear index_BOT
 [index_BOT(:,1),index_BOT(:,2)] = find(logic_array_BOT==1);
-%
+%}
 %{
 logic_array_POW = zeros(length(delta_array),length(sigma_m_array));
 for i = 1:length(delta_array)
     for j = 1:length(sigma_m_array)
-        if error_avg_POW_2(i,j) < 0.4 && error_avg_POW_2(i,j) > 0 ...
-                && error_avg_POW_314(i,j) < 0.4 && error_avg_POW_314(i,j) > 0 ...
-                && error_avg_POW_473(i,j) < 0.5 && error_avg_POW_473(i,j) > 0 ...
-                && error_avg_POW_5(i,j) < 0.8   && error_avg_POW_5(i,j) > 0 %...
-%                && error_avg_POW_6(i,j) < 0.8   && error_avg_POW_6(i,j) > 0
+        if error_avg_POW_2(i,j) < 0.2 && error_avg_POW_2(i,j) > 0 ...
+                && error_avg_POW_3(i,j) < 0.4 && error_avg_POW_3(i,j) > 0 ...
+                && error_avg_POW_4(i,j) < 3 && error_avg_POW_4(i,j) > 0 ...
+                && error_avg_POW_5(i,j) < 5   && error_avg_POW_5(i,j) > 0 %...
+%                && error_avg_POW_6(i,j) < 150   && error_avg_POW_6(i,j) > 0
             logic_array_POW(i,j) = 1;
         end
     end
@@ -90,11 +90,11 @@ end
 clear index_comb
 [index_comb(:,1),index_comb(:,2)] = find(logic_array_comb==1);
 %}
-%
+%{
 sig_edges = [0.5:length(sigma_m_array)+0.5];
 del_edges = [0.5:length(delta_array)+0.5];
-[sig_counts,~] = histcounts(index_BOT(:,2),sig_edges);
-[del_counts,~] = histcounts(index_BOT(:,1),del_edges);
+[sig_counts,~] = histcounts(index_exp(:,2),sig_edges);
+[del_counts,~] = histcounts(index_exp(:,1),del_edges);
 
 f=figure;
 plot(sigma_m_array,sig_counts)
@@ -105,4 +105,4 @@ f=figure;
 plot(delta_array,del_counts)
 set(gca, 'XScale', 'log','FontSize',textsize)
 xlabel('Delta','FontSize',textsize)
-%
+%}

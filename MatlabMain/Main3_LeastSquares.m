@@ -15,11 +15,12 @@ energy_midpoints = (energy_edges(2:end) + energy_edges(1:end-1))/2;
 energy_channels = readmatrix('E:\HERT_Drive\Matlab Main\Result\channel_select\electron_channels_v1.txt');
 
 % Creating Test Fluxes
+%flux = M_energy_bin/(4*pi^2*r_source^2)./bin_width;
 %flux = ones(1,bins)*10^3;
-%flux = 10^6 * exp(-(energy_midpoints)/1) ./ (4*pi^2*r_source^2) ./bin_width;
-%flux = 1/0.01 * exp(log(energy_midpoints.^-0.69))+ 1/0.001 .* exp(-(log(energy_midpoints)-log(2.365)).^2./(2*0.14));
-flux = 1/0.01 * exp(log(energy_midpoints.^-1.2))+ 1/0.001 .* exp(-(log(energy_midpoints)-log(4)).^2./(2*0.08));
-%flux = 10^5 .* energy_midpoints.^-3;
+%flux = 10^6 * exp(-(energy_midpoints)/0.4) ./ (4*pi^2*r_source^2) ./bin_width;
+flux = 1/0.01 * exp(log(energy_midpoints.^-0.69))+ 1/0.001 .* exp(-(log(energy_midpoints)-log(2.365)).^2./(2*0.14));
+%flux = 1/0.01 * exp(log(energy_midpoints.^-1.2))+ 1/0.001 .* exp(-(log(energy_midpoints)-log(4)).^2./(2*0.08));
+%flux = 10^5 .* energy_midpoints.^-4.6;
 %flux = 1/0.000001 .* exp(-(log(energy_midpoints)-log(2)).^2./(2*0.004));
 
 %
@@ -36,7 +37,6 @@ bounds = energy_midpoints<energy_edges(end);
 energy_midpoints = energy_midpoints(bounds);
 geo_EC = geo_EC(hits_whole_EC~=0,bounds);
 hits_whole_EC = hits_whole_EC(hits_whole_EC~=0);
-%flux = M_energy_bin/(4*pi^2*r_source^2)./bin_width;
 bin_width = bin_width(bounds);
 flux = flux(bounds);
 
@@ -59,12 +59,14 @@ dt = 10;
     inv_Cd = inv(Cd); % finding the inverse for later use
 
     % Initialize variance parameter
-    sigma_m = 700; % Exp = 15000, BOT = 700 (1200)
+    sigma_m = 16000; % Exp = 16000   BOT = 700,   POW = 270
     %sigma_m_array = logspace(0,8,100);
+    %sigma_m_array = linspace(1,100,100);
 
     % Initialize smoothness parameter
-    delta = 2; % Exp = 1000, BOT = 2 (7)
+    delta = 1000; % Exp = 1000   BOT = 2,   POW = 27
     %delta_array = logspace(0,4,40);
+    %delta_array = linspace(15,35,30);
 
 
 % Loop over variance and smoothness parameters
