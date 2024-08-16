@@ -1,6 +1,9 @@
+%% ERROR ANALYSIS FOR THE LEAST SQUARES METHOD %%
+
+% Specify data to process (from ind_act_error_avg in Main3)
 working_data = error_avg_E002;
 
-% Find indices where working_data is not zero
+% Find indices where working_data is not zero and below a threshold
 valid_indices = working_data ~= 0 & ~isnan(working_data);% & working_data <10;
 
 % Reshape sigma_array_full and delta_array_full to match working_data
@@ -27,9 +30,10 @@ xlabel('Sigma','FontSize',textsize)
 ylabel('Delta','FontSize',textsize)
 zlabel('Average Error','FontSize',textsize)
 %zlim([0.08 0.09])
-title('Power Law Alpha = 6')
+title('E0 = 0.2')
 colorbar
 
+%% Exponential Error Logic %%
 %
 logic_array_exp = zeros(length(delta_array),length(sigma_m_array));
 for i = 1:length(delta_array)
@@ -48,6 +52,8 @@ end
 clear index_exp
 [index_exp(:,1),index_exp(:,2)] = find(logic_array_exp==1);
 %
+
+%% Bump-on-tail Error Logic %%
 %{
 logic_array_BOT = zeros(length(delta_array),length(sigma_m_array));
 for i = 1:length(delta_array)
@@ -62,6 +68,8 @@ end
 clear index_BOT
 [index_BOT(:,1),index_BOT(:,2)] = find(logic_array_BOT==1);
 %}
+
+%% Power Law Error Logic %%
 %{
 logic_array_POW = zeros(length(delta_array),length(sigma_m_array));
 for i = 1:length(delta_array)
@@ -78,6 +86,8 @@ end
 clear index_POW
 [index_POW(:,1),index_POW(:,2)] = find(logic_array_POW==1);
 %}
+
+%% Combined Error Logic %%
 %{
 logic_array_comb = zeros(length(delta_array),length(sigma_m_array));
 for i = 1:length(delta_array)
@@ -96,6 +106,8 @@ del_edges = [0.5:length(delta_array)+0.5];
 [sig_counts,~] = histcounts(index_exp(:,2),sig_edges);
 [del_counts,~] = histcounts(index_exp(:,1),del_edges);
 
+
+%% Plotting histograms from low-error indices %%
 f=figure;
 plot(sigma_m_array,sig_counts)
 set(gca, 'XScale', 'log','FontSize',textsize)
