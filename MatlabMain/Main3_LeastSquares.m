@@ -22,7 +22,7 @@ energy_channels = readmatrix('E:\HERT_Drive\Matlab Main\Result\channel_select\el
 %flux = ones(1,bins)*10^3;
 
 % Exponential %
-%flux = 10^6 * exp(-(energy_midpoints)/0.4) ./ (4*pi^2*r_source^2) ./bin_width;
+flux = 10^6 * exp(-(energy_midpoints)/0.4) ./ (4*pi^2*r_source^2) ./bin_width;
 
 % BOT/Inverse %
 %flux = 1/0.01 * exp(log(energy_midpoints.^-0.69))+ 1/0.001 .* exp(-(log(energy_midpoints)-log(2.365)).^2./(2*0.14));
@@ -71,7 +71,7 @@ dt = 10;
     inv_Cd = inv(Cd); % finding the inverse for later use
 
     % Initialize variance parameter %
-    sigma_m = 16000; % Exp = 16000   BOT = 700,   POW = 270
+    sigma_m = 1600; % Exp = 16000   BOT = 700,   POW = 270
     
     % Initializing parameter space to scan over %
     %sigma_m_array = logspace(0,8,100);
@@ -114,7 +114,6 @@ for sf_i = 1:length(sigma_m_array)
     % Defining initial values 
     % Create initial estimate
     mn = zeros(it_max,length(energy_midpoints));
-    mn(1,:) = ones(1,length(energy_midpoints));
     
     % finding x and dx for integrals from existing edges
     x_edges = log(energy_edges);
@@ -123,13 +122,10 @@ for sf_i = 1:length(sigma_m_array)
     dx(dx>100) = 100;
     
     % Set up first iteration of model
-    integ = geo_EC .* dx .* exp(mn(1,:)+x);
+    Gn = 1./hits_whole_EC' .* geo_EC .* dx .* exp(mn(1,:)+x);
     % initial count rate guess based on initial flux estimate
     g_mn = zeros(it_max,size(energy_channels,1));
-    g_mn(1,:) = log(sum(integ,2)); 
-    % matrix relation between energy bins and count rates
-    Gn = 1./exp(g_mn(1,:)') .* integ;       
-    mat_mult = inv(Gn'* inv_Cd * Gn + inv_Cm) * Gn' * inv_Cd;
+    g_mn(1,:) = log(sum(Gn .* dx .* exp(mn(1,:)+x),2)); 
    
     % initialize loop variables
     iteration = 2;
@@ -143,17 +139,17 @@ for sf_i = 1:length(sigma_m_array)
     actual_error_max(1) = max(actual_error(1,actual_error(1,:)~=Inf));
     actual_error_avg(1) = mean(actual_error(1,actual_error(1,:)~=Inf));
 
-% Begin iterations
+%% Begin iterations %%
 while convergence == false && iteration <= it_max
     
     % find the log(flux) for this iteration
-    mn(iteration,:) = mn(1,:)' + mat_mult * (d_obs - g_mn(iteration-1,:)' + Gn*(mn(iteration-1,:)-mn(1,:))');
+    %mat_mult = (Gn'* inv_Cd * Gn + inv_Cm) \ Gn' * inv_Cd;
+    %mn(iteration,:) = mn(1,:)' + mat_mult * (d_obs - g_mn(iteration-1,:)' + Gn*(mn(iteration-1,:)-mn(1,:))');
+    mn(iteration,:) = (Gn'* inv_Cd' * Gn + inv_Cm') \ (Gn'* inv_Cd' * (d_obs - g_mn(iteration-1,:)' + Gn * mn(iteration-1,:)') + inv_Cm' * mn(iteration-1,:)');
     
     % Calculate the new matrices for the iteration
-    integ = geo_EC .* dx .* exp(mn(iteration,:)+x);
-    g_mn(iteration,:) = log(sum(integ,2));
-    Gn = 1./exp(g_mn(iteration,:))' .* integ;
-    mat_mult = (Gn'* inv_Cd * Gn + inv_Cm) \ Gn' * inv_Cd;
+    g_mn(iteration,:) = log(sum(geo_EC .* dx .* exp(mn(iteration,:)+x),2));
+    Gn = 1./exp(g_mn(iteration,:))' .* geo_EC .* dx .* exp(mn(iteration,:)+x);
 
     % Calculate the new model covariance matrix
     Cmm = inv(Gn'* inv_Cd * Gn + inv_Cm);
