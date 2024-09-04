@@ -14,16 +14,17 @@
 ### Variable Initialization ###
 /control/alias particleType electron	# Assign particle type
 #/control/alias energyValue 50			# Assign energyValue (for descrete energy run)
-/control/alias energyMin 0				# Assign energy minimum
-/control/alias energyMax 8				# Assign energy maximum
-/control/alias particleCount 1000000 	# Assign particleCount
-/control/alias runNumber 19				# Assign a run number for randomized runs
+/control/alias energyMin 0.5				# Assign energy minimum (0 MeV)
+/control/alias energyMax 8				# Assign energy maximum (8MeV for electron, 80MeV for proton)
+/control/alias particleCount 1000000 	# Assign particleCount (1000000)
+#/control/alias runNumber 1 			# Assign a run number for randomized runs
+/control/alias E0 2
 
 ### Randomization Seed Restoration ###
 # Descretized energy file name
 #/random/resetEngineFrom .\Results\seeds\HERT_CADoutput_{particleType}_Ene_{energyValue}_{particleCount}_seed.rndm
 # Randomized energy file name
-/random/resetEngineFrom .\Results\seeds\HERT_CADoutput_{particleType}_{particleCount}_Run{runNumber}_seed.rndm
+#/random/resetEngineFrom .\Results\seeds\HERT_CADoutput_{particleType}_{particleCount}_Run{runNumber}_seed.rndm
 
 ### GPS Initialization ###
 /gps/particle e-
@@ -45,22 +46,23 @@
 #/gps/ene/mono {energyValue} MeV
 
 # Randomized Energy Selection
-/gps/ene/type Lin			# Defines linear distribution of particle energies
+/gps/ene/type Exp			# Defines distribution of particle energies (Lin or Exp usually)
+#/gps/ene/gradient 100	    # Defines slope for linear distribution (default = 0)
+#/gps/ene/intercept 100   	# Defines y-intercept for linear distribution (default = 0)
+/gps/ene/ezero {E0} MeV		# Defines E_0 for exponential distribution (default = 0)
 /gps/ene/min {energyMin} MeV			
 /gps/ene/max {energyMax} MeV
-/gps/ene/gradient 0
-/gps/ene/intercept 1
 
 ### Visualization ###
 
-/vis/open HepRepFile			# write heprep
-/vis/scene/create				# Create a new empty scene
-/vis/scene/add/volume			# Declare that the world volume should be added to the scene
-/vis/sceneHandler/attach		# Attach scene to scenehandler
-/vis/viewer/flush				# Draw a picture that has just the detector (no trajectories or hits).
-/vis/scene/add/trajectories		# Declare that trajectories and hits should be added to the scene
-/vis/scene/add/hits
-/vis/scene/endOfEventAction accumulate {particleCount}
+#/vis/open HepRepFile			# write heprep
+#/vis/scene/create				# Create a new empty scene
+#/vis/scene/add/volume			# Declare that the world volume should be added to the scene
+#/vis/sceneHandler/attach		# Attach scene to scenehandler
+#/vis/viewer/flush				# Draw a picture that has just the detector (no trajectories or hits).
+#/vis/scene/add/trajectories		# Declare that trajectories and hits should be added to the scene
+#/vis/scene/add/hits
+#/vis/scene/endOfEventAction accumulate {particleCount}
 
 /run/printProgress 10000
 
@@ -73,16 +75,19 @@
 # Descretized energy file names
 #/control/alias outputFileName HERT_CADoutput_{particleType}_Ene_{energyValue}_{particleCount}
 #/control/alias seedFileName HERT_CADoutput_{particleType}_Ene_{energyValue}_{particleCount}_seed
+
 # Randomized energy file names
 #/control/alias outputFileName HERT_CADoutput_{particleType}_{particleCount}_Run{runNumber}
 #/control/alias seedFileName HERT_CADoutput_{particleType}_{particleCount}_Run{runNumber}_seed
+/control/alias outputFileName HERT_CADoutput_{particleType}_{particleCount}_{E0}
+/control/alias seedFileName HERT_CADoutput_{particleType}_{particleCount}_{E0}_seed
 
-#/control/shell del .\Results\{outputFileName}.txt
-#/control/shell move EnergyDepositResult.txt {outputFileName}.txt
-#/control/shell move {outputFileName}.txt .\Results
+/control/shell del .\Results\{outputFileName}.txt
+/control/shell move EnergyDepositResult.txt {outputFileName}.txt
+/control/shell move {outputFileName}.txt .\Results
 
-#/control/shell del .\Results\{seedFileName}.rndm
-#/control/shell move currentRun.rndm {seedFileName}.rndm
-#/control/shell move {seedFileName}.rndm .\Results\seeds
+/control/shell del .\Results\{seedFileName}.rndm
+/control/shell move currentRun.rndm {seedFileName}.rndm
+/control/shell move {seedFileName}.rndm .\Results\seeds
 
 exit

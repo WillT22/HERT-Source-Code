@@ -7,10 +7,15 @@
 ##### Test Track ############
 
 /control/shell del *.txt
-/control/alias startNumber 51
-/control/alias stepNumber  1	
-/control/alias endNumber   100
+#/control/alias startNumber 451
+#/control/alias stepNumber  1	
+#/control/alias endNumber   500
 
-/control/loop ..\SingleRun.mac runNumber {startNumber} {endNumber} {stepNumber}
+/control/alias startE0Number 0.2
+/control/alias stepE0Number  0.1	
+/control/alias endE0Number   2
+
+#/control/loop ..\SingleRun.mac runNumber {startNumber} {endNumber} {stepNumber}
+/control/loop ..\SingleRun.mac E0 {startE0Number} {endE0Number} {stepE0Number}
 
 exit

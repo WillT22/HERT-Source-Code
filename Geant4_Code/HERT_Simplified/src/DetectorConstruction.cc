@@ -636,7 +636,7 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 	logic_TaTooth1->SetVisAttributes(VisAtt_coll_embed);
 
 	//Be Window
-	VisAtt_be = new G4VisAttributes(true, G4Colour(0.2, 0.3, 1));//0.1, 0.9, 0.75
+	VisAtt_be = new G4VisAttributes(true, G4Colour(0.2, 0.3, 1));
 	logic_BeWin->SetVisAttributes(VisAtt_be);
 
 	//Tungsten Parts
