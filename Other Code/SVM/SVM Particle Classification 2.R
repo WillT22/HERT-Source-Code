@@ -222,107 +222,115 @@ Rxy <- function(x,y){
   }
   return(Rxy_result)
 }
-Rbarxy <- function(x,y){
-  Rbarxy_result <- rep(TRUE, length(test_data$Detector1))
+Rbarexy <- function(x,y){
+  Rbarexy_result <- rep(TRUE, length(test_data$Detector1))
   for (l in x:y){
-    Rbarxy_result <- Rbarxy_result & test_data[[l]] < 0.4
+    Rbarexy_result <- Rbarexy_result & test_data[[l]] < 0.4
   }
-  return(Rbarxy_result)
+  return(Rbarexy_result)
+}
+Rbarpxy <- function(x,y){
+  Rbarpxy_result <- rep(TRUE, length(test_data$Detector1))
+  for (l in x:y){
+    Rbarpxy_result <- Rbarpxy_result & test_data[[l]] < 0.5
+  }
+  return(Rbarpxy_result)
 }
 # Electron Logic Equations (with veto constraints)
-EL1  <- (test_data$Detector1>=0.4 & test_data$Detector2>=0.4 & Rxy(1,2)<=1.35 & Rbarxy(3,9))
-EL2  <- (test_data$Detector1>=0.4 & test_data$Detector2>=0.4 & Rxy(1,2)>=1.3 & Rxy(1,2)<=1.7 & Rbarxy(3,9))
-EL3  <- (Rxy(1,2) >= 0.8 & Rxy(1,3) >= 1.85 & Rxy(1,3)<=2.25 & Rbarxy(4,9))
-EL4  <- (Rxy(1,2) >= 0.4 & Rxy(1,3) >= 2.65 & Rxy(1,3)<=2.95 & Rbarxy(4,9))
-EL5  <- (test_data$Detector1>=0.4 & Rxy(2,3)>=0.4 & Rxy(1,4)>=3.35 & Rxy(1,4)<=3.95 & Rbarxy(5,9))
-EL6  <- (test_data$Detector1>=0.4 & Rxy(2,3)>=0.4 & Rxy(1,5)>=4.4 & Rxy(1,5)<=5.0 & Rbarxy(6,9))
-EL7  <- (test_data$Detector1>=0.4 & test_data$Detector1<=1.0 & test_data$Detector2>=0.4 
-         & test_data$Detector2<=2.0 & Rxy(3,4)>=0.4 & Rxy(1,5)>=5.5 & Rxy(1,5)<=6.25 & Rbarxy(6,9))
-EL8  <- (test_data$Detector1>=0.4 & test_data$Detector2>=0.4 & test_data$Detector2<=1.0 & Rxy(3,4)>=2.4
-         & Rxy(3,6)>=5.75 & Rxy(3,6)<=6.6 & Rbarxy(7,9))
+EL1  <- (test_data$Detector1>=1.0 & test_data$Detector1<=1.2 & test_data$Detector2<=1.5
+         & Rxy(1,2) >= 1.1 & Rxy(1,2)<=1.2 & Rbarexy(3,9))
+EL2  <- (test_data$Detector1>=0.4 & test_data$Detector2>=0.4 & Rxy(1,2)>=1.3 
+         & Rxy(1,2)<=1.7 & Rbarexy(3,9))
+EL3  <- (test_data$Detector1>=0.4 & test_data$Detector2>=0.4 & Rxy(1,4)>=1.85 
+         & Rxy(1,4)<=2.25 & Rbarexy(5,9))
+EL4  <- (test_data$Detector1>=0.4 & test_data$Detector2>=0.4 & Rxy(1,4)>=2.65 
+         & Rxy(1,4)<=2.95 & Rbarexy(5,9))
+EL5  <- (test_data$Detector1>=0.4 & Rxy(2,4)>=0.4 & Rxy(1,6)>=3.35 & Rxy(1,6)<=3.95 & Rbarexy(7,9))
+EL6  <- (test_data$Detector1>=0.4 & Rxy(2,6)>=0.4 & Rxy(1,8)>=4.4 & Rxy(1,8)<=5.0 & test_data$Detector9<0.4)
+EL7  <- (test_data$Detector1>=0.4 & test_data$Detector1<=2.0 & test_data$Detector2>=0.4 
+         & test_data$Detector2<=2.0 & Rxy(3,6)>=0.4 & Rxy(1,8)>=5.5 & Rxy(1,8)<=6.25 & test_data$Detector9<0.4)
+EL8  <- (test_data$Detector1>=0.4 & test_data$Detector2>=0.4 & test_data$Detector2<=1.0 
+         & Rxy(3,6)>=2.4 & Rxy(3,9)>=5.75 & Rxy(3,9)<=6.6)
 EL9  <- (test_data$Detector1>=0.4 & test_data$Detector2>=0.4 & test_data$Detector2<=1.0
-         & test_data$Detector3>=0.4 & test_data$Detector3<=2.0 & test_data$Detector4>=0.4
-         & Rxy(5,6)>=0.4 & Rxy(3,7)>=8.0 & Rxy(3,7)<=9.0 & Rbarxy(8,9))
-EL10 <- (test_data$Detector1>=0.4 & test_data$Detector2>=0.4 & test_data$Detector3>=0.4 
-         & test_data$Detector4>=0.4 & test_data$Detector5>=0.4 & test_data$Detector6>=0.4 
-         & test_data$Detector7>=0.4 & Rxy(3,8)>=10.3 & Rxy(3,8)<=12.5 & test_data$Detector9>=0.4)
-EL11 <- (test_data$Detector1>=0.4 & test_data$Detector1<=1.0 & test_data$Detector2>=0.4 & test_data$Detector3>=0.4
-         & Rxy(4,8)>=0.4 & Rxy(5,9)>=11.0)
+         & Rxy(3,4)>=0.4 & Rxy(3,4)<=2.0 & Rxy(5,6)>=0.4 & Rxy(7,9)>=0.4 
+         & Rxy(3,9)>=8.0 & Rxy(3,9)<=9.0)
+EL10 <- (test_data$Detector1>=0.4 & test_data$Detector2>=0.4 & Rxy(3,4)>=0.4 
+         & Rxy(5,6)>=0.4 & Rxy(7,8)>=0.4 & test_data$Detector9>=0.1 
+         & Rxy(3,9)>=10.3 & Rxy(3,9)<=12.5)
+EL11 <- (test_data$Detector1>=0.4 & test_data$Detector1<=1.0 & test_data$Detector2>=0.4 
+         & Rxy(3,4)>=0.4 & Rxy(5,9)>=0.4 & Rxy(7,9)>=11)
 EL12 <- (test_data$Detector1>=0.4 & test_data$Detector1<=1.0 & test_data$Detector2>=0.4
-         & test_data$Detector2<=1.0 & test_data$Detector3>=0.4 & test_data$Detector3<=1.5
-         & Rxy(4,8) >= 0.4 & Rxy(5,9) >= 15.0)
-
-# Electron Logic Equations (without veto constraints)
-EL1  <- (Rxy(1,2)<=1.35)
-EL2  <- (Rxy(1,2)>=1.30 & Rxy(1,2)<=1.70)
-EL3  <- (Rxy(1,3)>=1.85 & Rxy(1,3)<=2.25)
-EL4  <- (Rxy(1,3)>=2.65 & Rxy(1,3)<=2.95)
-EL5  <- (Rxy(1,4)>=3.35 & Rxy(1,4)<=3.95)
-EL6  <- (Rxy(1,5)>=4.40 & Rxy(1,5)<=5.00)
-EL7  <- (test_data$Detector1<=1.0 & test_data$Detector2<=2.0 & Rxy(1,5)>=5.5 & Rxy(1,5)<=6.25)
-EL8  <- (test_data$Detector2<=1.0 & Rxy(3,6)>=5.75 & Rxy(3,6)<=6.6)
-EL9  <- (test_data$Detector2<=1.0 & test_data$Detector3<=2.0 & Rxy(3,7)>=8.0 & Rxy(3,7)<=9.0)
-EL10 <- (Rxy(3,8)>=10.3 & Rxy(3,8)<=12.5)
-EL11 <- (test_data$Detector1<=1.0 & Rxy(5,9)>=11.0)
-EL12 <- (test_data$Detector1<=1.0 & test_data$Detector2<=1.0 & test_data$Detector3<=1.5
-         & Rxy(5,9) >= 15.0)
+         & test_data$Detector2<=1.0 & Rxy(3,4)>=0.4 & Rxy(3,4)<=1.5 
+         & Rxy(5,9) >= 0.4 & Rxy(7,9)>=15)
 
 ELOGIC <- data.frame(EL1, EL2, EL3, EL4, EL5, EL6, EL7, EL8, EL9, EL10, EL11, EL12)
 Etotal_true <- sum(ELOGIC)
-Erow_true_counts <- data.frame(rowSums(ELOGIC))
-Enproblem_rows <- sum(Erow_true_counts > 1)
-Eproblem_rows <- which(Erow_true_counts > 1)
+Erow_predict <- factor(rowSums(ELOGIC)>0,
+                       levels = c(TRUE, FALSE), 
+                       labels = c("Electron","Rejected Electron"))
+Enproblem_rows <- sum(rowSums(ELOGIC) > 1)
+Eproblem_rows <- which(rowSums(ELOGIC) > 1)
 ratio_Eproblem_rows <- Enproblem_rows/length(test_data$Detector1)
-REPT_etab <- table(predict=factor(Erow_true_counts>0,
-                                  levels = c(TRUE, FALSE), labels = c("Electron", "Proton")),
-                   truth= test_data[,10])
+print(ratio_Eproblem_rows*100)
+REPT_etab <- table(predict=factor(Erow_predict,
+                                  levels = c("Electron","Rejected Electron",  "Proton", "Rejected Proton"),
+                                  labels = c("Electron","Rejected Electron",  "Proton", "Rejected Proton")),
+                   truth= factor(test_data[,10],
+                                 levels = c("Electron", "Proton"),
+                                 labels = c("Electron", "Proton")))
 print(REPT_etab)
 
 # Proton Logic Equations (with veto constraints)
-PL1  <- (test_data$Detector1>8.0 & test_data$Detector2>6.8 & Rbarxy(3,9))
-PL2  <- (test_data$Detector1>0.5 & test_data$Detector2>5.0 & test_data$Detector3>11.0 & Rbarxy(4,9))
-PL3  <- (test_data$Detector1>0.5 & test_data$Detector2>0.5 & test_data$Detector3>10.0
-         & test_data$Detector4>13.2 & Rbarxy(5,9))
-PL4  <- (test_data$Detector1>0.5 & test_data$Detector1<4.7 & test_data$Detector2>0.5
-         & test_data$Detector2<6.0 & test_data$Detector3>0.5 & Rxy(4,6)>11.5 & Rxy(4,6)<33.0 & Rbarxy(7,9))
-PL5  <- (test_data$Detector1>0.5 & test_data$Detector1<5.5 & test_data$Detector2>0.5
-         & test_data$Detector2<6.5 & test_data$Detector3>0.5 & test_data$Detector4>0.5
-         & test_data$Detector5>0.5 & Rxy(6,8)>3.0 & Rxy(6,8)<40.0 & test_data$Detector9<1.5)
-PL6  <- (test_data$Detector1>0.5 & test_data$Detector1<5.0 & test_data$Detector2>0.5
-         & test_data$Detector2<5.0 & test_data$Detector3>0.5 & test_data$Detector4>0.5
-         & test_data$Detector5>0.5 & test_data$Detector6>0.5 & test_data$Detector7>0.5
-         & test_data$Detector8>0.5 & Rxy(1,8)>37.0 & Rxy(1,8)<65.0 & test_data$Detector9>0.5)
-PL7  <- (test_data$Detector1>0.5 & test_data$Detector1<3.0 & test_data$Detector2>0.5
-         & test_data$Detector2<3.0 & test_data$Detector3>3.0 & test_data$Detector3<5.5
-         & test_data$Detector4>3.0 & test_data$Detector4<7.0 & test_data$Detector5>3.0
-         & test_data$Detector5<6.0 & test_data$Detector7>3.0 & test_data$Detector7<6.0
-         & test_data$Detector8>4.5 & test_data$Detector8<7.0 & Rxy(1,9)>31.0 & Rxy(1,9)<45.0)
-PL8  <- (test_data$Detector1>0.5 & test_data$Detector1<5.0 & test_data$Detector2>0.5
-         & test_data$Detector2<5.0 & Rxy(1,8)>5.0 & Rxy(1,8)<28.0)
-
-# Proton Logic Equations (without veto constraints)
-PL1  <- (test_data$Detector1>8.0 & test_data$Detector2>6.8)
-PL2  <- (test_data$Detector2>5.0 & test_data$Detector3>11.0)
-PL3  <- (test_data$Detector3>10.0 & test_data$Detector4>13.2)
-PL4  <- (Rxy(4,6)>11.5 & Rxy(4,6)<33.0)
-PL5  <- (Rxy(6,8)>3.0 & Rxy(6,8)<40.0)
-PL6  <- (Rxy(1,8)>37.0 & Rxy(1,8)<65.0)
-PL7  <- (Rxy(1,9)>31.0 & Rxy(1,9)<45.0)
-PL8  <- (Rxy(1,8)>5.0 & Rxy(1,8)<28.0)
+PL1  <- (test_data$Detector1>8.2 & test_data$Detector1<16 & test_data$Detector2<6.5
+         & Rxy(1,2)>8.2 & Rxy(1,2)<18 & Rxy(3,9)<0.5 & Rbarpxy(3,9))
+PL2  <- (test_data$Detector1>5.4 & test_data$Detector1<12.2 & test_data$Detector2>5.0
+         & test_data$Detector2<16.9 & Rxy(3,4)>0.1 & Rxy(3,4)<11 & Rxy(1,4)>15.9 
+         & Rxy(1,4)<25.7 & Rxy(5,9)<0.5 & Rbarpxy(5,9))
+PL3  <- (test_data$Detector1>4 & test_data$Detector1<7 & test_data$Detector2>4
+         & test_data$Detector2<9.5 & Rxy(3,4)>10 & Rxy(5,6)<12.5
+         & Rxy(1,6)>24 & Rxy(1,6)<35.5 & Rxy(5,9)<0.5 & Rbarpxy(7,9))
+PL4  <- (test_data$Detector1>3.1 & test_data$Detector1<4.9 & test_data$Detector2>3.2
+         & test_data$Detector2<5.7 & Rxy(3,4)>7.6 & Rxy(3,4)<16.8
+         & Rxy(5,6)>9.2 & Rxy(5,6)<24 & Rxy(7,8)<23 
+         & test_data$Detector9<4.1 & Rxy(5,9)>11.5 & Rxy(5,9)<33.0)
+PL5  <- (test_data$Detector1>2.2 & test_data$Detector1<4 & test_data$Detector2>1.9
+         & test_data$Detector2<4.2 & Rxy(3,4)>5.5 & Rxy(3,4)<12.5
+         & Rxy(5,6)>5.8 & Rxy(5,6)<12.5 & Rxy(7,8)>7 & Rxy(7,8)<22.7 
+         & test_data$Detector9>1 & test_data$Detector9<13 & Rxy(7,9)>5 & Rxy(7,9)<45)
+PL6  <- (test_data$Detector1>1.5 & test_data$Detector1<3.3 & test_data$Detector2>1.0
+         & test_data$Detector2<3.3 & Rxy(3,4)>4.1 & Rxy(3,4)<6.5 & Rxy(5,6)>4.5
+         & Rxy(5,6)<7.2 & Rxy(7,8)>4.8 & Rxy(7,8)<8.0 & test_data$Detector9>2.0
+         & test_data$Detector9<8.5 & Rxy(1,6)>11 & Rxy(1,6)<22 & Rxy(1,9)<65)
+PL7  <- (test_data$Detector1>1.4 & test_data$Detector1<2.5 & test_data$Detector2>1.4
+         & test_data$Detector2<2.8 & Rxy(3,4)>3.4 & Rxy(3,4)<5.4 & Rxy(5,6)>3.4 
+         & Rxy(5,6)<5.9 & Rxy(7,8)>3.5 & Rxy(7,8)<6 & Rxy(1,9)>10 & Rxy(1,9)<45)
+PL8  <- (test_data$Detector1>0.8 & test_data$Detector1<3.0 & test_data$Detector2>0.8
+         & test_data$Detector2<3.0 & Rxy(3,4)>2.5 & Rxy(3,4)<5 & Rxy(5,6)>2.5 
+         & Rxy(5,6)<5.5 & Rxy(7,8)>2.5 & Rxy(7,8)<5.5 & test_data$Detector9>1 
+         & test_data$Detector9<6 & Rxy(1,9)<8 & Rxy(1,9)<32.0)
 
 PLOGIC <- data.frame(PL1, PL2, PL3, PL4, PL5, PL6, PL7, PL8)
 Ptotal_true <- sum(PLOGIC)
-Prow_true_counts <- data.frame(rowSums(PLOGIC))
-Pnproblem_rows <- sum(Prow_true_counts > 1)
-Pproblem_rows <- which(Prow_true_counts > 1)
+Prow_predict <- factor(rowSums(PLOGIC)>0,
+                       levels = c(TRUE, FALSE), 
+                       labels = c("Proton","Rejected Proton"))
+Pnproblem_rows <- sum(rowSums(PLOGIC) > 1)
+Pproblem_rows <- which(rowSums(PLOGIC) > 1)
 ratio_Pproblem_rows <- Pnproblem_rows/length(test_data$Detector1)
-REPT_ptab <- table(predict=factor(Prow_true_counts>0,
-                                  levels = c(FALSE, TRUE), labels = c("Electron", "Proton")),
-                   truth= test_data[,10])
+print(ratio_Pproblem_rows*100)
+REPT_ptab <- table(predict=factor(Prow_predict,
+                                  levels = c("Electron","Rejected Electron",  "Proton", "Rejected Proton"),
+                                  labels = c("Electron","Rejected Electron",  "Proton", "Rejected Proton")),
+                   truth= factor(test_data[,10],
+                                 levels = c("Electron", "Proton"),
+                                 labels = c("Electron", "Proton")))
 print(REPT_ptab)
 
-REPT_logic <- (REPT_etab + REPT_ptab)/colSums(REPT_etab + REPT_ptab)*100
+REPT_logic <- ((REPT_etab/colSums(REPT_etab)*100) 
+              + (REPT_ptab/colSums(REPT_ptab)*100))
 print(REPT_logic)
+print(ratio_Eproblem_rows*100)
+print(ratio_Pproblem_rows*100)
 
 ### K-fold Cross-Validation ###
 # create folds
