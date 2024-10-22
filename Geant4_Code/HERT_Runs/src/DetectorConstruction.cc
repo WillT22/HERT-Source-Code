@@ -435,7 +435,7 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 	G4double y_TaSpac4 = 17 * mm;
 	G4double z_TaSpac4 = z_BeWin-13.75 *mm;
 
-	logic_TaSpac4 = new G4LogicalVolume(solid_TaSpac4, Al, "logical_TaSpac4", 0, 0, 0);
+	logic_TaSpac4 = new G4LogicalVolume(solid_TaSpac4, Ta, "logical_TaSpac4", 0, 0, 0);
 	physi_TaSpac4 = new G4PVPlacement(rotm_negX, G4ThreeVector(x_TaSpac4, y_TaSpac4, z_TaSpac4), logic_TaSpac4, "physical_TaSpac4", logic_w, false, 0);
 
 	/* Ta 4th Tooth */
@@ -466,7 +466,7 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 	G4double x_TaTooth3 = 0 * mm;
 	G4double y_TaTooth3 = 0 * mm;
 	G4double z_TaTooth3 = z_TaSpac3 - 1.0 * mm;
-	logic_TaTooth3 = new G4LogicalVolume(solid_TaTooth3, Al, "logical_TaTooth3", 0, 0, 0);
+	logic_TaTooth3 = new G4LogicalVolume(solid_TaTooth3, Ta, "logical_TaTooth3", 0, 0, 0);
 	physi_TaTooth3 = new G4PVPlacement(rotm_negX, G4ThreeVector(x_TaTooth3, y_TaTooth3, z_TaTooth3), logic_TaTooth3, "physical_TaTooth3", logic_w, false, 0);
 
 	/* Ta 2nd Spacer */
@@ -477,7 +477,7 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 	G4double y_TaSpac2 = 0 * mm;
 	G4double z_TaSpac2 = z_TaTooth3 - 14.00 * mm;
 
-	logic_TaSpac2 = new G4LogicalVolume(solid_TaSpac2, Al, "logical_TaSpac2", 0, 0, 0);
+	logic_TaSpac2 = new G4LogicalVolume(solid_TaSpac2, Ta, "logical_TaSpac2", 0, 0, 0);
 	physi_TaSpac2 = new G4PVPlacement(rotm_negX, G4ThreeVector(x_TaSpac2, y_TaSpac2, z_TaSpac2), logic_TaSpac2, "physical_TaSpac2", logic_w, false, 0);
 
 	/* Ta 2nd Tooth */
