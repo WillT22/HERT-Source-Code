@@ -17,7 +17,7 @@ detector_threshold = 0.1; % Detector Threshold (MeV)
 back_threshold = 0.1; % Back Detector Threshold (MeV)
 numDetect = 9;
 bins = 400; % aim is to get 400 bins for comparable results
-textsize = 24;
+textsize = 20;
 titlesize = 28;
 
 %% Calculate GEANT4 Results
@@ -167,13 +167,13 @@ while choice ~= 1 % Choice 1 is to exit the program
                 %[M_energy_bin, ~ ,M_energy_bin_indicies] = histcounts([M_energy_beam, M_back_beam, M_non_energy_beam],energy_edges);
             % linear binning 
             if parttype == 0
-                energy_edges = linspace(0,8,bins+1);
+                energy_edges = linspace(0,3,bins+1);
             elseif parttype == 1
                 energy_edges = linspace(0,80,bins+1);
             end
             % finding midpoints
             energy_midpoints = (energy_edges(2:end) + energy_edges(1:end-1))/2;
-            bin_width = energy_edges(2:end)-energy_edges(1:end-1);
+            bin_width = diff(energy_edges);
 
             % More than one file selected
             if iscell(filename)
@@ -250,7 +250,8 @@ while choice ~= 1 % Choice 1 is to exit the program
                 if sim_type == 0
                     % Scales up simulated particles to the total number of particles
                     M_energy_bin = 2 .* M_energy_bin / (1 - cosd(15));
-                    
+                elseif sim_type == 1
+                    M_energy_bin = M_energy_bin;
                 else
                     error('Error on Sim Type')
                 end
@@ -284,7 +285,8 @@ while choice ~= 1 % Choice 1 is to exit the program
                 geo_total = sum(geo_EC);
                 
                 % Saves geo_EC for later use
-                %
+                %{
+                clear fileID
                 fileID = fopen('geometric_factor_EC.txt','w');
                 for channel = 1:length(energy_channels)
                     for bin = 1:bins
@@ -293,7 +295,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                     fprintf(fileID,'\n');
                 end
                 fclose(fileID);
-                %            
+                %}           
 
                 % Saves variables for later graph making
                 Var_String = append('OutputVariables', addin, '.mat');
@@ -302,13 +304,13 @@ while choice ~= 1 % Choice 1 is to exit the program
                 addin = regexprep(addin, '_', ' ');
                                
 %% Total Hits Comparison
-%{
+%
                 line_width = 2;
                 f2 = figure;
                 f2.Position = [0 0 1920 1080];
                 
                 hold on
-                plot(energy_midpoints, sum(hits_log,1) ./ M_energy_bin *100, 'DisplayName', 'Counted Hits', 'LineWidth', line_width)
+                plot(energy_midpoints, hits_log_total ./ M_energy_bin *100, 'DisplayName', 'Counted Hits', 'LineWidth', line_width)
                 plot(energy_midpoints, back_counts ./ M_energy_bin *100, 'DisplayName', 'Last Detector Triggered', 'LineWidth', line_width)
 
                  % Put in Penetration Limits
@@ -386,11 +388,8 @@ while choice ~= 1 % Choice 1 is to exit the program
 %% Geometric Factor by Energy Channel
                 geo_EC(geo_EC==0)=1e-31;
                 line_width = 2;
-                y_label = round(max(max(geo_EC)), 2);
-                
-                if y_label < max(max(geo_EC))
-                    y_label = y_label + 0.01;
-                end
+                y_label = max(max(geo_EC));
+                y_label = ceil(y_label * 100) / 100 + (y_label == ceil(y_label) * 0.01);
                 
                 f3 = figure;
                 f3.Position = [0 0 1920 1080];
@@ -405,15 +404,14 @@ while choice ~= 1 % Choice 1 is to exit the program
                 for channel = 1:size(energy_channels, 1)
                     if exist('channel_select','var')
                         if find(channel_select == channel)>0
-                            colors = [colors;plot(energy_midpoints(energy_midpoints>0.52),...
-                                geo_EC(channel,energy_midpoints>0.52),...
+                            colors = [colors;plot(energy_midpoints,geo_EC(channel,:),...
                                 'Color', Effplotcolor(channel, :),...
                                 'LineWidth', line_width, 'DisplayName', EngLegend{channel})];
                         else
-                            plot(energy_midpoints(energy_midpoints>0.52), geo_EC(channel,energy_midpoints>0.52), 'Color', [0.7,0.7,0.7,0.7], 'LineWidth', line_width);
+                            plot(energy_midpoints, geo_EC, 'Color', [0.7,0.7,0.7,0.7], 'LineWidth', line_width);
                         end
                     else
-                        plot(energy_midpoints(energy_midpoints>0.52), geo_EC(channel,energy_midpoints>0.52), 'Color', Effplotcolor(channel, :), 'LineWidth', line_width);
+                        plot(energy_midpoints, geo_EC(channel,:), 'Color', Effplotcolor(channel, :), 'LineWidth', line_width);
                     end
                 end
 
@@ -431,7 +429,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                 titlestr_whole = append(sprintf('Geometric Factor by EC %.2f MeV - %.2f MeV ', min_incident_energy, max_incident_energy), ...
                     addin, sprintf(' %.0f Bins', bins));
                 %title(titlestr_whole, 'FontSize', textsize)
-                title('Electron Energy Channel Geometric Factor', 'FontSize', textsize)
+                title('Proton Energy Channel Geometric Factor', 'FontSize', textsize)
                 ylabel('Geometric Factor (cm^2 sr)', 'FontSize', textsize)
                 xlabel('Incident Energy (MeV)', 'FontSize', textsize)
                 
@@ -448,7 +446,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                 % Saving the figure as a jpg then returning to the main directory
                 effsave = append('Geometric Factor Whole by EC_', string(datetime("today")), addin, '.png');
                 saveas(f3, effsave)
-%}
+%
 %% Plot counts for each energy channeldetector_threshold
 %{
                 f4 = figure;

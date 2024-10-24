@@ -6,7 +6,7 @@ function [hit_deposited_energy, hit_energy_channels, run_number, beam_number, en
 
 % Find the first sequence of digits and convert it to a number
 beam_number = str2double(regexp(file_name, '\d+', 'match', 'once'));
-run_number = str2double(regexp(file_name, '\d+_Run(\d+)', 'tokens', 'once'));
+run_number = str2double(regexp(file_name, 'Run(\d+)', 'tokens', 'once'));
 
 % Change to the input folder
 cd(inputfolder);

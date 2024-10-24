@@ -4,10 +4,10 @@ clear all
 %% Electrons
 %
 ExLow_Limit = 0.1;
-Low_Limit = 0.5;
-Med_Limit = 1.0;
-High_Limit = 2.5;
-Max_Limit = 8;
+Low_Limit = 0.23; %0.5
+Med_Limit = 0.45; %1.0
+High_Limit = 1.1; %2.5
+Max_Limit = 3; %8
 %
 
 %% Protons
@@ -20,10 +20,10 @@ Max_Limit = 60;
 %}
 
 % Number of channels in each range:
-ExLownum = 2; %2
-Lownum = 12; %12
-Mednum = 16; %16
-Highnum = 10; %10
+ExLownum = 1; %2
+Lownum = 11; %12
+Mednum = 15; %16
+Highnum = 9; %10
 
 % Excluded energy channels (below threshold)
 x = 1:(ExLownum+1);
@@ -87,7 +87,7 @@ Resolution
 
 %% Write to Text File
 
-fileID = fopen('electon_channels_test.txt','w');
+fileID = fopen('channel_select\electron_channels_DARTmod_v1.txt','w');
 for i = 1:size(Channels,1)
 fprintf(fileID,'%6.3f,%6.3f \n',Channels(i,:));
 end
