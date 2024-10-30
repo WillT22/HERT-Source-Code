@@ -1,0 +1,91 @@
+#######################################
+# Updated by LYK (Mar 9, 2020)
+# For beginner's practice version, get rid of some layer of codes (less loop)
+# Updated by LYK (Sep 28, 2018)
+# Counter Variable Name: eKin
+# Include Visualization in the code
+# Revised by H.Zhao (Aug 12, 2020)
+# Updated by W.Teague (Jan 23, 2024)
+#######################################
+
+/control/verbose 1
+/run/initialize
+
+### Variable Initialization ###
+/control/alias particleType electron    	# Assign particle type
+#/control/alias energyValue 5			# Assign energyValue (for descrete energy run)
+/control/alias energyMin 0			# Assign energy minimum (0 MeV for electron, 10MeV for proton)
+/control/alias energyMax 3			# Assign energy maximum (8MeV for electron, 80MeV for proton)
+/control/alias particleCount 1000000    	# Assign particleCount (1000000)
+#/control/alias runNumber 15 			# Assign a run number for randomized runs
+#/control/alias E0 2
+
+### Randomization Seed Restoration ###
+# Descretized energy file name
+#/random/resetEngineFrom ./Results/seeds/HERT_CADoutput_{particleType}_Ene_{energyValue}_{particleCount}_seed.rndm
+# Randomized energy file name
+/random/resetEngineFrom ./Results/seeds/HERT_CADoutput_{particleType}_{particleCount}_Run{runNumber}_seed.rndm
+
+### GPS Initialization ###
+/gps/particle e-
+
+# Boresight Particle Firing #
+#/gps/direction 0 0 10 mm
+#/gps/position 0 0 -10 mm
+
+# Spherical Cap Particle Firing #
+/gps/pos/type Surface
+/gps/pos/shape Sphere
+/gps/pos/radius 85 mm
+/gps/ang/type cos		#cosine law, particles more likely to emit normal to surface
+/gps/pos/centre 0 0 .75 mm
+/gps/pos/confine source		# Confines to source volume created in DetectorContstruction.cc (redundant for spherical runs)
+/gps/ang/focuspoint 0 0 .75 mm
+
+# Deterministic Energy Selection
+#/gps/ene/mono {energyValue} MeV
+
+# Randomized Energy Selection
+/gps/ene/type Lin			# Defines distribution of particle energies (Lin or Exp usually)
+/gps/ene/gradient 0	    # Defines slope for linear distribution (default = 0)
+/gps/ene/intercept 1   	# Defines y-intercept for linear distribution (default = 0)
+#/gps/ene/ezero {E0} MeV		# Defines E_0 for exponential distribution (default = 0)
+/gps/ene/min {energyMin} MeV			
+/gps/ene/max {energyMax} MeV
+
+### Visualization ###
+
+#/vis/open HepRepFile			# write heprep
+#/vis/scene/create				# Create a new empty scene
+#/vis/scene/add/volume			# Declare that the world volume should be added to the scene
+#/vis/sceneHandler/attach		# Attach scene to scenehandler
+#/vis/viewer/flush				# Draw a picture that has just the detector (no trajectories or hits).
+#/vis/scene/add/trajectories		# Declare that trajectories and hits should be added to the scene
+#/vis/scene/add/hits
+#/vis/scene/endOfEventAction accumulate {particleCount}
+
+/run/printProgress 10000
+
+/tracking/storeTrajectory 1
+/tracking/verbose 0
+
+/run/beamOn {particleCount}
+
+### File Renaming and Storage ###
+# Descretized energy file names
+#/control/alias outputFileName HERT_CADoutput_{particleType}_Ene_{energyValue}_{particleCount}
+#/control/alias seedFileName HERT_CADoutput_{particleType}_Ene_{energyValue}_{particleCount}_seed
+
+# Randomized energy file names
+/control/alias outputFileName HERT_CADoutput_{particleType}_{particleCount}_Run{runNumber}_DARTmod
+#/control/alias seedFileName HERT_CADoutput_{particleType}_{particleCount}_Run{runNumber}_seed
+#/control/alias outputFileName HERT_CADoutput_{particleType}_{particleCount}_{E0}
+#/control/alias seedFileName HERT_CADoutput_{particleType}_{particleCount}_{E0}_seed
+
+/control/shell mv EnergyDepositResult.txt {outputFileName}.txt
+/control/shell mv {outputFileName}.txt ./Results
+
+#/control/shell mv currentRun.rndm {seedFileName}.rndm
+#/control/shell mv -n {seedFileName}.rndm ./Results/seeds
+
+exit
