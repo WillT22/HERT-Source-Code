@@ -9,7 +9,7 @@ close all
 %Changes directory for png of graphs
 cd '..\Bow Tie'
 
-geo_EC = readmatrix('E:\HERT_Drive\Matlab Main\Result\geometric_factor_EC.txt');
+%geo_EC = readmatrix('E:\HERT_Drive\Matlab Main\Result\geometric_factor_EC.txt');
 
 %Sets Ei and Range of Eo
 %Ei is the incident energy from the GEANT4 results
@@ -23,7 +23,7 @@ Eo_color = magma(length(Eo)+1);
 J_e = zeros(length(energy_midpoints),length(Eo));
 
 G_int = zeros(length(energy_midpoints),length(Eo),length(energy_channels));
-G_term = zeros(length(Eo),length(energy_channels));
+G_term = zeros(length(energy_midpoints),length(Eo),length(energy_channels));
 G_E_eff = zeros(length(energy_midpoints),length(Eo),length(energy_channels));
 
 xi = zeros(sum(1:length(Eo)-1),length(energy_channels));
@@ -73,10 +73,10 @@ for c=1:length(energy_channels)
         
     %Calculates line for each Eo
     for i = 1:length(Eo)
-        G_int(:,i,c) = geo_EC(c,:)'.*J_e(:,i);
-        G_term(i,c) = trapz(energy_midpoints,G_int(:,i,c));
-        G_E_eff(:,i,c)= G_term(i,c).*J_e_inv(:,i);
-        
+        valid_geo = ~isnan(geo_EC(c,:));
+        G_int(valid_geo,i,c) = geo_EC(c,valid_geo)'.*J_e(valid_geo,i);
+        G_term(:,i,c) = trapz(energy_midpoints,G_int(:,i,c));
+        G_E_eff(:,i,c)= G_term(:,i,c).*J_e_inv(:,i);  
     end
     
     %Find Intersections of Eo Lines
@@ -199,10 +199,16 @@ hold off
 
 effsave = append(date(),' Energy Channel Bins',' Eo ',num2str(min(Eo)),' to ',num2str(max(Eo)),' MeV','_',addin,num2str(length(energy_channels)),'.png');
 saveas(gcf,effsave)
-
+%}
 
 %% Energy Resolution Plot
 Energy_Resolution= 100*BinWidth./E_eff;
+
+% Create a matrix with the rounded values
+data_to_export = [energy_channels(Energy_Resolution~=0,:), E_eff(Energy_Resolution~=0)', Energy_Resolution(Energy_Resolution~=0)'];
+
+% Write the matrix to a text file
+dlmwrite('output.txt', data_to_export, 'delimiter', '\t', 'precision', '%.4f');
 
 figure
 plot(Energy_Resolution,'xb')
@@ -216,35 +222,26 @@ f = figure;
 f.Position = [100 100 1600 720];
 textsize = 28;
 
-%Plots each energy channel FWHM value in the same color as
-%the Eff. Curve
-
+%Plots each energy channel FWHM value
 hold on
-for c = 1:length(energy_channels)
-%     plot(E_eff(c),Energy_Resolution(c),'o','MarkerSize',8,...
-%         'MarkerEdgeColor',Effplotcolor(c,:),...
-%         'MarkerFaceColor',Effplotcolor(c,:))
-    
-    plot(E_eff(c),Energy_Resolution(c),'o','MarkerSize',8,...
-        'MarkerEdgeColor','b',...
-        'MarkerFaceColor','b')
-end
+plot(E_eff(Energy_Resolution~=0),Energy_Resolution(Energy_Resolution~=0),'o','MarkerSize',8,...
+        'MarkerEdgeColor','b','MarkerFaceColor','b')
 set(gca,'FontSize',textsize)
 %title('HERT Energy Resolution','FontSize',textsize)
 ylabel('Spectral Resolution dE/E(%)','FontSize',textsize)
 xlabel('Nominal Energy (MeV)','FontSize',textsize)
 ylim([0,40])
-plot([min(min(M_energy_beam)),max(max(M_energy_beam))],[12,12],'k--','LineWidth',2)%,'DisplayName','Energy Resolution Requirement')
+plot([0,max(max(M_energy_beam))],[12,12],'k--','LineWidth',2)%,'DisplayName','Energy Resolution Requirement')
 
 %legend([EngLegend,'Energy Resolution Requirement'],'Location', 'southoutside','NumColumns',8)
-legend([strings(1,length(energy_channels)),'Energy Resolution Requirement'],'Location', 'northeast','NumColumns',8)
+legend(['Energy Resolution Requirement'],'Location', 'northeast','NumColumns',8)
 
 hold off
 effsave = append(date(),' Energy Resolution',' Eo ',num2str(min(Eo)),' to ',num2str(max(Eo)),' MeV','_',addin,num2str(length(energy_channels)),'.png');
 saveas(gcf,effsave)
 
 %% Write to Text File
-
+%{
 fileID = fopen('effective_energies_v1.txt','w');
 for i = 1:length(E_eff)
 fprintf(fileID,'%.6f \n',E_eff(i));
