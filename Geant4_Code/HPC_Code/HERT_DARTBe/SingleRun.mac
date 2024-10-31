@@ -24,7 +24,7 @@
 # Descretized energy file name
 #/random/resetEngineFrom ./Results/seeds/HERT_CADoutput_{particleType}_Ene_{energyValue}_{particleCount}_seed.rndm
 # Randomized energy file name
-/random/resetEngineFrom ./Results/seeds/HERT_CADoutput_{particleType}_{particleCount}_Run{runNumber}_seed.rndm
+/random/resetEngineFrom ../../seeds/HERT_CADoutput_{particleType}_{particleCount}_Run{runNumber}_seed.rndm
 
 ### GPS Initialization ###
 /gps/particle e-
