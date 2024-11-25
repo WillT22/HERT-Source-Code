@@ -242,7 +242,7 @@ saveas(gcf,effsave)
 
 %% Write to Text File
 %{
-fileID = fopen('effective_energies_v1.txt','w');
+fileID = fopen('effective_energies_DARTBe.txt','w');
 for i = 1:length(E_eff)
 fprintf(fileID,'%.6f \n',E_eff(i));
 end

@@ -16,13 +16,13 @@ energy_channels = readmatrix('E:\HERT_Drive\Matlab Main\Result\channel_select\el
 
 %% Creating Test Fluxes %%
 % Calculating Flux from Main1 %
-flux = M_energy_bin/(4*pi^2*r_source^2)./bin_width;
+%flux = M_energy_bin/(4*pi^2*r_source^2)./bin_width;
 
 % Linear %
 %flux = ones(1,bins)*10^3;
 
 % Exponential %
-%flux = 10^6 * exp(-(energy_midpoints)/0.4) ./ (4*pi^2*r_source^2) ./bin_width;
+flux = 10^6 * exp(-(energy_midpoints)/1) ./ (4*pi^2*r_source^2) ./bin_width;
 
 % BOT/Inverse %
 %flux = 1/0.01 * exp(log(energy_midpoints.^-0.69))+ 1/0.001 .* exp(-(log(energy_midpoints)-log(2.365)).^2./(2*0.14));
@@ -35,12 +35,12 @@ flux = M_energy_bin/(4*pi^2*r_source^2)./bin_width;
 %flux = 1/0.000001 .* exp(-(log(energy_midpoints)-log(2)).^2./(2*0.004));
 
 % Find hits in each energy channel from simulated flux %
-%{
+%
 hits_whole_EC = zeros(1,size(geo_EC,1));
 for channel = 1:size(energy_channels,1)
     hits_whole_EC(channel) = sum(geo_EC(channel,:) .* flux .* bin_width); 
 end
-%}
+%
 
 %% Reducing equations to remove zero hit counts
 energy_channels = energy_channels(hits_whole_EC~=0,:);
@@ -51,8 +51,34 @@ geo_EC = geo_EC(hits_whole_EC~=0,bounds);
 hits_whole_EC = hits_whole_EC(hits_whole_EC~=0);
 bin_width = bin_width(bounds);
 flux = flux(bounds);
+bound_plot = energy_midpoints >= 0.5 & energy_midpoints<=7;
 
 dt = 10;
+
+%% Simple Multiple Linear Regression Method %%
+A = geo_EC .* bin_width;            % Calculate known/"independent variable"
+inv_A = pinv(A);                    % take pseudo inverse (not square matrix)
+flux_lin = inv_A * hits_whole_EC';  % find flux from linear algebra
+
+% Plot
+f = figure;
+f.Position = [0 0 1200 900];
+hold on
+
+% bound to HERT's acceptable energy range
+plot(energy_midpoints(bound_plot),flux(bound_plot), 'Color', 'black','LineWidth',4);
+plot(energy_midpoints(bound_plot),flux_lin(bound_plot),'.', 'Color', 'r','MarkerSize',8);
+textsize = 24;
+set(gca, 'FontSize', textsize)
+xlim([0 7])
+ylim([10^0 10^5])
+xticks((0:1:8))
+%set(gca, 'XScale', 'log')
+set(gca, 'YScale', 'log')
+
+ylabel('Flux  (# cm^{-2} sr^{-1} s^{-1} MeV^{-1})','FontSize',textsize)
+xlabel('Energy (MeV)','FontSize',textsize)
+hold off
 
 %% Least Squares Function for Energy Channels (Selesnick/Khoo) %%
 % Initialize variables
@@ -71,19 +97,43 @@ dt = 10;
     inv_Cd = inv(Cd); % finding the inverse for later use
 
     % Initialize variance parameter %
-    sigma_m = 16000; % Exp = 16000   BOT = 700,   POW = 270
+    sigma_m = 270; % Exp = 16000   BOT = 700,   POW = 270
     
     % Initializing parameter space to scan over %
     %sigma_m_array = logspace(0,8,40);
     %sigma_m_array = linspace(1,100,100);
 
     % Initialize smoothness parameter
-    delta = 1000; % Exp = 1000   BOT = 2,   POW = 27
+    delta = 27; % Exp = 1000   BOT = 2,   POW = 27
 
     % Initializing parameter space to scan over %
     %delta_array = logspace(0,4,40);
     %delta_array = linspace(15,35,30);
 
+% Plot Gaussian Distributions %
+x_gauss = linspace(-10^4,10^4,10^4);
+y_exp = 16000^2.*exp(-(x_gauss.^2)./(2*1000^2));
+y_bot = 700^2.*exp(-(x_gauss.^2)./(2*2^2));
+y_pow = 270^2.*exp(-(x_gauss.^2)./(2*27^2));
+
+f = figure;
+f.Position = [0 0 1200 900];
+hold on
+
+plot(x_gauss, y_exp, 'Color', 'black','LineWidth',4)
+plot(x_gauss, y_bot, 'Color', 'red','LineWidth',4)
+plot(x_gauss, y_pow, 'Color', 'blue','LineWidth',4)
+
+legend({['Exponential'],['Bump-on-Tail'],['Power Law']},...
+                 'Location', 'northeast','FontSize',18);
+
+textsize = 24;
+set(gca, 'FontSize', textsize)
+ylim([10^0 10^10])
+set(gca, 'XScale', 'log')
+set(gca, 'YScale', 'log')
+title('Gaussian Distributions for each Spectrum Type', 'FontSize', 28)
+hold off
 
 % Loop over variance and smoothness parameters
 %{
@@ -126,7 +176,7 @@ for sf_i = 1:length(sigma_m_array)
     % initial count rate guess based on initial flux estimate
     g_mn = zeros(it_max,size(energy_channels,1));
     g_mn(1,:) = log(sum(geo_EC .* dx .* exp(mn(1,:)+x),2)); 
-    Gn = 1./exp(g_mn(1,:))' .* geo_EC .* dx .* exp(mn(1,:)+x);
+    Gn = 1./exp(g_mn(1,:))' .* geo_EC .* exp(mn(1,:)+x);
    
     % initialize loop variables
     iteration = 2;
@@ -187,25 +237,22 @@ f = figure;
 f.Position = [0 0 1200 900];
 hold on
 
-% bound to HERT's acceptable energy range
-bounds = energy_midpoints >= 0.5 & energy_midpoints<=7;
-
 % Plot simulated flux
-%plot(energy_midpoints(bounds),flux(bounds), 'Color', 'black','LineWidth',4);
+plot(energy_midpoints(bound_plot),flux(bound_plot), 'Color', 'black','LineWidth',4);
 
-plot(energy_midpoints(bounds),M_energy_bin(bounds)./(4*pi^2*r_source^2)./bin_width(bounds),'.', 'Color', 'black','MarkerSize',8);
+%plot(energy_midpoints(bounds),M_energy_bin(bounds)./(4*pi^2*r_source^2)./bin_width(bounds),'.', 'Color', 'black','MarkerSize',8);
 
 % Plot Bowtie points
-plot(E_eff,j_nom,'o', 'Color', '#0072BD','MarkerSize',10,'LineWidth',2);
+%plot(E_eff,j_nom,'o', 'Color', '#0072BD','MarkerSize',10,'LineWidth',2);
 
 % Plot LSQR Selesnick Method
 % Plot calculated fit
-plot(energy_midpoints(bounds),flux_lsqr(bounds), 'Color', 'r', 'LineWidth',2);
+plot(energy_midpoints(bound_plot),flux_lsqr(bound_plot), 'Color', 'r', 'LineWidth',2);
 % plot standard deviation from fit
-plot(energy_midpoints(bounds),flux_lsqr(bounds)+jsig(bounds),'r--','LineWidth',2);
-plot(energy_midpoints(bounds),flux_lsqr(bounds)-jsig(bounds),'r--','LineWidth',2);
+plot(energy_midpoints(bound_plot),flux_lsqr(bound_plot)+jsig(bound_plot),'r--','LineWidth',2);
+plot(energy_midpoints(bound_plot),flux_lsqr(bound_plot)-jsig(bound_plot),'r--','LineWidth',2);
 
-legend({['Acutal Flux'],['Bowtie Analysis'],['LSQR'],['Standard Deviation']},...
+legend({['Acutal Flux'],['LSQR'],['Standard Deviation']},...
                  'Location', 'northeast','FontSize',18);
 
 %legend({['Theoretical Flux'],['Incident Particle Measurement'],['Bowtie Analysis'],['LSQR'],['Standard Deviation']},...
@@ -218,7 +265,6 @@ ylim([10^0 10^5])
 xticks((0:1:8))
 %set(gca, 'XScale', 'log')
 set(gca, 'YScale', 'log')
-
 ylabel('Flux  (# cm^{-2} sr^{-1} s^{-1} MeV^{-1})','FontSize',textsize)
 xlabel('Energy (MeV)','FontSize',textsize)
 hold off
