@@ -167,7 +167,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                 %[M_energy_bin, ~ ,M_energy_bin_indicies] = histcounts([M_energy_beam, M_back_beam, M_non_energy_beam],energy_edges);
             % linear binning 
             if parttype == 0
-                energy_edges = linspace(0,3,bins+1);
+                energy_edges = linspace(0,8,bins+1);
             elseif parttype == 1
                 energy_edges = linspace(0,80,bins+1);
             end
@@ -310,8 +310,8 @@ while choice ~= 1 % Choice 1 is to exit the program
                 f2.Position = [0 0 1920 1080];
                 
                 hold on
-                plot(energy_midpoints, hits_log_total ./ M_energy_bin *100, 'DisplayName', 'Counted Hits', 'LineWidth', line_width)
-                plot(energy_midpoints, back_counts ./ M_energy_bin *100, 'DisplayName', 'Last Detector Triggered', 'LineWidth', line_width)
+                plot(energy_midpoints(1:150), hits_log_total(1:150) ./ M_energy_bin(1:150) *100, 'DisplayName', 'Counted Hits', 'LineWidth', line_width)
+                plot(energy_midpoints(1:150), back_counts(1:150) ./ M_energy_bin(1:150) *100, 'DisplayName', 'Last Detector Triggered', 'LineWidth', line_width)
 
                  % Put in Penetration Limits
                 if parttype == 1
@@ -324,7 +324,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                 set(gca,'FontSize', textsize)
                 titlestr = append(sprintf('Hits %.2f MeV - %.2f MeV ', min_incident_energy, max_incident_energy), ...
                     addin, sprintf(' %.0f Bins', bins));
-                title(titlestr, 'FontSize', titlesize)
+                %title(titlestr, 'FontSize', titlesize)
                 ylabel('Percent of Hits')
                 xlabel('Energy (MeV)')
                 hold off
@@ -347,7 +347,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                 total_geo = sum(geo_EC,1);
                 total_geo(total_geo==0) = 1e-31;
                 
-                plot([min_incident_energy,energy_midpoints], [1e-31,total_geo], '-k', 'LineWidth', line_width);
+                plot([min_incident_energy,energy_midpoints(1:150)], [1e-31,total_geo(1:150)], '-k', 'LineWidth', line_width);
 
                 % Put in Penetration Limits
                 %{
@@ -365,7 +365,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                 
                 titlestr = append(sprintf('Total GF: %.2f MeV - %.2f MeV ', min_incident_energy, max_incident_energy), ...
                     addin, sprintf(' %.0f Bins', bins));
-                title(titlestr, 'FontSize', titlesize)
+                %title(titlestr, 'FontSize', titlesize)
                 %title('Proton Total Geometric Factor', 'FontSize', titlesize-2);
                 ylabel('Geometric Factor (cm^2 sr)', 'FontSize', textsize)
                 xlabel('Incident Energy (MeV)', 'FontSize', textsize)
@@ -411,7 +411,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                             plot(energy_midpoints, geo_EC, 'Color', [0.7,0.7,0.7,0.7], 'LineWidth', line_width);
                         end
                     else
-                        plot(energy_midpoints, geo_EC(channel,:), 'Color', Effplotcolor(channel, :), 'LineWidth', line_width);
+                        plot(energy_midpoints(1:150), geo_EC(channel,1:150), 'Color', Effplotcolor(channel, :), 'LineWidth', line_width);
                     end
                 end
 
@@ -429,7 +429,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                 titlestr_whole = append(sprintf('Geometric Factor by EC %.2f MeV - %.2f MeV ', min_incident_energy, max_incident_energy), ...
                     addin, sprintf(' %.0f Bins', bins));
                 %title(titlestr_whole, 'FontSize', textsize)
-                title('Proton Energy Channel Geometric Factor', 'FontSize', textsize)
+                %title('Electron Energy Channel Geometric Factor', 'FontSize', textsize)
                 ylabel('Geometric Factor (cm^2 sr)', 'FontSize', textsize)
                 xlabel('Incident Energy (MeV)', 'FontSize', textsize)
                 

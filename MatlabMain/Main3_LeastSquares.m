@@ -9,7 +9,7 @@ r_source = 8.5;
 geo_EC = readmatrix('E:\HERT_Drive\Matlab Main\Result\geometric_factor_EC.txt');
 bins = size(geo_EC,2);
 energy_edges = linspace(0,8,bins+1);
-bin_width = energy_edges(2:end)-energy_edges(1:end-1);
+bin_width = diff(energy_edges);
 energy_midpoints = (energy_edges(2:end) + energy_edges(1:end-1))/2;
 
 energy_channels = readmatrix('E:\HERT_Drive\Matlab Main\Result\channel_select\electron_channels_v1.txt');
@@ -22,14 +22,14 @@ energy_channels = readmatrix('E:\HERT_Drive\Matlab Main\Result\channel_select\el
 %flux = ones(1,bins)*10^3;
 
 % Exponential %
-flux = 10^6 * exp(-(energy_midpoints)/0.4) ./ (4*pi^2*r_source^2) ./bin_width;
+flux = 10^6 * exp(-(energy_midpoints)/1) ./ (4*pi^2*r_source^2) ./bin_width;
 
 % BOT/Inverse %
 %flux = 1/0.01 * exp(log(energy_midpoints.^-0.69))+ 1/0.001 .* exp(-(log(energy_midpoints)-log(2.365)).^2./(2*0.14));
 %flux = 1/0.01 * exp(log(energy_midpoints.^-1.2))+ 1/0.001 .* exp(-(log(energy_midpoints)-log(4)).^2./(2*0.08));
 
 % Power Law %
-%flux = 10^5 .* energy_midpoints.^-4.6;
+%flux = 10^4 .* energy_midpoints.^-3;
 
 % Gaussian %
 %flux = 1/0.000001 .* exp(-(log(energy_midpoints)-log(2)).^2./(2*0.004));
@@ -42,7 +42,7 @@ for channel = 1:size(energy_channels,1)
 end
 %
 
-% Reducing equations to remove zero hit counts
+%% Reducing equations to remove zero hit counts
 energy_channels = energy_channels(hits_whole_EC~=0,:);
 energy_edges = energy_edges(energy_edges<energy_channels(end,2)+1);
 bounds = energy_midpoints<energy_edges(end);
@@ -51,8 +51,34 @@ geo_EC = geo_EC(hits_whole_EC~=0,bounds);
 hits_whole_EC = hits_whole_EC(hits_whole_EC~=0);
 bin_width = bin_width(bounds);
 flux = flux(bounds);
+bound_plot = energy_midpoints >= 0.5 & energy_midpoints<=7;
 
 dt = 10;
+
+%% Simple Multiple Linear Regression Method %%
+A = geo_EC .* bin_width;            % Calculate known/"independent variable"
+inv_A = pinv(A);                    % take pseudo inverse (not square matrix)
+flux_lin = inv_A * hits_whole_EC';  % find flux from linear algebra
+
+% Plot
+f = figure;
+f.Position = [0 0 1200 900];
+hold on
+
+% bound to HERT's acceptable energy range
+plot(energy_midpoints(bound_plot),flux(bound_plot), 'Color', 'black','LineWidth',4);
+plot(energy_midpoints(bound_plot),flux_lin(bound_plot),'.', 'Color', 'r','MarkerSize',8);
+textsize = 24;
+set(gca, 'FontSize', textsize)
+xlim([0 7])
+ylim([10^0 10^5])
+xticks((0:1:8))
+%set(gca, 'XScale', 'log')
+set(gca, 'YScale', 'log')
+
+ylabel('Flux  (# cm^{-2} sr^{-1} s^{-1} MeV^{-1})','FontSize',textsize)
+xlabel('Energy (MeV)','FontSize',textsize)
+hold off
 
 %% Least Squares Function for Energy Channels (Selesnick/Khoo) %%
 % Initialize variables
@@ -71,19 +97,43 @@ dt = 10;
     inv_Cd = inv(Cd); % finding the inverse for later use
 
     % Initialize variance parameter %
-    sigma_m = 1600; % Exp = 16000   BOT = 700,   POW = 270
+    sigma_m = 270; % Exp = 16000   BOT = 700,   POW = 270
     
     % Initializing parameter space to scan over %
-    %sigma_m_array = logspace(0,8,100);
+    %sigma_m_array = logspace(0,8,40);
     %sigma_m_array = linspace(1,100,100);
 
     % Initialize smoothness parameter
-    delta = 1000; % Exp = 1000   BOT = 2,   POW = 27
+    delta = 27; % Exp = 1000   BOT = 2,   POW = 27
 
     % Initializing parameter space to scan over %
     %delta_array = logspace(0,4,40);
     %delta_array = linspace(15,35,30);
 
+% Plot Gaussian Distributions %
+x_gauss = linspace(-10^4,10^4,10^4);
+y_exp = 16000^2.*exp(-(x_gauss.^2)./(2*1000^2));
+y_bot = 700^2.*exp(-(x_gauss.^2)./(2*2^2));
+y_pow = 270^2.*exp(-(x_gauss.^2)./(2*27^2));
+
+f = figure;
+f.Position = [0 0 1200 900];
+hold on
+
+plot(x_gauss, y_exp, 'Color', 'black','LineWidth',4)
+plot(x_gauss, y_bot, 'Color', 'red','LineWidth',4)
+plot(x_gauss, y_pow, 'Color', 'blue','LineWidth',4)
+
+legend({['Exponential'],['Bump-on-Tail'],['Power Law']},...
+                 'Location', 'northeast','FontSize',18);
+
+textsize = 24;
+set(gca, 'FontSize', textsize)
+ylim([10^0 10^10])
+set(gca, 'XScale', 'log')
+set(gca, 'YScale', 'log')
+title('Gaussian Distributions for each Spectrum Type', 'FontSize', 28)
+hold off
 
 % Loop over variance and smoothness parameters
 %{
@@ -122,10 +172,11 @@ for sf_i = 1:length(sigma_m_array)
     dx(dx>100) = 100;
     
     % Set up first iteration of model
-    Gn = 1./hits_whole_EC' .* geo_EC .* dx .* exp(mn(1,:)+x);
+    
     % initial count rate guess based on initial flux estimate
     g_mn = zeros(it_max,size(energy_channels,1));
-    g_mn(1,:) = log(sum(Gn .* dx .* exp(mn(1,:)+x),2)); 
+    g_mn(1,:) = log(sum(geo_EC .* dx .* exp(mn(1,:)+x),2)); 
+    Gn = 1./exp(g_mn(1,:))' .* geo_EC .* exp(mn(1,:)+x);
    
     % initialize loop variables
     iteration = 2;
@@ -135,7 +186,7 @@ for sf_i = 1:length(sigma_m_array)
     actual_error = zeros(it_max,length(energy_midpoints));
     actual_error_avg = zeros(it_max,1);
     actual_error_max = zeros(it_max,1);
-    actual_error(1,:) = abs(mn(1,:)-log(flux)); % use log of flux to reduce tail impacts
+    actual_error(1,:) = (mn(1,:)-log(flux)).^2; % use log of flux to reduce tail impacts
     actual_error_max(1) = max(actual_error(1,actual_error(1,:)~=Inf));
     actual_error_avg(1) = mean(actual_error(1,actual_error(1,:)~=Inf));
 
@@ -143,8 +194,9 @@ for sf_i = 1:length(sigma_m_array)
 while convergence == false && iteration <= it_max
     
     % find the log(flux) for this iteration
-    %mat_mult = (Gn'* inv_Cd * Gn + inv_Cm) \ Gn' * inv_Cd;
+    mat_mult = (Gn'* inv_Cd * Gn + inv_Cm) \ Gn' * inv_Cd;
     %mn(iteration,:) = mn(1,:)' + mat_mult * (d_obs - g_mn(iteration-1,:)' + Gn*(mn(iteration-1,:)-mn(1,:))');
+    %mn(iteration,:) = mn(iteration-1,:)' + mat_mult * (d_obs - g_mn(iteration-1,:)');
     mn(iteration,:) = (Gn'* inv_Cd' * Gn + inv_Cm') \ (Gn'* inv_Cd' * (d_obs - g_mn(iteration-1,:)' + Gn * mn(iteration-1,:)') + inv_Cm' * mn(iteration-1,:)');
     
     % Calculate the new matrices for the iteration
@@ -156,12 +208,12 @@ while convergence == false && iteration <= it_max
 
     % actual error calculation (REMOVE BEFORE ACTUAL USE)
     % use log(flux) to reduce tail error impacts
-    actual_error(iteration,:) = abs(mn(iteration,:)-log(flux));
+    actual_error(iteration,:) = (mn(iteration,:)-log(flux)).^2./(length(energy_midpoints)-1);
     actual_error_max(iteration) = max(actual_error(iteration,actual_error(iteration,:)~=Inf));
     actual_error_avg(iteration) = mean(actual_error(iteration,actual_error(iteration,:)~=Inf));
 
     % determine if the flux converges
-    if max(abs(mn(iteration,:)- mn(iteration-1,:)))<0.1
+    if max((mn(iteration,:)- mn(iteration-1,:)).^2)<0.01
         convergence = true;
         disp("Converges")
     else
@@ -182,26 +234,23 @@ end
 
 %% Plots calculated flux
 f = figure;
-f.Position = [0 0 1700 900];
+f.Position = [0 0 1200 900];
 hold on
 
-% bound to HERT's acceptable energy range
-bounds = energy_midpoints >= 0.5 & energy_midpoints<=7;
-
 % Plot simulated flux
-plot(energy_midpoints(bounds),flux(bounds), 'Color', 'black','LineWidth',4);
+plot(energy_midpoints(bound_plot),flux(bound_plot), 'Color', 'black','LineWidth',4);
 
-%plot(energy_midpoints(bounds),M_energy_bin(bounds)./(4*pi^2*r_source^2)./bin_width(bounds),'x', 'Color', 'black','MarkerSize',10);
+%plot(energy_midpoints(bounds),M_energy_bin(bounds)./(4*pi^2*r_source^2)./bin_width(bounds),'.', 'Color', 'black','MarkerSize',8);
 
 % Plot Bowtie points
-%plot(E_eff,j_nom,'o', 'Color', '#0072BD','MarkerSize',10);
+%plot(E_eff,j_nom,'o', 'Color', '#0072BD','MarkerSize',10,'LineWidth',2);
 
 % Plot LSQR Selesnick Method
 % Plot calculated fit
-plot(energy_midpoints(bounds),flux_lsqr(bounds), 'Color', 'r', 'LineWidth',2);
+plot(energy_midpoints(bound_plot),flux_lsqr(bound_plot), 'Color', 'r', 'LineWidth',2);
 % plot standard deviation from fit
-plot(energy_midpoints(bounds),flux_lsqr(bounds)+jsig(bounds),'r--','LineWidth',2);
-plot(energy_midpoints(bounds),flux_lsqr(bounds)-jsig(bounds),'r--','LineWidth',2);
+plot(energy_midpoints(bound_plot),flux_lsqr(bound_plot)+jsig(bound_plot),'r--','LineWidth',2);
+plot(energy_midpoints(bound_plot),flux_lsqr(bound_plot)-jsig(bound_plot),'r--','LineWidth',2);
 
 legend({['Acutal Flux'],['LSQR'],['Standard Deviation']},...
                  'Location', 'northeast','FontSize',18);
@@ -211,12 +260,11 @@ legend({['Acutal Flux'],['LSQR'],['Standard Deviation']},...
 
 textsize = 24;
 set(gca, 'FontSize', textsize)
-%xlim([0 8])
-%ylim([10^0 10^6])
+xlim([0 7])
+ylim([10^0 10^5])
 xticks((0:1:8))
 %set(gca, 'XScale', 'log')
 set(gca, 'YScale', 'log')
-
-ylabel('I  #/(cm^2 sr s MeV)','FontSize',textsize)
+ylabel('Flux  (# cm^{-2} sr^{-1} s^{-1} MeV^{-1})','FontSize',textsize)
 xlabel('Energy (MeV)','FontSize',textsize)
 hold off
