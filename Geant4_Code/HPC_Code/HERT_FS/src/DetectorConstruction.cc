@@ -414,7 +414,7 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 	physi_BeWin = new G4PVPlacement(rotm_Y, G4ThreeVector(x_BeWin, y_BeWin, z_BeWin), logic_BeWin, "physical_BeWin", logic_w, false, 0);
 	
 	 /* Ta 4th Spacer */
-        auto mesh_TaSpac4 = CADMesh::TessellatedMesh::FromOBJ("/home/wzt0020/Geant4/HERT_Runs/src/GEANT4_HERT_Obj_Files/Ta_Spacer_DART_Mod.obj");
+        auto mesh_TaSpac4 = CADMesh::TessellatedMesh::FromOBJ("/home/wzt0020/Geant4/HERT_Runs/src/GEANT4_HERT_Obj_Files/Ta_Spacer2.obj");
         G4VSolid* solid_TaSpac4 = mesh_TaSpac4->GetSolid();
         solid_TaSpac4->SetName("solid_TaSpac4");
         G4double x_TaSpac4 = 0 * mm;
