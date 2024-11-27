@@ -162,9 +162,6 @@ while choice ~= 1 % Choice 1 is to exit the program
             Effplotcolor = plasma(length(energy_channels)); % Requires MatPlotLib Perceptually Uniform Colormaps
             
             % Finds energy edges and midpoints based off of bins
-            % logrithmic binning
-                %energy_edges = logspace(log10(min_incident_energy-0.0001), log10(max_incident_energy+0.0001), bins + 1);
-                %[M_energy_bin, ~ ,M_energy_bin_indicies] = histcounts([M_energy_beam, M_back_beam, M_non_energy_beam],energy_edges);
             % linear binning 
             if parttype == 0
                 energy_edges = linspace(0,8,bins+1);
@@ -188,8 +185,16 @@ while choice ~= 1 % Choice 1 is to exit the program
                 M_energy_beam = [];
                 M_non_energy_beam = [];
                 M_back_beam = [];
+                M_energy_bin = zeros(1,bins);
+                min_incident_energy = 100;
+                 max_incident_energy = 0;
                 
-                run_interest = 0;
+                number_interest = [88990,89057,89127,89202,108155,110055,...
+                                    117350,117972,131111,166443,166535,...
+                                    166628,178888,178976,179059,179132,...
+                                    192673,192771,192930,192988,196082,...
+                                    196168,196260,196348];
+                run_interest = zeros(1,length(number_interest));
 
                 % Nested For loops to create final matrix 1 and 2
                 for i = 1:file_number
@@ -208,34 +213,48 @@ while choice ~= 1 % Choice 1 is to exit the program
                     M_run_number(i) = run_number;
                     M_beam_number(i) = beam_number;
                     M_energy_beam = [M_energy_beam, energy_beam];
-                    M_non_energy_beam = [M_non_energy_beam, non_energy_beam];
+                    % This one takes a lot of memory
+                    %M_non_energy_beam = [M_non_energy_beam, non_energy_beam];
                     M_back_beam = [M_back_beam,back_energy_beam];
 
-                    % To determine the file that a particle belongs
-                    %{
-                    if run_interest == 0 && length(M_energy_beam)>245668
-                        run_interest = run_number;
-                        fprintf('RUN NUMBER %.0f \n',run_number)
+                    % Bin the energy for every particle simulated (hits or no)
+                    [M_energy_bin_temp,~,M_energy_bin_indicies] = histcounts([energy_beam, non_energy_beam],energy_edges);
+                    M_energy_bin = M_energy_bin + M_energy_bin_temp;
+
+                    % Find the indices that would sort M_output_energy
+                    if min_incident_energy > min(energy_beam,[],"all");
+                        min_incident_energy = min(energy_beam,[],"all");
                     end
-                    %}
+                    if max_incident_energy < max(energy_beam,[],"all")
+                        max_incident_energy = max(energy_beam,[],"all");
+                    end
+
+                    % To determine the file that a particle belongs
+                    %
+                    for i = nnz(run_interest)+1:length(number_interest)
+                        if run_interest(i) == 0 && length(M_energy_beam)>number_interest(i)
+                            run_interest(i) = run_number;
+                            fprintf('RUN NUMBER %.0f \n',run_number)
+                        end
+                    end
+                    %
+                    clear energy_beam
+                    clear non_energy_beam
+                    clear back_energy_beam
                 end
                 
 %% Obtain Data for Plotting
+                
+                energy_beam_indices = find(M_energy_beam <0.6);
+                beam_energy = M_energy_beam(energy_beam_indices);
+
                 % Goes to Efficiency_Curves Directory in prep to save
                 % Eff Curve Plot
                 cd ../Plots/Efficiency_Curves
 
-                % Find the indices that would sort M_output_energy
-                min_incident_energy = min(M_energy_beam,[],"all");
-                max_incident_energy = max(M_energy_beam,[],"all");
-
                 % Count the number of hits in each energy channel
                 hits_whole_EC = histcounts(M_hit_channels,0.5:length(energy_channels)+0.5);
-                
-                % Bin the energy for every particle simulated (hits or no)
-                [M_energy_bin,energy_edges_temp,M_energy_bin_indicies] = histcounts([M_energy_beam, M_non_energy_beam],energy_edges);
-                clear energy_edges_temp;
-
+ 
                 % Get bin indices for all energy beam values for hit counts
                 [~,~,beam_bin_indices] = histcounts(M_energy_beam, energy_edges);
                 
@@ -246,7 +265,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                 for bin = 1:bins
                     back_counts(bin) = nnz(back_bin_indices==bin);
                 end
-
+                
                 if sim_type == 0
                     % Scales up simulated particles to the total number of particles
                     M_energy_bin = 2 .* M_energy_bin / (1 - cosd(15));
@@ -287,7 +306,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                 % Saves geo_EC for later use
                 %{
                 clear fileID
-                fileID = fopen('geometric_factor_EC.txt','w');
+                fileID = fopen('geofactor_EC_DARTBe.txt','w');
                 for channel = 1:length(energy_channels)
                     for bin = 1:bins
                         fprintf(fileID,'%.6E ',geo_EC(channel,bin));
@@ -310,8 +329,8 @@ while choice ~= 1 % Choice 1 is to exit the program
                 f2.Position = [0 0 1920 1080];
                 
                 hold on
-                plot(energy_midpoints(1:150), hits_log_total(1:150) ./ M_energy_bin(1:150) *100, 'DisplayName', 'Counted Hits', 'LineWidth', line_width)
-                plot(energy_midpoints(1:150), back_counts(1:150) ./ M_energy_bin(1:150) *100, 'DisplayName', 'Last Detector Triggered', 'LineWidth', line_width)
+                plot(energy_midpoints, hits_log_total ./ M_energy_bin *100, 'DisplayName', 'Counted Hits', 'LineWidth', line_width)
+                plot(energy_midpoints, back_counts ./ M_energy_bin *100, 'DisplayName', 'Last Detector Triggered', 'LineWidth', line_width)
 
                  % Put in Penetration Limits
                 if parttype == 1
@@ -319,7 +338,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                     'LineWidth', 1.5,'FontSize', 16,'LabelOrientation','horizontal')
                 end
 
-                legend({'Counted Hits','Last Detector Triggered'},'Location','southeast')
+                legend({'Counted Hits','Last Detector Triggered'},'Location','northwest')
                 grid on
                 set(gca,'FontSize', textsize)
                 titlestr = append(sprintf('Hits %.2f MeV - %.2f MeV ', min_incident_energy, max_incident_energy), ...
@@ -332,6 +351,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                 % Saving the figure as a jpg then returning to the main directory
                 effsave = append('Counted Hits', string(datetime("today")), addin, '.png');
                 saveas(f2, effsave)
+%
 
 %% Total Geometric Factor Comparison
                 line_width = 2;
@@ -347,7 +367,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                 total_geo = sum(geo_EC,1);
                 total_geo(total_geo==0) = 1e-31;
                 
-                plot([min_incident_energy,energy_midpoints(1:150)], [1e-31,total_geo(1:150)], '-k', 'LineWidth', line_width);
+                plot([min_incident_energy,energy_midpoints], [1e-31,total_geo], '-k', 'LineWidth', line_width);
 
                 % Put in Penetration Limits
                 %{
@@ -411,7 +431,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                             plot(energy_midpoints, geo_EC, 'Color', [0.7,0.7,0.7,0.7], 'LineWidth', line_width);
                         end
                     else
-                        plot(energy_midpoints(1:150), geo_EC(channel,1:150), 'Color', Effplotcolor(channel, :), 'LineWidth', line_width);
+                        plot(energy_midpoints, geo_EC(channel, :), 'Color', Effplotcolor(channel, :), 'LineWidth', line_width);
                     end
                 end
 

@@ -39,7 +39,7 @@ fprintf('Starting Run %d \n', run_number)
 Detector_Energy(Detector_Energy < detector_threshold) = 0;
 
 % Counts rejected hits
-count_reject_logic = Detector_Energy(:,1) < detector_threshold;                           % find which hits are rejected
+count_reject_logic = Detector_Energy(:,1) < detector_threshold;         % find which hits are rejected
 count_reject_indices = find(count_reject_logic);                        % find indices of rejected hits
 non_energy_beam = [non_energy_beam,energy_beam(count_reject_indices)];  % update non_energy_beam with rejected hits
 energy_beam = energy_beam(~count_reject_logic);                         % remove energy values from energy beam
@@ -48,9 +48,9 @@ Detector_Energy = Detector_Energy(~count_reject_logic,:);               % update
 % Counts back hits
 back_energy_beam = [];
 back_hits_logic = Detector_Energy(:,end)> back_threshold;               % find which hits are rejected
-back_hits_indices = find(back_hits_logic);                             % find indices of rejected hits
+back_hits_indices = find(back_hits_logic);                              % find indices of rejected hits
 back_energy_beam = [back_energy_beam,energy_beam(back_hits_indices)];   % update non_energy_beam with rejected hits
-energy_beam = energy_beam(~back_hits_logic);                             % remove energy values from energy beam
+energy_beam = energy_beam(~back_hits_logic);                            % remove energy values from energy beam
 Detector_Energy = Detector_Energy(~back_hits_logic,:);                  % update Detector_Energy with non-rejected hits
 
 back_hits = nnz(back_hits_logic);
