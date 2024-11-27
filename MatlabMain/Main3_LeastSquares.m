@@ -56,6 +56,7 @@ bound_plot = energy_midpoints >= 0.5 & energy_midpoints<=7;
 dt = 10;
 
 %% Simple Multiple Linear Regression Method %%
+%{
 A = geo_EC .* bin_width;            % Calculate known/"independent variable"
 inv_A = pinv(A);                    % take pseudo inverse (not square matrix)
 flux_lin = inv_A * hits_whole_EC';  % find flux from linear algebra
@@ -79,6 +80,7 @@ set(gca, 'YScale', 'log')
 ylabel('Flux  (# cm^{-2} sr^{-1} s^{-1} MeV^{-1})','FontSize',textsize)
 xlabel('Energy (MeV)','FontSize',textsize)
 hold off
+%}
 
 %% Least Squares Function for Energy Channels (Selesnick/Khoo) %%
 % Initialize variables
@@ -111,6 +113,7 @@ hold off
     %delta_array = linspace(15,35,30);
 
 % Plot Gaussian Distributions %
+%{
 x_gauss = linspace(-10^4,10^4,10^4);
 y_exp = 16000^2.*exp(-(x_gauss.^2)./(2*1000^2));
 y_bot = 700^2.*exp(-(x_gauss.^2)./(2*2^2));
@@ -134,6 +137,7 @@ set(gca, 'XScale', 'log')
 set(gca, 'YScale', 'log')
 title('Gaussian Distributions for each Spectrum Type', 'FontSize', 28)
 hold off
+%}
 
 % Loop over variance and smoothness parameters
 %{
