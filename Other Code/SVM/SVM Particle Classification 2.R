@@ -7,9 +7,9 @@ library(ggthemes)
 library(colorBlindness)
 
 # Set the file path (replace "your_file.txt" with your actual file path)
-electron_file <- "C:\\Users\\William Teague\\Box\\HERT_Box\\Data\\Aggregate Electron Data 1-100.txt"
+electron_file <- "C:\\Users\\Will\\Box\\HERT_Box\\Data\\Aggregate Electron Data 1-100.txt"
 electron_file <- "C:\\Users\\wzt0020\\Box\\HERT_Box\\Data\\Aggregate Electron Data 1-100.txt"
-proton_file   <- "C:\\Users\\William Teague\\Box\\HERT_Box\\Data\\Aggregate Proton Data 1-50.txt"
+proton_file   <- "C:\\Users\\Will\\Box\\HERT_Box\\Data\\Aggregate Proton Data 1-50.txt"
 proton_file   <- "C:\\Users\\wzt0020\\Box\\HERT_Box\\Data\\Aggregate Proton Data 1-50.txt"
 
 # Read the data
@@ -56,7 +56,8 @@ summary(tuner.lin)
 # Create SVM with optimized cost
 svm_linear <- svm(Particle_Type ~ .,
                   data = training_data_sample, 
-                  kernel = "linear", scale=TRUE, cost = 10)
+                  kernel = "linear", scale=FALSE, cost = 10,
+                  class.weights = c("Electron" = 1,"Proton" = 3))
 
 # Print a summary of the model
 summary(svm_linear)
@@ -64,32 +65,29 @@ summary(svm_linear)
 # Get the coefficients of the hyperplane
 linear_hp_coefs <- -coef(svm_linear)
 print(linear_hp_coefs)
-linear_scaled_coefs <- -coef(svm_linear)
-print(linear_scaled_coefs)
 
 # Get the support vectors as a data frame
 linear_sv <- svm_linear$SV
 
 # Predict to validate model
-linear_predictions <- predict(svm_linear, test_data[,1:9])
+linear_predictions <- predict(svm_linear, test_data[test_data$Detector1>0.1,1:9])
 
 # Print predictions
-table(predict = linear_predictions, truth = test_data[, 10])
+prop.table(table(predict = linear_predictions, truth = test_data[test_data$Detector1>0.1, 10]))
 
 linear_hp_test <- factor((linear_hp_coefs[1]
-                            + linear_hp_coefs[2] * test_data$Detector1
-                            + linear_hp_coefs[3] * test_data$Detector2
-                            + linear_hp_coefs[4] * test_data$Detector3
-                            + linear_hp_coefs[5] * test_data$Detector4
-                            + linear_hp_coefs[6] * test_data$Detector5
-                            + linear_hp_coefs[7] * test_data$Detector6
-                            + linear_hp_coefs[8] * test_data$Detector7
-                            + linear_hp_coefs[9] * test_data$Detector8
-                            + linear_hp_coefs[10] * test_data$Detector9)>0,
+                            + linear_hp_coefs[2] * test_data$Detector1[test_data$Detector1>0.1]
+                            + linear_hp_coefs[3] * test_data$Detector2[test_data$Detector1>0.1]
+                            + linear_hp_coefs[4] * test_data$Detector3[test_data$Detector1>0.1]
+                            + linear_hp_coefs[5] * test_data$Detector4[test_data$Detector1>0.1]
+                            + linear_hp_coefs[6] * test_data$Detector5[test_data$Detector1>0.1]
+                            + linear_hp_coefs[7] * test_data$Detector6[test_data$Detector1>0.1]
+                            + linear_hp_coefs[8] * test_data$Detector7[test_data$Detector1>0.1]
+                            + linear_hp_coefs[9] * test_data$Detector8[test_data$Detector1>0.1]
+                            + linear_hp_coefs[10] * test_data$Detector9[test_data$Detector1>0.1])>0,
                            levels = c(TRUE, FALSE), labels = c("Electron", "Proton"))
 
-table(predict=linear_hp_test, truth= test_data[,10])
-
+prop.table(table(predict=linear_hp_test, truth=test_data[test_data$Detector1>0.1,10]), 2) * 100
 
 ### Polynomial SVM ###
 # Tune SVM to find optimized cost
@@ -126,7 +124,8 @@ summary(tuner.rad)
 # Create SVM with optimized cost
 svm_radial <- svm(Particle_Type ~ .,
                   data = training_data_sample, 
-                  kernel = "radial", scale=FALSE, cost = 10)
+                  kernel = "radial", scale=FALSE, cost = 10,
+                  class.weights = c("Electron" = 1,"Proton" = 3))
 
 # Print a summary of the model
 summary(svm_radial)
@@ -135,10 +134,10 @@ summary(svm_radial)
 radial_sv <- svm_radial$SV
 
 # Predict to validate model
-radial_predictions <- predict(svm_radial, test_data)
+radial_predictions <- predict(svm_radial, test_data[test_data$Detector1>0.1,])
 
 # Print predictions (0: proton, 1: electron)
-table(predict = radial_predictions, truth = test_data[, 10])
+prop.table(table(predict = radial_predictions, truth = test_data[test_data$Detector1>0.1, 10]),2)*100
 
 
 ### Sigmoid SVM ###
@@ -198,20 +197,38 @@ table(predict=linearsi_hp_test, truth= test_data[,10])
 
 ### Slant and logic equations from Khoo 2022 for REPTile-2 ###
 slant_eq_D12 <- (test_data$Detector1/2.8 + test_data$Detector2/4.2)>1
-all_p <- (test_data$Detector1>0 &  slant_eq_D12)
-all_e <- (test_data$Detector1>0 & !slant_eq_D12)
+slant_eq_D34 <- (test_data$Detector3/13.5 + test_data$Detector2/30)>1
+rng_p <- (test_data$Detector1>0.1 &  slant_eq_D12 & (!test_data$Detector4>0.1 | slant_eq_D12) & sum(test_data[,1:9]<=35))
+pen_p <- (test_data$Detector1>0.1 &  slant_eq_D12 & (test_data$Detector4>0.1 | !slant_eq_D12) & sum(test_data[,1:9]<=35))
+rng_e <- (test_data$Detector1>0.1 & !slant_eq_D12 & !test_data$Detector4>0.1 & sum(test_data[,1:9]<=4))
+pen_e <- (test_data$Detector1>0.1 & !slant_eq_D12 & test_data$Detector4>0.1 & sum(test_data[,1:9]<=4))
 
-khoo_etab <- table(predict=factor(all_e,
-                   levels = c(TRUE, FALSE), labels = c("Electron", "Proton")),
-                   truth= test_data[,10])
+khoo_rngetab <- table(predict=factor(rng_e[test_data$Detector1>0.1],
+                   levels = c(TRUE, FALSE), labels = c("Electron", "Rejected RNG_E")),
+                   truth= test_data[test_data$Detector1>0.1,10])
+khoo_penetab <- table(predict=factor(pen_e[test_data$Detector1>0.1],
+                                     levels = c(TRUE, FALSE), labels = c("Electron", "Rejected PEN_E")),
+                      truth= test_data[test_data$Detector1>0.1,10])
+khoo_etab <- table(predict=factor(rng_e[test_data$Detector1>0.1] | pen_e[test_data$Detector1>0.1],
+                                     levels = c(TRUE, FALSE), labels = c("Electron", "Rejected Electron")),
+                      truth= test_data[test_data$Detector1>0.1,10])
 print(khoo_etab)
-khoo_ptab <- table(predict=factor(all_p,
-                   levels = c(FALSE, TRUE), labels = c("Electron", "Proton")),
-                   truth= test_data[,10])
+
+khoo_rngptab <- table(predict=factor(rng_p[test_data$Detector1>0.1],
+                                     levels = c(TRUE, FALSE), labels = c("Proton", "Rejected RNG_P")),
+                      truth= test_data[test_data$Detector1>0.1,10])
+khoo_penptab <- table(predict=factor(pen_p[test_data$Detector1>0.1],
+                                     levels = c(TRUE, FALSE), labels = c("Proton", "Rejected PEN_P")),
+                      truth= test_data[test_data$Detector1>0.1,10])
+khoo_ptab <- table(predict=factor(rng_p[test_data$Detector1>0.1] | pen_p[test_data$Detector1>0.1],
+                                  levels = c(TRUE, FALSE), labels = c("Proton", "Rejected Proton")),
+                   truth= test_data[test_data$Detector1>0.1,10])
 print(khoo_ptab)
 
-khoo_logic <- (khoo_etab + khoo_ptab)/colSums(khoo_etab + khoo_ptab)*100
-print(khoo_logic)
+REPTile2_logic <- rbind(khoo_etab, khoo_ptab)
+REPTile2_logic <- (sweep(REPTile2_logic, 2, colSums(REPTile2_logic), FUN = "/")*100 
+               + sweep(REPTile2_logic, 2, colSums(REPTile2_logic), FUN = "/")*100)
+print(REPTile2_logic)
 
 ### Logic Equations from Baker 2013 for REPT ###
 # Creating initial logic functions
@@ -264,18 +281,18 @@ EL12 <- (test_data$Detector1>=0.4 & test_data$Detector1<=1.0 & test_data$Detecto
          & Rxy(5,9) >= 0.4 & Rxy(7,9)>=15)
 
 ELOGIC <- data.frame(EL1, EL2, EL3, EL4, EL5, EL6, EL7, EL8, EL9, EL10, EL11, EL12)
-Etotal_true <- sum(ELOGIC)
-Erow_predict <- factor(rowSums(ELOGIC)>0,
+Etotal_true <- sum(ELOGIC[test_data$Detector1>0.4,])
+Erow_predict <- factor(rowSums(ELOGIC[test_data$Detector1>0.4,])>0,
                        levels = c(TRUE, FALSE), 
                        labels = c("Electron","Rejected Electron"))
-Enproblem_rows <- sum(rowSums(ELOGIC) > 1)
-Eproblem_rows <- which(rowSums(ELOGIC) > 1)
-ratio_Eproblem_rows <- Enproblem_rows/length(test_data$Detector1)
+Enproblem_rows <- sum(rowSums(ELOGIC[test_data$Detector1>0.4,]) > 1)
+Eproblem_rows <- which(rowSums(ELOGIC[test_data$Detector1>0.4,]) > 1)
+ratio_Eproblem_rows <- Enproblem_rows/length(test_data$Detector1>0.4)
 print(ratio_Eproblem_rows*100)
 REPT_etab <- table(predict=factor(Erow_predict,
                                   levels = c("Electron","Rejected Electron",  "Proton", "Rejected Proton"),
                                   labels = c("Electron","Rejected Electron",  "Proton", "Rejected Proton")),
-                   truth= factor(test_data[,10],
+                   truth= factor(test_data[test_data$Detector1>0.4,10],
                                  levels = c("Electron", "Proton"),
                                  labels = c("Electron", "Proton")))
 print(REPT_etab)
@@ -288,7 +305,7 @@ PL2  <- (test_data$Detector1>5.4 & test_data$Detector1<12.2 & test_data$Detector
          & Rxy(1,4)<25.7 & Rxy(5,9)<0.5 & Rbarpxy(5,9))
 PL3  <- (test_data$Detector1>4 & test_data$Detector1<7 & test_data$Detector2>4
          & test_data$Detector2<9.5 & Rxy(3,4)>10 & Rxy(5,6)<12.5
-         & Rxy(1,6)>24 & Rxy(1,6)<35.5 & Rxy(5,9)<0.5 & Rbarpxy(7,9))
+         & Rxy(1,6)>24 & Rxy(1,6)<35.5 & Rxy(7,9)<0.5 & Rbarpxy(7,9))
 PL4  <- (test_data$Detector1>3.1 & test_data$Detector1<4.9 & test_data$Detector2>3.2
          & test_data$Detector2<5.7 & Rxy(3,4)>7.6 & Rxy(3,4)<16.8
          & Rxy(5,6)>9.2 & Rxy(5,6)<24 & Rxy(7,8)<23 
@@ -310,24 +327,24 @@ PL8  <- (test_data$Detector1>0.8 & test_data$Detector1<3.0 & test_data$Detector2
          & test_data$Detector9<6 & Rxy(1,9)<8 & Rxy(1,9)<32.0)
 
 PLOGIC <- data.frame(PL1, PL2, PL3, PL4, PL5, PL6, PL7, PL8)
-Ptotal_true <- sum(PLOGIC)
-Prow_predict <- factor(rowSums(PLOGIC)>0,
+Ptotal_true <- sum(PLOGIC[test_data$Detector1>0.4,])
+Prow_predict <- factor(rowSums(PLOGIC[test_data$Detector1>0.4,])>0,
                        levels = c(TRUE, FALSE), 
                        labels = c("Proton","Rejected Proton"))
-Pnproblem_rows <- sum(rowSums(PLOGIC) > 1)
-Pproblem_rows <- which(rowSums(PLOGIC) > 1)
+Pnproblem_rows <- sum(rowSums(PLOGIC[test_data$Detector1>0.4,]) > 1)
+Pproblem_rows <- which(rowSums(PLOGIC[test_data$Detector1>0.4,]) > 1)
 ratio_Pproblem_rows <- Pnproblem_rows/length(test_data$Detector1)
 print(ratio_Pproblem_rows*100)
 REPT_ptab <- table(predict=factor(Prow_predict,
                                   levels = c("Electron","Rejected Electron",  "Proton", "Rejected Proton"),
                                   labels = c("Electron","Rejected Electron",  "Proton", "Rejected Proton")),
-                   truth= factor(test_data[,10],
+                   truth= factor(test_data[test_data$Detector1>0.4,10],
                                  levels = c("Electron", "Proton"),
                                  labels = c("Electron", "Proton")))
 print(REPT_ptab)
 
-REPT_logic <- ((REPT_etab/colSums(REPT_etab)*100) 
-              + (REPT_ptab/colSums(REPT_ptab)*100))
+REPT_logic <- (sweep(REPT_etab, 2, colSums(REPT_etab), FUN = "/")*100 
+              + sweep(REPT_ptab, 2, colSums(REPT_ptab), FUN = "/")*100)
 print(REPT_logic)
 print(ratio_Eproblem_rows*100)
 print(ratio_Pproblem_rows*100)
