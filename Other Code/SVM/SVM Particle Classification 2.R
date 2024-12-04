@@ -35,6 +35,10 @@ training_data     <- rbind(electron_data[1:440000, ],proton_data[1:440000, ])
 validation_data <- rbind(electron_data[440001:450000, ],proton_data[440001:450000, ])
 test_data         <- rbind(electron_data[450001:500000, ],proton_data[450001:500000, ])
 
+training_data <- training_data[training_data$Detector1>0.1,];
+validation_data <- validation_data[validation_data$Detector1>0.1,];
+test_data <- test_data[test_data$Detector1>0.1,];
+
 # Combine 10% of data
 set.seed(1)
 training_data_sample     <- training_data[sample(1:nrow(training_data), 
@@ -57,7 +61,7 @@ summary(tuner.lin)
 svm_linear <- svm(Particle_Type ~ .,
                   data = training_data_sample, 
                   kernel = "linear", scale=FALSE, cost = 10,
-                  class.weights = c("Electron" = 1,"Proton" = 3))
+                  class.weights = c("Electron" = 1,"Proton" = 4))
 
 # Print a summary of the model
 summary(svm_linear)
@@ -73,7 +77,7 @@ linear_sv <- svm_linear$SV
 linear_predictions <- predict(svm_linear, test_data[test_data$Detector1>0.1,1:9])
 
 # Print predictions
-prop.table(table(predict = linear_predictions, truth = test_data[test_data$Detector1>0.1, 10]))
+prop.table(table(predict = linear_predictions, truth = test_data[test_data$Detector1>0.1, 10]),2)*100
 
 linear_hp_test <- factor((linear_hp_coefs[1]
                             + linear_hp_coefs[2] * test_data$Detector1[test_data$Detector1>0.1]
@@ -125,7 +129,7 @@ summary(tuner.rad)
 svm_radial <- svm(Particle_Type ~ .,
                   data = training_data_sample, 
                   kernel = "radial", scale=FALSE, cost = 10,
-                  class.weights = c("Electron" = 1,"Proton" = 3))
+                  class.weights = c("Electron" = 1,"Proton" = 4))
 
 # Print a summary of the model
 summary(svm_radial)
@@ -212,7 +216,7 @@ khoo_penetab <- table(predict=factor(pen_e[test_data$Detector1>0.1],
 khoo_etab <- table(predict=factor(rng_e[test_data$Detector1>0.1] | pen_e[test_data$Detector1>0.1],
                                      levels = c(TRUE, FALSE), labels = c("Electron", "Rejected Electron")),
                       truth= test_data[test_data$Detector1>0.1,10])
-print(khoo_etab)
+prop.table(khoo_etab, 2) * 100
 
 khoo_rngptab <- table(predict=factor(rng_p[test_data$Detector1>0.1],
                                      levels = c(TRUE, FALSE), labels = c("Proton", "Rejected RNG_P")),
@@ -223,7 +227,7 @@ khoo_penptab <- table(predict=factor(pen_p[test_data$Detector1>0.1],
 khoo_ptab <- table(predict=factor(rng_p[test_data$Detector1>0.1] | pen_p[test_data$Detector1>0.1],
                                   levels = c(TRUE, FALSE), labels = c("Proton", "Rejected Proton")),
                    truth= test_data[test_data$Detector1>0.1,10])
-print(khoo_ptab)
+prop.table(khoo_ptab, 2) * 100
 
 REPTile2_logic <- rbind(khoo_etab, khoo_ptab)
 REPTile2_logic <- (sweep(REPTile2_logic, 2, colSums(REPTile2_logic), FUN = "/")*100 
