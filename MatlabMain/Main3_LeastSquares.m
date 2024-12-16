@@ -7,14 +7,14 @@
 % Initialize Variables
 r_source = 8.5;
 %geo_EC = readmatrix('E:\HERT_Drive\Matlab Main\Result\geometric_factor_EC.txt');
-geo_EC = readmatrix('C:\Users\Will\Box\HERT_Box\Matlab Main\Result\geometric_factor_EC.txt');
+geo_EC = readmatrix('C:\Users\William Teague\Box\HERT_Box\Matlab Main\Result\geometric_factor_EC.txt');
 bins = size(geo_EC,2);
 energy_edges = linspace(0,8,bins+1);
 bin_width = diff(energy_edges);
 energy_midpoints = (energy_edges(2:end) + energy_edges(1:end-1))/2;
 
 %energy_channels = readmatrix('E:\HERT_Drive\Matlab Main\Result\channel_select\electron_channels_v1.txt');
-energy_channels = readmatrix('C:\Users\Will\Box\HERT_Box\Matlab Main\Result\channel_select\electron_channels_v1.txt');
+energy_channels = readmatrix('C:\Users\William Teague\Box\HERT_Box\Matlab Main\Result\channel_select\electron_channels_v1.txt');
 
 %% Creating Test Fluxes %%
 % Calculating Flux from Main1 %
@@ -24,14 +24,14 @@ energy_channels = readmatrix('C:\Users\Will\Box\HERT_Box\Matlab Main\Result\chan
 %flux = ones(1,bins)*10^3;
 
 % Exponential %
-flux = 10^4 * exp(-(energy_midpoints)/1);
+%flux = 10^4 * exp(-(energy_midpoints)/2);
 
 % BOT/Inverse %
 %flux = 1/0.01 * exp(log(energy_midpoints.^-0.69))+ 1/0.001 .* exp(-(log(energy_midpoints)-log(2.365)).^2./(2*0.14));
-%flux = 1/0.01 * exp(log(energy_midpoints.^-1.2))+ 1/0.001 .* exp(-(log(energy_midpoints)-log(4)).^2./(2*0.08));
+flux = 1/0.01 * exp(log(energy_midpoints.^-1.2))+ 1/0.001 .* exp(-(log(energy_midpoints)-log(4)).^2./(2*0.08));
 
 % Power Law %
-%flux = 10^4 .* energy_midpoints.^-6;
+%flux = 10^4 .* energy_midpoints.^-4;
 
 % Gaussian %
 %flux = 1/0.000001 .* exp(-(log(energy_midpoints)-log(2)).^2./(2*0.004));
@@ -60,25 +60,34 @@ inv_A = pinv(A);                    % take pseudo inverse (not square matrix)
 flux_lin = inv_A * hits_whole_EC;  % find flux from linear algebra
 
 % Plot
+%{
 f = figure;
 f.Position = [0 0 1200 900];
 hold on
 
 % bound to HERT's acceptable energy range
 plot(energy_midpoints,flux, 'Color', 'black','LineWidth',4);
-plot(energy_midpoints,flux_lin,'.', 'Color', 'r','MarkerSize',8);
+plot(energy_midpoints,flux_lin,'.', 'Color', 'r','MarkerSize',12);
+xline(0.6, '--','color', [.5 .5 .5],'LineWidth',2);
+
+% Plot Bowtie points
+%plot(E_eff,j_nom,'o', 'Color', '#0072BD','MarkerSize',10,'LineWidth',2);
+
+%legend({['Acutal Flux'],['Basic Linear Regression'],['Low Energy Threshold'],['Bowtie']},...
+%                 'Location', 'northeast','FontSize',18);
+
 textsize = 24;
 set(gca, 'FontSize', textsize)
 xlim([0 7])
-%ylim([10^0 10^5])
+ylim([10^0 10^5])
 xticks((0:1:8))
 %set(gca, 'XScale', 'log')
-%set(gca, 'YScale', 'log')
+set(gca, 'YScale', 'log')
 
 ylabel('Flux  (# cm^{-2} sr^{-1} s^{-1} MeV^{-1})','FontSize',textsize)
 xlabel('Energy (MeV)','FontSize',textsize)
 hold off
-%
+%}
 
 %% Least Squares Function for Energy Channels (Selesnick/Khoo) %%
 % Initialize variables
@@ -97,19 +106,10 @@ hold off
     inv_Cd = inv(Cd); % finding the inverse for later use
 
     % Initialize variance parameter %
-    flux_avg = abs([flux_lin(1);(flux_lin(3:end)+flux_lin(2:end-1)+flux_lin(1:end-2))/3;flux_lin(end)]);
-    flux_avg(1:min(indices)+3) = flux_avg(min(indices)+4);
-    flux_avg(max(indices)-3:end) = flux_avg(max(indices)-4);
-    flux_slope = [flux_avg(2)-flux_avg(1);flux_avg(2:end)-flux_avg(1:end-1)];
-    %sigma_m = 16000; % Exp = 16000   BOT = 700,   POW = 270
-    sigma_m = sqrt(flux_avg * flux_avg');
+    sigma_m = 700; % Exp = 16000   BOT = 700,   POW = 270
 
     % Initialize smoothness parameter
-    %delta = 1000; % Exp = 1000   BOT = 2,   POW = 27
-    smoothness = max(abs(flux_slope(bound_plot)))./(abs(flux_slope));
-    smoothness(1:min(indices)+4) = smoothness(min(indices)+5);
-    smoothness(max(indices)-4:end) = smoothness(max(indices)-5);
-    delta = sqrt(smoothness*smoothness');
+    delta = 2; % Exp = 1000   BOT = 2,   POW = 27
 
     % Create C_m covariance matrix, covariance of model/guess
     Cm = sigma_m.^2 .* exp(-((energy_midpoints' - energy_midpoints).^2) ./ (2 * delta.^2));
@@ -121,32 +121,6 @@ hold off
     % Defining initial values 
     % Create initial estimate
     mn = zeros(it_max,length(energy_midpoints));
-    
-    % Plot original gaussian from Cm
-    f = figure;
-    f.Position = [0 0 1200 900];
-    hold on
-    
-    % Plot simulated flux
-    plot(energy_midpoints(bound_plot),flux(bound_plot), 'Color', 'black','LineWidth',4);
-
-    % Plot calculated fit
-    plot(energy_midpoints(bound_plot),mn(1,bound_plot), 'Color', 'red','LineWidth',4);
-    jsig=sqrt(diag(Cm));
-    plot(energy_midpoints(bound_plot),mn(1,bound_plot)+jsig(bound_plot)','r--','LineWidth',2);
-    plot(energy_midpoints(bound_plot),mn(1,bound_plot)-jsig(bound_plot)','r--','LineWidth',2);
-    plot(energy_midpoints(bound_plot),Cm(bound_plot,bound_plot),'b--','LineWidth',2);
-
-    textsize = 24;
-    set(gca, 'FontSize', textsize)
-    xlim([0 7])
-    ylim([10^0 10^5])
-    xticks((0:1:8))
-    %set(gca, 'XScale', 'log')
-    set(gca, 'YScale', 'log')
-    ylabel('Flux  (# cm^{-2} sr^{-1} s^{-1} MeV^{-1})','FontSize',textsize)
-    xlabel('Energy (MeV)','FontSize',textsize)
-    hold off
 
     % finding x and dx for integrals from existing edges
     x_edges = log(energy_edges);
@@ -170,7 +144,8 @@ hold off
 while convergence == false && iteration <= it_max
     
     % find the log(flux) for this iteration
-    mn(iteration,:) = (Gn'* inv_Cd' * Gn + inv_Cm') \ (Gn'* inv_Cd' * (d_obs - g_mn(iteration-1,:)' + Gn * mn(iteration-1,:)') + inv_Cm' * mn(iteration-1,:)');
+    %mn(iteration,:) = (Gn'* inv_Cd' * Gn + inv_Cm') \ (Gn'* inv_Cd' * (d_obs - g_mn(iteration-1,:)' - Gn * mn(iteration-1,:)') + inv_Cm' * mn(iteration-1,:)');
+     mn(iteration,:) = mn(1,:)' + (Gn'* inv_Cd' * Gn + inv_Cm') \ Gn' * inv_Cd * (d_obs - g_mn(iteration-1,:)' + Gn * (mn(iteration-1,:)' - mn(1,:)'));
     
     % Calculate the new matrices for the iteration
     g_mn(iteration,:) = log(sum(geo_EC .* dx .* exp(mn(iteration,:)+x),2));
@@ -195,9 +170,6 @@ if convergence == true
     fprintf("Iteration Number: %.0d \n",iteration)
     %ind_act_error_avg(d,sf_i) = actual_error_avg(iteration);
 end
-residuals = flux_lsqr-flux;
-SSres = sum(residuals)^2;
-MSres = SSres/(40-2);
 
 %% Plots calculated flux
 f = figure;
@@ -235,3 +207,15 @@ set(gca, 'YScale', 'log')
 ylabel('Flux  (# cm^{-2} sr^{-1} s^{-1} MeV^{-1})','FontSize',textsize)
 xlabel('Energy (MeV)','FontSize',textsize)
 hold off
+
+%% Chi Squared Goodness of Fit Test
+null = chi2inv(0.05,size(energy_channels,1)-2); %2 DOF stripped from sigma and delta?
+chi_squared = sum(((d_obs - g_mn(iteration,:)')./sigma_d).^2);
+
+if chi_squared < null
+    fprintf("Chi Squared %.6f < Null %.6f \n",chi_squared,null)
+    fprintf("Reject Null Hypotheses \n")
+else
+    fprintf("Chi Squared %.6f > Null %.6f \n",chi_squared,null)
+    fprintf("Reject Null Hypotheses \n")
+end

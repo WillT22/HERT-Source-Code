@@ -7,7 +7,7 @@ close all
 
 %% Bow Tie Analysis-Selesnick/Blake
 %Changes directory for png of graphs
-cd '..\Bow Tie'
+%cd '..\Bow Tie'
 
 %geo_EC = readmatrix('E:\HERT_Drive\Matlab Main\Result\geometric_factor_EC.txt');
 
@@ -98,7 +98,7 @@ for c=1:length(energy_channels)
 end
 
 % Calculate Flux
-j_nom = hits_whole_EC./G_eff_dE;
+j_nom = hits_whole_EC./G_eff_dE';
 
 fprintf('\n');
 
