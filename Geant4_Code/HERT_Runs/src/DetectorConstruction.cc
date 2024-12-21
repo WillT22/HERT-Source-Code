@@ -412,17 +412,17 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 
 	logic_BeWin = new G4LogicalVolume(solid_BeWin, Be, "logical_BeWin", 0, 0, 0);
 	physi_BeWin = new G4PVPlacement(rotm_Y, G4ThreeVector(x_BeWin, y_BeWin, z_BeWin), logic_BeWin, "physical_BeWin", logic_w, false, 0);
-
-	/* Ta 4th Spacer */
+	
+	 /* Ta 4th Spacer */
 	auto mesh_TaSpac4 = CADMesh::TessellatedMesh::FromOBJ("C:/Users/wzt0020/Geant4/HERT_Runs/src/GEANT4_HERT_Obj_Files/Ta_Spacer2.obj");
-	G4VSolid* solid_TaSpac4 = mesh_TaSpac4->GetSolid();
-	solid_TaSpac4->SetName("solid_TaSpac4");
-	G4double x_TaSpac4 = 0 * mm;
-	G4double y_TaSpac4 = 0 * mm;
-	G4double z_TaSpac4 = z_BeWin-12.5 *mm;
+    G4VSolid* solid_TaSpac4 = mesh_TaSpac4->GetSolid();
+    solid_TaSpac4->SetName("solid_TaSpac4");
+    G4double x_TaSpac4 = 0 * mm;
+    G4double y_TaSpac4 = 0 * mm;
+    G4double z_TaSpac4 = z_BeWin-12.5 *mm;
 
-	logic_TaSpac4 = new G4LogicalVolume(solid_TaSpac4, Ta, "logical_TaSpac4", 0, 0, 0);
-	physi_TaSpac4 = new G4PVPlacement(rotm_negX, G4ThreeVector(x_TaSpac4, y_TaSpac4, z_TaSpac4), logic_TaSpac4, "physical_TaSpac4", logic_w, false, 0);
+    logic_TaSpac4 = new G4LogicalVolume(solid_TaSpac4, Ta, "logical_TaSpac4", 0, 0, 0);
+    physi_TaSpac4 = new G4PVPlacement(rotm_negX, G4ThreeVector(x_TaSpac4, y_TaSpac4, z_TaSpac4), logic_TaSpac4, "physical_TaSpac4", logic_w, false, 0);
 
 	/* Ta 4th Tooth */
 	auto mesh_TaTooth4 = CADMesh::TessellatedMesh::FromOBJ("C:/Users/wzt0020/Geant4/HERT_Runs/src/GEANT4_HERT_Obj_Files/Ta_Tooth.obj");
@@ -484,7 +484,7 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 	G4double y_TaSpac1 = 0 * mm;
 	G4double z_TaSpac1 = z_TaTooth2 - 14.00 * mm;
 
-	logic_TaSpac1 = new G4LogicalVolume(solid_TaSpac1, Al, "logical_TaSpac1", 0, 0, 0);
+	logic_TaSpac1 = new G4LogicalVolume(solid_TaSpac1, Ta, "logical_TaSpac1", 0, 0, 0);
 	physi_TaSpac1 = new G4PVPlacement(rotm_negX, G4ThreeVector(x_TaSpac1, y_TaSpac1, z_TaSpac1), logic_TaSpac1, "physical_TaSpac1", logic_w, false, 0);
 
 	/* Ta 1st Tooth */
