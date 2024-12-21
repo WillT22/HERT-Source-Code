@@ -1,0 +1,10 @@
+^C:\USERS\WZT0020\GEANT4\HERT_RUNS\CMAKELISTS.TXT
+setlocal
+"C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" -S/Users/wzt0020/Geant4/HERT_Runs -BC:/Users/wzt0020/Geant4/HERT_Runs/HERT-CAD --check-stamp-file C:/Users/wzt0020/Geant4/HERT_Runs/HERT-CAD/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

@@ -43,19 +43,19 @@ target_link_libraries(HERT ${Geant4_LIBRARIES})
 # build B1. This is so that we can run the executable directly because it
 # relies on these scripts being in the current working directory.
 #
-set(HERT_SCRIPTS
-  Vis.mac
-  SingleRun.mac
-  MultipleRun.mac
-  )
-
-foreach(_script ${HERT_SCRIPTS})
-  configure_file(
-    ${PROJECT_SOURCE_DIR}/${_script}
-    ${PROJECT_BINARY_DIR}/${_script}
-    COPYONLY
-    )
-endforeach()
+#set(HERT_SCRIPTS
+#  Vis.mac
+#  SingleRun.mac
+#  MultipleRun.mac
+#  )
+#
+#foreach(_script ${HERT_SCRIPTS})
+#  configure_file(
+#    ${PROJECT_SOURCE_DIR}/${_script}
+#    ${PROJECT_BINARY_DIR}/${_script}
+#    COPYONLY
+#    )
+#endforeach()
 
 #----------------------------------------------------------------------------
 # For internal Geant4 use - but has no effect if you build this

@@ -1,0 +1,99 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="\Users\wzt0020\Geant4\HERT_Runs\HERT.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="\Users\wzt0020\Geant4\HERT_Runs\src\DetectorConstruction.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="\Users\wzt0020\Geant4\HERT_Runs\src\DetectorMessenger.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="\Users\wzt0020\Geant4\HERT_Runs\src\EventAction.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="\Users\wzt0020\Geant4\HERT_Runs\src\HistoManager.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="\Users\wzt0020\Geant4\HERT_Runs\src\Hit.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="\Users\wzt0020\Geant4\HERT_Runs\src\PhysicsList.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="\Users\wzt0020\Geant4\HERT_Runs\src\PrimaryGeneratorAction.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="\Users\wzt0020\Geant4\HERT_Runs\src\REPTILEhit.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="\Users\wzt0020\Geant4\HERT_Runs\src\RunAction.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="\Users\wzt0020\Geant4\HERT_Runs\src\SetSensDet.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="\Users\wzt0020\Geant4\HERT_Runs\src\StackingAction.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="\Users\wzt0020\Geant4\HERT_Runs\src\TrackingAction.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="\Users\wzt0020\Geant4\HERT_Runs\include\CADMesh.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="\Users\wzt0020\Geant4\HERT_Runs\include\DetectorConstruction.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="\Users\wzt0020\Geant4\HERT_Runs\include\DetectorMessenger.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="\Users\wzt0020\Geant4\HERT_Runs\include\EventAction.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="\Users\wzt0020\Geant4\HERT_Runs\include\HistoManager.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="\Users\wzt0020\Geant4\HERT_Runs\include\Hit.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="\Users\wzt0020\Geant4\HERT_Runs\include\PhysicsList.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="\Users\wzt0020\Geant4\HERT_Runs\include\PrimaryGeneratorAction.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="\Users\wzt0020\Geant4\HERT_Runs\include\REPTILEhit.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="\Users\wzt0020\Geant4\HERT_Runs\include\RunAction.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="\Users\wzt0020\Geant4\HERT_Runs\include\SetSensDet.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="\Users\wzt0020\Geant4\HERT_Runs\include\StackingAction.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="\Users\wzt0020\Geant4\HERT_Runs\include\TrackingAction.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="\Users\wzt0020\Geant4\HERT_Runs\include\ran.hh">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="\Users\wzt0020\Geant4\HERT_Runs\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{F910D5CF-EA6A-3966-ACFB-EF8C33DA8A0A}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{1F5CDAD2-D5E8-3012-B16D-2BAF029FFF8B}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

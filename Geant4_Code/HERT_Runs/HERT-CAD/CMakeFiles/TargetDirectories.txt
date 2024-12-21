@@ -1,7 +1,4 @@
-/home/wzt0020/HERT-Source-Code/Geant4_Code/HERT_Runs/HERT-CAD/CMakeFiles/HERT.dir
-/home/wzt0020/HERT-Source-Code/Geant4_Code/HERT_Runs/HERT-CAD/CMakeFiles/edit_cache.dir
-/home/wzt0020/HERT-Source-Code/Geant4_Code/HERT_Runs/HERT-CAD/CMakeFiles/rebuild_cache.dir
-/home/wzt0020/HERT-Source-Code/Geant4_Code/HERT_Runs/HERT-CAD/CMakeFiles/list_install_components.dir
-/home/wzt0020/HERT-Source-Code/Geant4_Code/HERT_Runs/HERT-CAD/CMakeFiles/install.dir
-/home/wzt0020/HERT-Source-Code/Geant4_Code/HERT_Runs/HERT-CAD/CMakeFiles/install/local.dir
-/home/wzt0020/HERT-Source-Code/Geant4_Code/HERT_Runs/HERT-CAD/CMakeFiles/install/strip.dir
+C:/Users/wzt0020/Geant4/HERT_Runs/HERT-CAD/CMakeFiles/HERT.dir
+C:/Users/wzt0020/Geant4/HERT_Runs/HERT-CAD/CMakeFiles/INSTALL.dir
+C:/Users/wzt0020/Geant4/HERT_Runs/HERT-CAD/CMakeFiles/ALL_BUILD.dir
+C:/Users/wzt0020/Geant4/HERT_Runs/HERT-CAD/CMakeFiles/ZERO_CHECK.dir
