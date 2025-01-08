@@ -6,15 +6,15 @@
 %% Inputs
 % Initialize Variables
 r_source = 8.5;
-%geo_EC = readmatrix('E:\HERT_Drive\Matlab Main\Result\geometric_factor_EC.txt');
-geo_EC = readmatrix('C:\Users\William Teague\Box\HERT_Box\Matlab Main\Result\geometric_factor_EC.txt');
+geo_EC = readmatrix('E:\HERT_Drive\Matlab Main\Result\geofactor_EC_log.txt');
+%geo_EC = readmatrix('C:\Users\William Teague\Box\HERT_Box\Matlab Main\Result\geometric_factor_EC.txt');
 bins = size(geo_EC,2);
-energy_edges = linspace(0,8,bins+1);
+energy_edges = logspace(log10(0.01),log10(8),bins+1);
 bin_width = diff(energy_edges);
 energy_midpoints = (energy_edges(2:end) + energy_edges(1:end-1))/2;
 
-%energy_channels = readmatrix('E:\HERT_Drive\Matlab Main\Result\channel_select\electron_channels_v1.txt');
-energy_channels = readmatrix('C:\Users\William Teague\Box\HERT_Box\Matlab Main\Result\channel_select\electron_channels_v1.txt');
+energy_channels = readmatrix('E:\HERT_Drive\Matlab Main\Result\channel_select\electron_channels_v1.txt');
+%energy_channels = readmatrix('C:\Users\William Teague\Box\HERT_Box\Matlab Main\Result\channel_select\electron_channels_v1.txt');
 
 %% Creating Test Fluxes %%
 % Calculating Flux from Main1 %
@@ -24,14 +24,14 @@ energy_channels = readmatrix('C:\Users\William Teague\Box\HERT_Box\Matlab Main\R
 %flux = ones(1,bins)*10^3;
 
 % Exponential %
-%flux = 10^4 * exp(-(energy_midpoints)/2);
+%flux = 10^4 * exp(-(energy_midpoints)/0.8);
 
 % BOT/Inverse %
 %flux = 1/0.01 * exp(log(energy_midpoints.^-0.69))+ 1/0.001 .* exp(-(log(energy_midpoints)-log(2.365)).^2./(2*0.14));
-flux = 1/0.01 * exp(log(energy_midpoints.^-1.2))+ 1/0.001 .* exp(-(log(energy_midpoints)-log(4)).^2./(2*0.08));
+%flux = 1/0.01 * exp(log(energy_midpoints.^-1.2))+ 1/0.001 .* exp(-(log(energy_midpoints)-log(4)).^2./(2*0.08));
 
 % Power Law %
-%flux = 10^4 .* energy_midpoints.^-4;
+flux = 10^4 .* energy_midpoints.^-2;
 
 % Gaussian %
 %flux = 1/0.000001 .* exp(-(log(energy_midpoints)-log(2)).^2./(2*0.004));
@@ -60,7 +60,7 @@ inv_A = pinv(A);                    % take pseudo inverse (not square matrix)
 flux_lin = inv_A * hits_whole_EC;  % find flux from linear algebra
 
 % Plot
-%{
+%
 f = figure;
 f.Position = [0 0 1200 900];
 hold on
@@ -82,12 +82,12 @@ xlim([0 7])
 ylim([10^0 10^5])
 xticks((0:1:8))
 %set(gca, 'XScale', 'log')
-set(gca, 'YScale', 'log')
+%set(gca, 'YScale', 'log')
 
 ylabel('Flux  (# cm^{-2} sr^{-1} s^{-1} MeV^{-1})','FontSize',textsize)
 xlabel('Energy (MeV)','FontSize',textsize)
 hold off
-%}
+%
 
 %% Least Squares Function for Energy Channels (Selesnick/Khoo) %%
 % Initialize variables
@@ -106,10 +106,10 @@ hold off
     inv_Cd = inv(Cd); % finding the inverse for later use
 
     % Initialize variance parameter %
-    sigma_m = 700; % Exp = 16000   BOT = 700,   POW = 270
+    sigma_m = 100; % Exp = 16000   BOT = 700,   POW = 270 100?
 
     % Initialize smoothness parameter
-    delta = 2; % Exp = 1000   BOT = 2,   POW = 27
+    delta = 60; % Exp = 100   BOT = 2,   POW = 27 60?
 
     % Create C_m covariance matrix, covariance of model/guess
     Cm = sigma_m.^2 .* exp(-((energy_midpoints' - energy_midpoints).^2) ./ (2 * delta.^2));

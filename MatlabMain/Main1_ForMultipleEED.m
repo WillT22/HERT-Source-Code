@@ -16,7 +16,7 @@ addpath 'E:\HERT_Drive\MATLAB Main'
 detector_threshold = 0.1; % Detector Threshold (MeV)
 back_threshold = 0.1; % Back Detector Threshold (MeV)
 numDetect = 9;
-bins = 400; % aim is to get 400 bins for comparable results
+bins = 800; % aim is to get 400 bins for comparable results
 textsize = 20;
 titlesize = 28;
 
@@ -164,7 +164,8 @@ while choice ~= 1 % Choice 1 is to exit the program
             % Finds energy edges and midpoints based off of bins
             % linear binning 
             if parttype == 0
-                energy_edges = linspace(0,8,bins+1);
+                %energy_edges = linspace(0,8,bins+1);
+                energy_edges = logspace(log10(0.01),log10(8),bins+1);
             elseif parttype == 1
                 energy_edges = linspace(0,80,bins+1);
             end
@@ -189,12 +190,17 @@ while choice ~= 1 % Choice 1 is to exit the program
                 min_incident_energy = 100;
                  max_incident_energy = 0;
                 
+                %{
                 number_interest = [88990,89057,89127,89202,108155,110055,...
                                     117350,117972,131111,166443,166535,...
                                     166628,178888,178976,179059,179132,...
                                     192673,192771,192930,192988,196082,...
                                     196168,196260,196348];
                 run_interest = zeros(1,length(number_interest));
+                %}
+                energy_interest = [];
+                number_interest = [];
+                run_interest = [];
 
                 % Nested For loops to create final matrix 1 and 2
                 for i = 1:file_number
@@ -213,6 +219,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                     M_run_number(i) = run_number;
                     M_beam_number(i) = beam_number;
                     M_energy_beam = [M_energy_beam, energy_beam];
+                    run_interest = [run_interest, ones(1,length(energy_beam))*run_number];
                     % This one takes a lot of memory
                     %M_non_energy_beam = [M_non_energy_beam, non_energy_beam];
                     M_back_beam = [M_back_beam,back_energy_beam];
@@ -230,19 +237,38 @@ while choice ~= 1 % Choice 1 is to exit the program
                     end
 
                     % To determine the file that a particle belongs
-                    %
+                    %{
                     for i = nnz(run_interest)+1:length(number_interest)
                         if run_interest(i) == 0 && length(M_energy_beam)>number_interest(i)
                             run_interest(i) = run_number;
                             fprintf('RUN NUMBER %.0f \n',run_number)
                         end
                     end
-                    %
+                    %}
+                    % Find particles with incident energies we should not be able to see
+                    %{
+                    for i = 1:length(energy_beam)
+                        if energy_beam(i) > 4
+                            energy_interest = [energy_interest,energy_beam(i)];
+                            number_interest = [number_interest,length(M_energy_beam)-length(energy_beam)+i];
+                            run_interest = [run_interest,run_number];
+                        end
+                    end
+                    %}
+                    
                     clear energy_beam
                     clear non_energy_beam
                     clear back_energy_beam
                 end
-                
+                particles = [M_energy_beam',run_interest'];
+                %{
+                clear fileID
+                fileID = fopen('problem_particles.csv','w');
+                for r = 1:size(problem_particles,1)
+                    fprintf(fileID,'%10.6f, %10.0f, %10.0f, \n',problem_particles(r,:));
+                end
+                fclose(fileID);
+                %}
 %% Obtain Data for Plotting
                 
                 energy_beam_indices = find(M_energy_beam <0.6);
@@ -306,7 +332,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                 % Saves geo_EC for later use
                 %{
                 clear fileID
-                fileID = fopen('geofactor_EC_DARTBe.txt','w');
+                fileID = fopen('geofactor_EC.txt','w');
                 for channel = 1:length(energy_channels)
                     for bin = 1:bins
                         fprintf(fileID,'%.6E ',geo_EC(channel,bin));

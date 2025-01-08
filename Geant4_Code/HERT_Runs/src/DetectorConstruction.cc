@@ -552,7 +552,7 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 	solid_AlChShim1->SetName("solid_AlChShim1");
 	G4double x_AlChShim1 = 0 * mm;
 	G4double y_AlChShim1 = 0 * mm;
-	G4double z_AlChShim1 = d9_z +0.54 * mm + 0.5*mm;
+	G4double z_AlChShim1 = z_EpoxCham -2 * mm + 24.86 * mm;
 
 	G4RotationMatrix* rotm_AlCham = new G4RotationMatrix();
 	rotm_AlCham->rotateX(-90. * deg);
@@ -563,16 +563,16 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 
 
 	/* Back W Shielding*/
-	auto mesh_BackW = CADMesh::TessellatedMesh::FromOBJ("C:/Users/wzt0020/Geant4/HERT_Runs/src/GEANT4_HERT_Obj_Files/W_R1.obj");
+	auto mesh_BackW = CADMesh::TessellatedMesh::FromOBJ("C:/Users/wzt0020/Geant4/HERT_Runs/src/GEANT4_HERT_Obj_Files/W_Back_Plate.obj");
 	G4VSolid* solid_BackW = mesh_BackW->GetSolid();
 	solid_BackW->SetName("solid_BackW");
-	G4double x_BackW = 0 * mm;
-	G4double y_BackW = 0 * mm;
+	G4double x_BackW = -33.95 * mm;
+	G4double y_BackW = -34.75 * mm;
 	G4double z_BackW = z_EpoxCham + 5*mm +24.86 * mm;
 
 	G4RotationMatrix* rotm_BackW = new G4RotationMatrix();
 	rotm_BackW->rotateX(90. * deg);
-	rotm_BackW->rotateY(90. * deg);
+	//rotm_BackW->rotateY(90. * deg);
 	logic_BackW = new G4LogicalVolume(solid_BackW, W, "logical_BackW", 0, 0, 0);
 	physi_BackW = new G4PVPlacement(rotm_BackW, G4ThreeVector(x_BackW, y_BackW, z_BackW), logic_BackW, "physical_BackW", logic_w, false, 0);
 
@@ -581,13 +581,12 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 	auto mesh_AlBkShim1 = CADMesh::TessellatedMesh::FromOBJ("C:/Users/wzt0020/Geant4/HERT_Runs/src/GEANT4_HERT_Obj_Files/Al_Back_Shim_Block.obj");
 	G4VSolid* solid_AlBkShim1 = mesh_AlBkShim1->GetSolid();
 	solid_AlBkShim1->SetName("solid_AlBkShim1");
-	G4double x_AlBkShim1 = 0 * mm;
-	G4double y_AlBkShim1 = 0 * mm;
+	G4double x_AlBkShim1 = -33.95 * mm;
+	G4double y_AlBkShim1 = 34.75 * mm;
 	G4double z_AlBkShim1 = z_BackW + 0 * mm;
 
 	G4RotationMatrix* rotm_AlBackShim = new G4RotationMatrix();
 	rotm_AlBackShim->rotateX(-90. * deg);
-	rotm_AlBackShim->rotateY(180. * deg);
 	logic_AlBkShim1 = new G4LogicalVolume(solid_AlBkShim1, Alalloy, "logical_AlBkShim1", 0, 0, 0);
 	physi_AlBkShim1 = new G4PVPlacement(rotm_AlBackShim, G4ThreeVector(x_AlBkShim1, y_AlBkShim1, z_AlBkShim1), logic_AlBkShim1, "physical_AlBkShim1", logic_w, false, 0);
 
@@ -596,8 +595,8 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 	auto mesh_AlBkPlate = CADMesh::TessellatedMesh::FromOBJ("C:/Users/wzt0020/Geant4/HERT_Runs/src/GEANT4_HERT_Obj_Files/Al_Back_Plate.obj");
 	G4VSolid* solid_AlBkPlate = mesh_AlBkPlate->GetSolid();
 	solid_AlBkPlate->SetName("solid_AlBkPlate");
-	G4double x_AlBkPlate = 0 * mm;
-	G4double y_AlBkPlate = 0 * mm;
+	G4double x_AlBkPlate = 43 * mm;
+	G4double y_AlBkPlate = 45 * mm;
 	G4double z_AlBkPlate = z_AlBkShim1 + 6* mm;
 
 	G4RotationMatrix* rotm_AlBackPlate = new G4RotationMatrix();
@@ -616,7 +615,6 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 	G4double z_AlignPin1 = -10 * mm;
 	G4RotationMatrix* rotm_StAlignPin = new G4RotationMatrix();
 	rotm_StAlignPin->rotateX(-90. * deg);
-	//rotm_StAlignPin->rotateY(180. * deg);
 
 	logic_AlignPin1 = new G4LogicalVolume(solid_AlignPin1, StainlessSteel, "logical_AlignPin1", 0, 0, 0);
 	physi_AlignPin1 = new G4PVPlacement(rotm_StAlignPin, G4ThreeVector(x_AlignPin1, y_AlignPin1, z_AlignPin1), logic_AlignPin1, "physical_AlignPin1", logic_w, false, 0);
