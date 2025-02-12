@@ -21,20 +21,26 @@ Ian Crocker, 2 Mar 2008*/
 #include "SetSensDet.hh"             //|
 
 #include "Randomize.hh"
-#include <chrono> 
+#include <chrono>
 
+G4long StartTime() {
+    static bool first_call = true;
+    static G4long milliseconds = 0; 
+    if (first_call) {
+        auto now = std::chrono::system_clock::now();
+        milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+        first_call = false;
+    }
+    return milliseconds;
+}
 
 int main(int argc,char** argv)
 {
     //choose the Random engine
     G4Random::setTheEngine(new CLHEP::RanecuEngine());
     //set random seed with system time
-    auto now = std::chrono::system_clock::now();
-    auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
-
-    G4long seed = milliseconds;
-    G4Random::setTheSeed(seed);
-
+    G4long seed = StartTime(); 
+    G4Random::setTheSeed(seed); 
     // Detect interactive mode (if no arguments) and define UI session
     G4UIExecutive* ui = 0;
     if ( argc == 1 ) {
