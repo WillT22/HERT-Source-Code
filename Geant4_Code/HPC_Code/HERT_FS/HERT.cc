@@ -39,7 +39,7 @@ int main(int argc,char** argv)
     //choose the Random engine
     G4Random::setTheEngine(new CLHEP::RanecuEngine());
     //set random seed with system time
-    G4long seed = StartTime(); 
+    G4long seed = StartTime()+1; 
     G4Random::setTheSeed(seed); 
     // Detect interactive mode (if no arguments) and define UI session
     G4UIExecutive* ui = 0;
