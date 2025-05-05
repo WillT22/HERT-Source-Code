@@ -117,7 +117,7 @@ plt.show()
 #%% Import LASP spectra
 LASP_spectrum = {} # Dictionary to hold LASP data
 
-LASP_spectrum['csv_data'] = np.genfromtxt('C:/Users/Will/Box/HERT_Box/Sr90 Testing/Sr90Y90.csv', delimiter=',', filling_values=0)
+LASP_spectrum['csv_data'] = np.genfromtxt('C:/Users/wzt0020/Box/HERT_Box/Sr90 Testing/Sr90Y90.csv', delimiter=',', filling_values=0)
 LASP_spectrum['KE'] = LASP_spectrum['csv_data'][:, 0]
 LASP_spectrum['Sr90'] = LASP_spectrum['csv_data'][:, 1]/0.02
 LASP_spectrum['Y90'] = LASP_spectrum['csv_data'][:, 2]/0.02
@@ -214,43 +214,6 @@ Error = abs(LASP_comp['combined'] - LASP_spectrum['combined'])
 SSE = sum((LASP_comp['combined'] - LASP_spectrum['combined'])**2)
 MSE = SSE /len(LASP_spectrum['KE'])
 
-#%% Scale to Aerospace data
-Aero_data = {} # Dictionary for Aerospace data
-
-# NEED TO SCALE WITHIN SOME REGION, NOT JUST AT A SINGLE POINT
-target_KE = 0.670
-Aero_data['closest_index'] = np.argmin(np.abs(Beta_theory['KE'] - target_KE))
-Aero_data['low_range'] = np.argmin(np.abs(Beta_theory['KE'] - (target_KE - 0.01)))
-Aero_data['high_range'] = np.argmin(np.abs(Beta_theory['KE'] - (target_KE + 0.01)))
-
-Aero_data['scale_Aero'] = 1.03 / sum(Beta_theory['combined_spectrum'][Aero_data['low_range']:Aero_data['high_range']])
-
-Aero_data['Sr90_scaled_Aero'] = Beta_theory['Sr90'] * Aero_data['scale_Aero']
-Aero_data['Y90_scaled_Aero'] = Beta_theory['Y90'] * Aero_data['scale_Aero']
-Aero_data['combined_scaled_Aero'] = Beta_theory['combined_spectrum'] * Aero_data['scale_Aero']
-
-fig, ax = plt.subplots(figsize=(7, 5))
-
-# Plot Sr90 and Y90
-Sr90_scatter = ax.scatter(Beta_theory['KE'], Aero_data['Sr90_scaled_Aero'], label="Sr90", color='C2', s=8)
-Y90_scatter = ax.scatter(Beta_theory['KE'], Aero_data['Y90_scaled_Aero'], label="Y90", color='C0', s=8)
-
-# Plot the sum, making it more prominent
-combined_scatter = ax.scatter(Beta_theory['KE'], Aero_data['combined_scaled_Aero'], label="Combined", s=8, color='C1')
-
-ax.set_xlim(0, 2.3)
-ax.set_xlabel("Kinetic Energy (MeV)")
-ax.set_ylabel("Counts/s/MeV")
-ax.set_title("Scaled Beta Decay Spectra of Sr90 and Y90 to Aerospace Data")
-ax.grid(True)
-ax.legend()
-
-plt.show()
-
-check_low = np.argmin(np.abs(Beta_theory['KE'] - (1.8-0.01)))
-check_high = np.argmin(np.abs(Beta_theory['KE'] - (1.8+0.01)))
-check = sum(Beta_theory['combined_spectrum'][check_low:check_high])
-
 #%% Adjust to time since creation
 # The rate in 2021 was combined_total=28.818116725999996
 # The total count rate of each source when it was generated
@@ -283,4 +246,130 @@ plt.axvline(x=Beta_theory['Sr90_mean'], color='C2', linestyle='--', label=f"Sr90
 plt.axvline(x=Beta_theory['Y90_mean'], color='C0', linestyle='--', label=f"Y90 Mean: {Beta_theory['Y90_mean']:.3f} MeV")
 ax.legend()
 '''
+plt.show()
+
+
+#%% Aerospace data
+Aero_data = {} # Dictionary for Aerospace data
+
+Aero_data['csv_data'] = np.genfromtxt('C:/Users/wzt0020/Box/HERT_Box/Aerospace Testing/Aerospace Beta-ray Spectrometer 2025-04-30.csv', delimiter=',', filling_values=0, skip_header=1)
+Aero_data['channel'] = Aero_data['csv_data'][:, 3]
+Aero_data['FWHM'] = Aero_data['csv_data'][:, 4]
+Aero_data['KE'] = Aero_data['csv_data'][:, 6]
+Aero_data['time'] = Aero_data['csv_data'][:, 7]
+Aero_data['max_counts'] = Aero_data['csv_data'][:, 10]
+Aero_data['counts_per_day'] = Aero_data['csv_data'][:, 11]
+
+#%% Comparing Aero channels and energies
+# Plotting E v channel
+plt.figure(figsize=(8, 6))  # Adjust figure size as needed
+plt.plot(Aero_data['channel'], Aero_data['KE'])
+plt.xlabel('Channel Number')
+plt.ylabel('Kinetic Energy (keV)')  # Label the y-axis with the correct unit
+plt.title('Kinetic Energy vs Channel Number')
+plt.grid(True)
+plt.show()
+
+# Fit a linear equation
+coefficients = np.polyfit(Aero_data['channel'], Aero_data['KE'], 1)  # 1 for linear fit
+slope = coefficients[0]
+intercept = coefficients[1]
+
+# Print the linear equation
+print(f"Linear equation: KE (keV) = {slope:.4f} * Channel + {intercept:.4f}")
+
+# Calculate the R^2 value
+correlation_matrix = np.corrcoef(Aero_data['channel'], Aero_data['KE'])
+correlation = correlation_matrix[0, 1]
+r_squared = correlation**2
+
+# Print the R^2 value
+print(f"R^2 value: {r_squared:.4f}")
+
+#%% Calculate Aero energy resolution
+Aero_data['energy_resolution'] = Aero_data['FWHM']/Aero_data['channel']
+
+# Plotting energy resolution v channel
+fig, ax1 = plt.subplots(figsize=(8, 6))  # Adjust figure size as needed
+ax1.plot(Aero_data['channel'], Aero_data['energy_resolution'])
+ax1.set_xlabel('Channel Number')
+ax1.set_ylabel(r'Energy Resolution $\Delta E/E$')
+ax1.set_title('Energy Resolution vs Channel Number')
+ax1.grid(True)
+
+# Get the limits from the first x-axis
+ax1.set_xlim(0, 2000)
+# Create the second x-axis
+ax2 = ax1.twiny()  # Create a twin axis sharing the y-axis
+ax2.set_xlim(intercept, slope * 2000 + intercept)
+ax2.set_xlabel('Kinetic Energy (keV)')  # Label the top x-axis
+plt.show()
+
+#%% Look into Aero count rates
+Beta_theory['Sr90_per_energy'] = Beta_theory['Sr90_normalized'] / 0.01
+Beta_theory['Y90_per_energy'] = Beta_theory['Y90_normalized'] / 0.01
+Beta_theory['combined_per_energy'] = Beta_theory['Sr90_per_energy'] + Beta_theory['Y90_per_energy']
+
+Aero_data['countrate'] = Aero_data['max_counts']/Aero_data['time']
+Aero_data['1bin_keV'] = slope * 1 + intercept
+Aero_data['countrate_per_MeV'] = Aero_data['countrate'] / (Aero_data['1bin_keV']/1000*2)
+
+intmax_theory_per_E = integrate.trapezoid(Beta_theory['combined_per_energy'], Beta_theory['KE'])
+intmax_Aero_per_E = integrate.trapezoid(Aero_data['countrate_per_MeV'], Aero_data['KE']/1000)
+Aeromax_scale = intmax_Aero_per_E / intmax_theory_per_E
+
+Aeromax_maxscale_theory = max(Aero_data['countrate_per_MeV'])/max(Beta_theory['combined_per_energy'])
+Aeromax_maxscale_Sr = max(Aero_data['countrate_per_MeV'])/max(Beta_theory['Sr90_per_energy'])
+Aeromax_maxscale_LASP = max(Aero_data['countrate_per_MeV'])/max(LASP_spectrum['combined'])
+
+Sr90_Aeromax_theory = Aeromax_scale * Beta_theory['Sr90_per_energy']
+Y90_Aeromax_theory = Aeromax_scale * Beta_theory['Y90_per_energy']
+Combined_Aeromax_theory = Aeromax_scale * Beta_theory['combined_per_energy']
+
+# Plotting count rate v KE
+plt.figure(figsize=(8, 6))  # Adjust figure size as needed
+plt.scatter(Aero_data['KE']/1000, Aero_data['countrate'], color='black', marker='*', label='Aerospace')
+plt.xlim(0, 2)
+plt.xlabel('Kinetic Energy (MeV)')
+plt.ylabel('Count Rate (counts/s)')
+plt.title('Count Rate vs KE')
+plt.grid(True)
+plt.legend()
+plt.show()
+
+plt.figure(figsize=(8, 6))  # Adjust figure size as needed
+plt.scatter(Beta_theory['KE'], Beta_theory['Sr90_per_energy'] * Aeromax_maxscale_Sr, label="Sr90", color='C2', s=8)
+#plt.scatter(Beta_theory['KE'], Y90_Aeromax_theory , label="Y90", color='C0', s=8)
+plt.scatter(Beta_theory['KE'], Beta_theory['combined_per_energy'] * Aeromax_maxscale_theory, label="Theory", s=10, color='C1')
+plt.scatter(LASP_spectrum['KE'], LASP_spectrum['combined'] * Aeromax_maxscale_LASP, label="LASP (scaled)", s=10, color='blue')
+plt.scatter(Aero_data['KE']/1000, Aero_data['countrate_per_MeV'], color='black', marker='*', label='Aerospace')
+plt.xlim(0, 2)
+plt.xlabel('Kinetic Energy (MeV)')
+plt.ylabel('Count Rate / MeV (counts/s/MeV)')
+plt.title('Count Rate per MeV vs KE')
+plt.grid(True)
+plt.legend()
+plt.show()
+
+
+max_counts_index_theory = np.argmax(Beta_theory['combined_per_energy'])
+ke_at_max_counts_theory = Beta_theory['KE'][max_counts_index_theory]
+
+max_counts_index_LASP = np.argmax(LASP_spectrum['combined'])
+ke_at_max_counts_LASP = LASP_spectrum['KE'][max_counts_index_LASP]
+
+max_counts_index_Aero = np.argmax(Aero_data['countrate_per_MeV'])
+ke_at_max_counts_Aero = Aero_data['KE'][max_counts_index_Aero]/1000
+
+plt.figure(figsize=(8, 6))  # Adjust figure size as needed
+plt.scatter(Beta_theory['KE'] - ke_at_max_counts_theory, Beta_theory['Sr90_per_energy'] * Aeromax_maxscale_Sr, label="Sr90", color='C2', s=8)
+plt.scatter(Beta_theory['KE'] - ke_at_max_counts_theory, Beta_theory['combined_per_energy'] * Aeromax_maxscale_theory, label="Theory", s=10, color='C1')
+plt.scatter(LASP_spectrum['KE'] - ke_at_max_counts_LASP, LASP_spectrum['combined'] * Aeromax_maxscale_LASP, label="LASP (scaled)", s=10, color='blue')
+plt.scatter(Aero_data['KE']/1000 - ke_at_max_counts_Aero, Aero_data['countrate_per_MeV'], color='black', marker='*', label='Aerospace')
+plt.xlim(-0.5, 2)
+plt.xlabel('Kinetic Energy (MeV)')
+plt.ylabel('Count Rate / MeV (counts/s/MeV)')
+plt.title('Count Rate per MeV vs KE centerted at Sr90 peak energy')
+plt.grid(True)
+plt.legend()
 plt.show()

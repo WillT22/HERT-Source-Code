@@ -49,12 +49,12 @@ Aero_Bfield['KE'] = Aero_Bfield['csv_data'][:, 6]
 Aero_Bfield['Bfield'] = Aero_Bfield['csv_data'][:, 1]
 
 # Plotting B vs KE
-plt.figure(figsize=(8, 6))  # Adjust figure size as needed
+plt.figure(figsize=(8, 6)) 
 plt.plot(Aero_Bfield['KE']/1000, Aero_Bfield['Bfield'])
 plt.xlim(0, 2)
 plt.ylim(0, 450)
 plt.xlabel('Kinetic Energy (MeV)')
-plt.ylabel('Magnetic Field (G)')  # Label the y-axis with the correct unit
+plt.ylabel('Magnetic Field (G)')
 plt.title('Magnetic Field Strength vs Electron Kinetic Energy')
 plt.grid(True)
 plt.show()
@@ -62,7 +62,7 @@ plt.show()
 #%% Plot comparing theory and Aerospace measurement
 # Plotting B vs KE for both datasets on the same figure
 plt.figure(figsize=(8, 6))
-plt.plot(KE, B*10000, label='Theory')  # Scaling B for comparison, label added
+plt.plot(KE, B*10000, label='Theory')
 plt.plot(Aero_Bfield['KE'] / 1000, Aero_Bfield['Bfield'], label='Measured')  # Convert KE to MeV and B to G, label added
 plt.xlabel('Kinetic Energy (MeV)')
 plt.ylabel('Magnetic Field (G)')
@@ -70,5 +70,25 @@ plt.title('Magnetic Field Strength vs Electron Kinetic Energy')
 plt.grid(True)
 plt.xlim(0, 2)
 plt.ylim(0, 450)
-plt.legend()  # Show the legend to distinguish the plots
+plt.legend()
+plt.show()
+
+#%% Find conversion 
+# Calculating momentum in units of MeV/c
+p_MeV_c_Aero = np.sqrt((Aero_Bfield['KE']/1000 + e_E0)**2 - e_E0**2) / sc.c
+
+# Convert momentum to SI units (kg*m/s)
+p_SI_Aero = p_MeV_c_Aero * (sc.electron_volt * 1e6)
+
+# Calculate the magnetic field required to bend an electron beam around a set radius of curvature
+B_Aero = p_SI_Aero / (q * r)
+
+conversion = Aero_Bfield['Bfield'] / (B_Aero*10000)
+
+plt.figure(figsize=(8, 6))
+plt.plot(Aero_Bfield['KE'], conversion)
+plt.xlabel('Kinetic Energy (keV)')
+plt.ylabel('Conversion Factor')
+plt.title('Magnetic Field Strength vs Electron Kinetic Energy')
+plt.grid(True)
 plt.show()
