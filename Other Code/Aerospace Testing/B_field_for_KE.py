@@ -20,7 +20,7 @@ q = sc.elementary_charge  # Elementary charge in Coulombs
 
 # Calculate the magnetic field required to bend an electron beam around a set radius of curvature
 B = p_SI / (q * r)
-
+'''
 # Plotting B vs KE
 plt.figure(figsize=(8, 6))  # Adjust figure size as needed
 plt.plot(KE, B*10000)
@@ -31,6 +31,7 @@ plt.ylabel('Magnetic Field (G)')  # Label the y-axis with the correct unit
 plt.title('Magnetic Field Strength vs Electron Kinetic Energy')
 plt.grid(True)
 plt.show()
+'''
 
 #%% Test theory based on manual suggestions
 '''
@@ -44,10 +45,10 @@ print(B_test)
 
 #%% Plot measured data from Aerospace
 Aero_Bfield = {}
-Aero_Bfield['csv_data'] = np.genfromtxt('C:/Users/wzt0020/Box/HERT_Box/Aerospace Testing/Aerospace Beta-ray Spectrometer 2025-04-30.csv', delimiter=',', filling_values=0)
+Aero_Bfield['csv_data'] = np.genfromtxt('C:/Users/wzt0020/Box/HERT_Box/Aerospace Testing/Resources from Aero/Aerospace Beta-ray Spectrometer 2025-04-30.csv', delimiter=',', filling_values=0)
 Aero_Bfield['KE'] = Aero_Bfield['csv_data'][:, 6]
 Aero_Bfield['Bfield'] = Aero_Bfield['csv_data'][:, 1]
-
+'''
 # Plotting B vs KE
 plt.figure(figsize=(8, 6)) 
 plt.plot(Aero_Bfield['KE']/1000, Aero_Bfield['Bfield'])
@@ -58,6 +59,7 @@ plt.ylabel('Magnetic Field (G)')
 plt.title('Magnetic Field Strength vs Electron Kinetic Energy')
 plt.grid(True)
 plt.show()
+'''
 
 #%% Plot comparing theory and Aerospace measurement
 # Plotting B vs KE for both datasets on the same figure
@@ -70,6 +72,19 @@ plt.title('Magnetic Field Strength vs Electron Kinetic Energy')
 plt.grid(True)
 plt.xlim(0, 2)
 plt.ylim(0, 450)
+plt.legend()
+plt.show()
+
+# Plotting B vs KE for both datasets on the same figure
+plt.figure(figsize=(8, 6))
+plt.plot(B*10000, KE, label='Theory')
+plt.plot(Aero_Bfield['Bfield'], Aero_Bfield['KE'] / 1000, label='Measured')  # Convert KE to MeV and B to G, label added
+plt.xlabel('Magnetic Field (G)')
+plt.ylabel('Kinetic Energy (MeV)')
+plt.title('Electron Kinetic Energy vs Magnetic Field Strength')
+plt.grid(True)
+plt.xlim(0, 450)
+plt.ylim(0, 2)
 plt.legend()
 plt.show()
 
