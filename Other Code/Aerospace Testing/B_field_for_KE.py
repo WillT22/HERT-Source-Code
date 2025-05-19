@@ -45,7 +45,7 @@ print(B_test)
 
 #%% Plot measured data from Aerospace
 Aero_Bfield = {}
-Aero_Bfield['csv_data'] = np.genfromtxt('C:/Users/wzt0020/Box/HERT_Box/Aerospace Testing/Resources from Aero/Aerospace Beta-ray Spectrometer 2025-04-30.csv', delimiter=',', filling_values=0)
+Aero_Bfield['csv_data'] = np.genfromtxt('C:/Users/Will/Box/HERT_Box/Aerospace Testing/Resources from Aero/Aerospace Beta-ray Spectrometer 2025-04-30.csv', delimiter=',', filling_values=0)
 Aero_Bfield['KE'] = Aero_Bfield['csv_data'][:, 6]
 Aero_Bfield['Bfield'] = Aero_Bfield['csv_data'][:, 1]
 '''

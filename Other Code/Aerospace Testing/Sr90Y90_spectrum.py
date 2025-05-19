@@ -117,7 +117,7 @@ plt.show()
 #%% Import LASP spectra
 LASP_spectrum = {} # Dictionary to hold LASP data
 
-LASP_spectrum['csv_data'] = np.genfromtxt('C:/Users/wzt0020/Box/HERT_Box/Sr90 Testing/Sr90Y90.csv', delimiter=',', filling_values=0)
+LASP_spectrum['csv_data'] = np.genfromtxt('C:/Users/Will/Box/HERT_Box/Sr90 Testing/Sr90Y90.csv', delimiter=',', filling_values=0)
 LASP_spectrum['KE'] = LASP_spectrum['csv_data'][:, 0]
 LASP_spectrum['Sr90'] = LASP_spectrum['csv_data'][:, 1]/0.02
 LASP_spectrum['Y90'] = LASP_spectrum['csv_data'][:, 2]/0.02
@@ -252,7 +252,7 @@ plt.show()
 #%% Aerospace data
 Aero_data = {} # Dictionary for Aerospace data
 
-Aero_data['csv_data'] = np.genfromtxt('C:/Users/wzt0020/Box/HERT_Box/Aerospace Testing/Aerospace Beta-ray Spectrometer 2025-04-30.csv', delimiter=',', filling_values=0, skip_header=1)
+Aero_data['csv_data'] = np.genfromtxt('C:/Users/Will/Box/HERT_Box/Aerospace Testing/Aerospace Beta-ray Spectrometer 2025-04-30.csv', delimiter=',', filling_values=0, skip_header=1)
 Aero_data['channel'] = Aero_data['csv_data'][:, 3]
 Aero_data['FWHM'] = Aero_data['csv_data'][:, 4]
 Aero_data['KE'] = Aero_data['csv_data'][:, 6]
