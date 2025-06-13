@@ -12,22 +12,22 @@
 /run/initialize
 
 ### Variable Initialization ###
-/control/alias particleType electron    	# Assign particle type
+/control/alias particleType proton	    	# Assign particle type
 #/control/alias energyValue 5			# Assign energyValue (for descrete energy run)
-/control/alias energyMin 0			# Assign energy minimum (0 MeV for electron, 10MeV for proton)
-/control/alias energyMax 8			# Assign energy maximum (8MeV for electron, 80MeV for proton)
-/control/alias particleCount 1000000    	# Assign particleCount (1000000)
-#/control/alias runNumber 5928 			# Assign a run number for randomized runs
-#/control/alias E0 2
+/control/alias energyMin 13			# Assign energy minimum (0 MeV for electron, 10MeV for proton)
+/control/alias energyMax 100			# Assign energy maximum (8MeV for electron, 80MeV for proton)
+/control/alias particleCount 1000000	    	# Assign particleCount (1000000)
+#/control/alias runNumber 10 			# Assign a run number for randomized runs
+/control/alias E0 20
 
 ### Randomization Seed Restoration ###
 # Descretized energy file name
 #/random/resetEngineFrom ./Results/seeds/HERT_CADoutput_{particleType}_Ene_{energyValue}_{particleCount}_seed.rndm
 # Randomized energy file name
-/random/resetEngineFrom ../../seeds/HERT_CADoutput_{particleType}_{particleCount}_Run{runNumber}_seed.rndm
+/random/resetEngineFrom ../../proton_seeds/HERT_CADoutput_{particleType}_{particleCount}_Run{runNumber}_seed.rndm
 
 ### GPS Initialization ###
-/gps/particle e-
+/gps/particle proton
 
 # Boresight Particle Firing #
 #/gps/direction 0 0 10 mm
@@ -46,10 +46,10 @@
 #/gps/ene/mono {energyValue} MeV
 
 # Randomized Energy Selection
-/gps/ene/type Lin			# Defines distribution of particle energies (Lin or Exp usually)
-/gps/ene/gradient 0	    # Defines slope for linear distribution (default = 0)
-/gps/ene/intercept 1   	# Defines y-intercept for linear distribution (default = 0)
-#/gps/ene/ezero {E0} MeV		# Defines E_0 for exponential distribution (default = 0)
+/gps/ene/type Exp			# Defines distribution of particle energies (Lin or Exp usually)
+#/gps/ene/gradient 0 			# Defines slope for linear distribution (default = 0)
+#/gps/ene/intercept 1   			# Defines y-intercept for linear distribution (default = 0)
+/gps/ene/ezero {E0} MeV		# Defines E_0 for exponential distribution (default = 0)
 /gps/ene/min {energyMin} MeV			
 /gps/ene/max {energyMax} MeV
 
@@ -86,6 +86,6 @@
 /control/shell mv {outputFileName}.txt ../../FS_Results
 
 /control/shell mv currentRun.rndm {seedFileName}.rndm
-/control/shell mv {seedFileName}.rndm ../../seeds
+/control/shell mv {seedFileName}.rndm ../../proton_seeds
 
 exit
