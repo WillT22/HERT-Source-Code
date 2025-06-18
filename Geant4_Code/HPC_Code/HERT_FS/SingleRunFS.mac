@@ -17,7 +17,7 @@
 /control/alias energyMin 13			# Assign energy minimum (0 MeV for electron, 10MeV for proton)
 /control/alias energyMax 100			# Assign energy maximum (8MeV for electron, 80MeV for proton)
 /control/alias particleCount 1000000	    	# Assign particleCount (1000000)
-#/control/alias runNumber 10 			# Assign a run number for randomized runs
+/control/alias runNumber 6501 			# Assign a run number for randomized runs
 /control/alias E0 20
 
 ### Randomization Seed Restoration ###
@@ -55,14 +55,14 @@
 
 ### Visualization ###
 
-#/vis/open HepRepFile			# write heprep
-#/vis/scene/create				# Create a new empty scene
-#/vis/scene/add/volume			# Declare that the world volume should be added to the scene
-#/vis/sceneHandler/attach		# Attach scene to scenehandler
-#/vis/viewer/flush				# Draw a picture that has just the detector (no trajectories or hits).
-#/vis/scene/add/trajectories		# Declare that trajectories and hits should be added to the scene
-#/vis/scene/add/hits
-#/vis/scene/endOfEventAction accumulate {particleCount}
+/vis/open HepRepFile			# write heprep
+/vis/scene/create				# Create a new empty scene
+/vis/scene/add/volume			# Declare that the world volume should be added to the scene
+/vis/sceneHandler/attach		# Attach scene to scenehandler
+/vis/viewer/flush				# Draw a picture that has just the detector (no trajectories or hits).
+/vis/scene/add/trajectories		# Declare that trajectories and hits should be added to the scene
+/vis/scene/add/hits
+/vis/scene/endOfEventAction accumulate {particleCount}
 
 /run/printProgress 10000
 
@@ -85,7 +85,7 @@
 /control/shell mv EnergyDepositResult.txt {outputFileName}.txt
 /control/shell mv {outputFileName}.txt ../../FS_Results
 
-/control/shell mv currentRun.rndm {seedFileName}.rndm
-/control/shell mv {seedFileName}.rndm ../../proton_seeds
+#/control/shell mv currentRun.rndm {seedFileName}.rndm
+#/control/shell mv {seedFileName}.rndm ../../proton_seeds
 
 exit
