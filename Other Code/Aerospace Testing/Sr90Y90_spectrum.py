@@ -71,7 +71,7 @@ def fermi_theory(KE, Emax, Z, A, first_forbidden):
 Beta_theory = {} # Dictionary to hold generated spectra data
 
 # Create electron kinetic energy range
-Beta_theory['KE'] = np.linspace(0, 3, num = 301)
+Beta_theory['KE'] = np.linspace(0, 3, num = 3001)
 
 # Find probability distribution for Sr90 decay
 Beta_theory['Sr90'], Beta_theory['sr90_debug_vars'] = fermi_theory(Beta_theory['KE'], 0.5459, 38, 90, -54E-3)
@@ -134,7 +134,7 @@ LASP_spectrum['Y90_total'] = np.sum(LASP_spectrum['Y90'])
 LASP_spectrum['combined_total'] = np.sum(LASP_spectrum['combined'])
 
 # Plot Sr90 and Y90
-fig, ax = plt.subplots(figsize=(7, 5))
+fig, ax = plt.subplots(figsize=(14, 6))
 
 Sr90_scatter = ax.scatter(LASP_spectrum['KE'], LASP_spectrum['Sr90'], label="Sr90", color='C2', s=8)
 Y90_scatter = ax.scatter(LASP_spectrum['KE'], LASP_spectrum['Y90'], label="Y90", color='C0', s=8)
@@ -187,7 +187,7 @@ LASP_comp['Y90_total_scaled'] = sum(LASP_comp['Y90'])
 LASP_comp['combined_total_scaled'] = sum(LASP_comp['combined'])
 
 # Plot Sr90 and Y90
-fig, ax = plt.subplots(figsize=(7, 5))
+fig, ax = plt.subplots(figsize=(14, 6))
 
 Sr90_scatter = ax.scatter(LASP_spectrum['KE'], LASP_comp['Sr90'], label="Sr90", color='C2', s=8)
 Y90_scatter = ax.scatter(LASP_spectrum['KE'], LASP_comp['Y90'], label="Y90", color='C0', s=8)
@@ -227,7 +227,7 @@ today_Y90 = R_now * Beta_theory['Y90_normalized'] / 0.01
 today_combined = today_Sr90 + today_Y90
 
 # Plot Sr90 and Y90
-fig, ax = plt.subplots(figsize=(7, 5))
+fig, ax = plt.subplots(figsize=(14, 6))
 
 Sr90_scatter = ax.scatter(Beta_theory['KE'], today_Sr90, label="Sr90", color='C2', s=8)
 Y90_scatter = ax.scatter(Beta_theory['KE'], today_Y90, label="Y90", color='C0', s=8)
@@ -262,7 +262,7 @@ Aero_data['counts_per_day'] = Aero_data['csv_data'][:, 11]
 
 #%% Comparing Aero channels and energies
 # Plotting E v channel
-plt.figure(figsize=(8, 6))  # Adjust figure size as needed
+plt.figure(figsize=(14, 6))
 plt.plot(Aero_data['channel'], Aero_data['KE'])
 plt.xlabel('Channel Number')
 plt.ylabel('Kinetic Energy (keV)')  # Label the y-axis with the correct unit
@@ -290,7 +290,7 @@ print(f"R^2 value: {r_squared:.4f}")
 Aero_data['energy_resolution'] = Aero_data['FWHM']/Aero_data['channel']
 
 # Plotting energy resolution v channel
-fig, ax1 = plt.subplots(figsize=(8, 6))  # Adjust figure size as needed
+fig, ax1 = plt.subplots(figsize=(14, 6))  # Adjust figure size as needed
 ax1.plot(Aero_data['channel'], Aero_data['energy_resolution'])
 ax1.set_xlabel('Channel Number')
 ax1.set_ylabel(r'Energy Resolution $\Delta E/E$')
@@ -326,7 +326,7 @@ Y90_Aeromax_theory = Aeromax_scale * Beta_theory['Y90_per_energy']
 Combined_Aeromax_theory = Aeromax_scale * Beta_theory['combined_per_energy']
 
 # Plotting count rate v KE
-plt.figure(figsize=(8, 6))  # Adjust figure size as needed
+plt.figure(figsize=(14, 6))
 plt.scatter(Aero_data['KE']/1000, Aero_data['countrate'], color='black', marker='*', label='Aerospace')
 plt.xlim(0, 2)
 plt.xlabel('Kinetic Energy (MeV)')
@@ -336,7 +336,7 @@ plt.grid(True)
 plt.legend()
 plt.show()
 
-plt.figure(figsize=(8, 6))  # Adjust figure size as needed
+plt.figure(figsize=(14, 6))
 plt.scatter(Beta_theory['KE'], Beta_theory['Sr90_per_energy'] * Aeromax_maxscale_Sr, label="Sr90", color='C2', s=8)
 #plt.scatter(Beta_theory['KE'], Y90_Aeromax_theory , label="Y90", color='C0', s=8)
 plt.scatter(Beta_theory['KE'], Beta_theory['combined_per_energy'] * Aeromax_maxscale_theory, label="Theory", s=10, color='C1')
@@ -361,7 +361,7 @@ ke_at_max_counts_LASP = LASP_spectrum['KE'][max_counts_index_LASP]
 max_counts_index_Aero = np.argmax(Aero_data['countrate_per_MeV'])
 ke_at_max_counts_Aero = Aero_data['KE'][max_counts_index_Aero]/1000
 
-plt.figure(figsize=(8, 6))  # Adjust figure size as needed
+plt.figure(figsize=(14, 6))  # Adjust figure size as needed
 plt.scatter(Beta_theory['KE'] - ke_at_max_counts_theory, Beta_theory['Sr90_per_energy'] * Aeromax_maxscale_Sr, label="Sr90", color='C2', s=8)
 plt.scatter(Beta_theory['KE'] - ke_at_max_counts_theory, Beta_theory['combined_per_energy'] * Aeromax_maxscale_theory, label="Theory", s=10, color='C1')
 plt.scatter(LASP_spectrum['KE'] - ke_at_max_counts_LASP, LASP_spectrum['combined'] * Aeromax_maxscale_LASP, label="LASP (scaled)", s=10, color='blue')
@@ -413,12 +413,17 @@ print(f"Location (loc): {loc_fit_hert:.2f}")
 print(f"Scale (scale): {scale_fit_hert:.2f}")
 hert_fit = beta_func(Beta_theory['KE'], *popt_hert)
 
+selected_energies = [1.04,1.06,1.08,1.10,1.12,.915,.655,.87,1.25,1.35]
+selected_indices = np.searchsorted(Beta_theory['KE'], selected_energies)
+
 # Plotting count rate v KE
-plt.figure(figsize=(8, 6))  # Adjust figure size as needed
+plt.figure(figsize=(8, 6))
 plt.scatter(Aero_data['KE']/1000, Aero_data['countrate'], color='C0', marker='*', label='Aerospace')
 plt.plot(Beta_theory['KE'], aero_fit, color='C0', label='Aerospace Fit')
 plt.scatter(Aero_data['KE']/1000, hert_countrate, color='C1', marker='*', label='HERT')
 plt.plot(Beta_theory['KE'], hert_fit, color='C1', label='HERT Fit')
+plt.axvline(x=0.6,color='black',linestyle='--',label='HERT Threshold')
+plt.scatter(Beta_theory['KE'][selected_indices],hert_fit[selected_indices],color='black',marker='o',label='selected energies',zorder=3)
 plt.xlim(0, 2)
 plt.ylim(0, 20000)
 plt.xlabel('Kinetic Energy (MeV)')
@@ -432,16 +437,25 @@ time_to_100_aero = 100/(aero_fit)
 time_to_1000_aero = 1000/(aero_fit)
 time_to_100_hert = 100/(hert_fit)
 time_to_1000_hert = 1000/(hert_fit)
+poisson_100_aero = np.sqrt(100)/time_to_100_aero/aero_fit
+poisson_1000_aero = np.sqrt(1000)/time_to_1000_aero/aero_fit
+poisson_100_hert = np.sqrt(100)/time_to_100_hert/hert_fit
+poisson_1000_hert = np.sqrt(1000)/time_to_1000_hert/hert_fit
 plt.figure(figsize=(8, 6))  # Adjust figure size as needed
 plt.plot(Beta_theory['KE'], time_to_100_aero, color='C0', linestyle='--', label='100 counts (Aero)')
 plt.plot(Beta_theory['KE'], time_to_1000_aero, color='C0', linestyle='-', label='1000 counts (Aero)')
 plt.plot(Beta_theory['KE'], time_to_100_hert, color='C1', linestyle='--', label='100 counts (HERT)')
 plt.plot(Beta_theory['KE'], time_to_1000_hert, color='C1', linestyle='-', label='1000 counts(HERT)')
-plt.axvline(x=0.6,color='r',linestyle='--',label='HERT Threshold')
+plt.errorbar(Beta_theory['KE'][selected_indices], time_to_100_hert[selected_indices], yerr=poisson_100_hert[selected_indices], color='black', marker='o',
+             linestyle='None', capsize=5, label='Selected Energies', zorder=3)
+plt.errorbar(Beta_theory['KE'][selected_indices], time_to_1000_hert[selected_indices], yerr=poisson_1000_hert[selected_indices], color='black', marker='o',
+             linestyle='None', capsize=5, zorder=3)
+plt.axvline(x=0.6,color='black',linestyle='--',label='HERT Threshold')
 plt.xlim(0, 2)
-plt.ylim(0, 8)
+plt.ylim(0, 24)
+plt.yticks(np.arange(0, 25, 3))
 plt.xlabel('Kinetic Energy (MeV)')
-plt.ylabel('Time to 1000 counts (hours)')
+plt.ylabel('Time to counts (hours)')
 plt.title('Count Rate vs KE')
 plt.grid(True)
 plt.legend()
