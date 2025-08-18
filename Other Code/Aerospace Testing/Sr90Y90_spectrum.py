@@ -117,7 +117,7 @@ plt.show()
 #%% Import LASP spectra
 LASP_spectrum = {} # Dictionary to hold LASP data
 
-LASP_spectrum['csv_data'] = np.genfromtxt('C:/Users/Will/Box/HERT_Box/Sr90 Testing/Sr90Y90.csv', delimiter=',', filling_values=0)
+LASP_spectrum['csv_data'] = np.genfromtxt('C:/Users/wzt0020/Box/HERT_Box/Sr90 Testing/Sr90Y90.csv', delimiter=',', filling_values=0)
 LASP_spectrum['KE'] = LASP_spectrum['csv_data'][:, 0]
 LASP_spectrum['Sr90'] = LASP_spectrum['csv_data'][:, 1]/0.02
 LASP_spectrum['Y90'] = LASP_spectrum['csv_data'][:, 2]/0.02
@@ -252,7 +252,7 @@ plt.show()
 #%% Aerospace data
 Aero_data = {} # Dictionary for Aerospace data
 
-Aero_data['csv_data'] = np.genfromtxt('C:/Users/Will/Box/HERT_Box/Aerospace Testing/Aerospace Beta-ray Spectrometer 2025-04-30.csv', delimiter=',', filling_values=0, skip_header=1)
+Aero_data['csv_data'] = np.genfromtxt('C:/Users/wzt0020/Box/HERT_Box/Aerospace Testing/Resources from Aero/Aerospace Beta-ray Spectrometer 2025-04-30.csv', delimiter=',', filling_values=0, skip_header=1)
 Aero_data['channel'] = Aero_data['csv_data'][:, 3]
 Aero_data['FWHM'] = Aero_data['csv_data'][:, 4]
 Aero_data['KE'] = Aero_data['csv_data'][:, 6]
@@ -310,9 +310,8 @@ Beta_theory['Sr90_per_energy'] = Beta_theory['Sr90_normalized'] / 0.01
 Beta_theory['Y90_per_energy'] = Beta_theory['Y90_normalized'] / 0.01
 Beta_theory['combined_per_energy'] = Beta_theory['Sr90_per_energy'] + Beta_theory['Y90_per_energy']
 
-Aero_data['countrate'] = Aero_data['max_counts']/Aero_data['time']
-Aero_data['1bin_keV'] = slope * 1 + intercept
-Aero_data['countrate_per_MeV'] = Aero_data['countrate'] / (Aero_data['1bin_keV']/1000*2)
+Aero_data['countrate'] = Aero_data['max_counts']/(Aero_data['time']/60/60)
+Aero_data['countrate_per_MeV'] = Aero_data['countrate'] / (slope/1000)
 
 intmax_theory_per_E = integrate.trapezoid(Beta_theory['combined_per_energy'], Beta_theory['KE'])
 intmax_Aero_per_E = integrate.trapezoid(Aero_data['countrate_per_MeV'], Aero_data['KE']/1000)
@@ -331,7 +330,7 @@ plt.figure(figsize=(8, 6))  # Adjust figure size as needed
 plt.scatter(Aero_data['KE']/1000, Aero_data['countrate'], color='black', marker='*', label='Aerospace')
 plt.xlim(0, 2)
 plt.xlabel('Kinetic Energy (MeV)')
-plt.ylabel('Count Rate (counts/s)')
+plt.ylabel('Count Rate (counts/hour)')
 plt.title('Count Rate vs KE')
 plt.grid(True)
 plt.legend()
@@ -343,9 +342,10 @@ plt.scatter(Beta_theory['KE'], Beta_theory['Sr90_per_energy'] * Aeromax_maxscale
 plt.scatter(Beta_theory['KE'], Beta_theory['combined_per_energy'] * Aeromax_maxscale_theory, label="Theory", s=10, color='C1')
 plt.scatter(LASP_spectrum['KE'], LASP_spectrum['combined'] * Aeromax_maxscale_LASP, label="LASP (scaled)", s=10, color='blue')
 plt.scatter(Aero_data['KE']/1000, Aero_data['countrate_per_MeV'], color='black', marker='*', label='Aerospace')
+plt.axvline(x=0.6,color='r',linestyle='--',label='HERT Threshold')
 plt.xlim(0, 2)
 plt.xlabel('Kinetic Energy (MeV)')
-plt.ylabel('Count Rate / MeV (counts/s/MeV)')
+plt.ylabel('Count Rate / MeV (counts/hour/MeV)')
 plt.title('Count Rate per MeV vs KE')
 plt.grid(True)
 plt.legend()
@@ -368,8 +368,81 @@ plt.scatter(LASP_spectrum['KE'] - ke_at_max_counts_LASP, LASP_spectrum['combined
 plt.scatter(Aero_data['KE']/1000 - ke_at_max_counts_Aero, Aero_data['countrate_per_MeV'], color='black', marker='*', label='Aerospace')
 plt.xlim(-0.5, 2)
 plt.xlabel('Kinetic Energy (MeV)')
-plt.ylabel('Count Rate / MeV (counts/s/MeV)')
+plt.ylabel('Count Rate / MeV (counts/hour/MeV)')
 plt.title('Count Rate per MeV vs KE centerted at Sr90 peak energy')
+plt.grid(True)
+plt.legend()
+plt.show()
+
+#%% Convert from Aero detector to HERT
+aero_detector = 8e-3
+hert_detector = 9e-3
+
+scale_factor = hert_detector**2 / aero_detector**2
+hert_countrate = Aero_data['countrate'] * scale_factor
+
+from scipy.optimize import curve_fit
+from scipy.stats import beta
+def beta_func(x, A, a, b, loc, scale):
+    return A * beta.pdf(x, a, b, loc=loc, scale=scale)
+
+A_guess = np.max(Aero_data['countrate'])
+a_guess = 5
+b_guess = 2
+loc_guess = np.min(Aero_data['KE']/1000)
+scale_guess = np.max(Aero_data['KE']/1000) - np.min(Aero_data['KE']/1000)
+p0_guess = [A_guess, a_guess, b_guess, loc_guess, scale_guess]
+
+popt_aero, pcov_aero = curve_fit(beta_func, Aero_data['KE']/1000, Aero_data['countrate'], p0=p0_guess)
+A_fit_aero, a_fit_aero, b_fit_aero, loc_fit_aero, scale_fit_aero = popt_aero
+print("Fitted Parameters (Aero):")
+print(f"Amplitude (A): {A_fit_aero:.2f}")
+print(f"Shape (a): {a_fit_aero:.2f}")
+print(f"Shape (b): {b_fit_aero:.2f}")
+print(f"Location (loc): {loc_fit_aero:.2f}")
+print(f"Scale (scale): {scale_fit_aero:.2f}")
+aero_fit = beta_func(Beta_theory['KE'], *popt_aero)
+
+popt_hert, pcov_hert = curve_fit(beta_func, Aero_data['KE']/1000, hert_countrate, p0=p0_guess)
+A_fit_hert, a_fit_hert, b_fit_hert, loc_fit_hert, scale_fit_hert = popt_hert
+print("Fitted Parameters (HERT):")
+print(f"Amplitude (A): {A_fit_hert:.2f}")
+print(f"Shape (a): {a_fit_hert:.2f}")
+print(f"Shape (b): {b_fit_hert:.2f}")
+print(f"Location (loc): {loc_fit_hert:.2f}")
+print(f"Scale (scale): {scale_fit_hert:.2f}")
+hert_fit = beta_func(Beta_theory['KE'], *popt_hert)
+
+# Plotting count rate v KE
+plt.figure(figsize=(8, 6))  # Adjust figure size as needed
+plt.scatter(Aero_data['KE']/1000, Aero_data['countrate'], color='C0', marker='*', label='Aerospace')
+plt.plot(Beta_theory['KE'], aero_fit, color='C0', label='Aerospace Fit')
+plt.scatter(Aero_data['KE']/1000, hert_countrate, color='C1', marker='*', label='HERT')
+plt.plot(Beta_theory['KE'], hert_fit, color='C1', label='HERT Fit')
+plt.xlim(0, 2)
+plt.ylim(0, 20000)
+plt.xlabel('Kinetic Energy (MeV)')
+plt.ylabel('Count Rate (counts/hour)')
+plt.title('Count Rate vs KE')
+plt.grid(True)
+plt.legend()
+plt.show()
+
+time_to_100_aero = 100/(aero_fit)
+time_to_1000_aero = 1000/(aero_fit)
+time_to_100_hert = 100/(hert_fit)
+time_to_1000_hert = 1000/(hert_fit)
+plt.figure(figsize=(8, 6))  # Adjust figure size as needed
+plt.plot(Beta_theory['KE'], time_to_100_aero, color='C0', linestyle='--', label='100 counts (Aero)')
+plt.plot(Beta_theory['KE'], time_to_1000_aero, color='C0', linestyle='-', label='1000 counts (Aero)')
+plt.plot(Beta_theory['KE'], time_to_100_hert, color='C1', linestyle='--', label='100 counts (HERT)')
+plt.plot(Beta_theory['KE'], time_to_1000_hert, color='C1', linestyle='-', label='1000 counts(HERT)')
+plt.axvline(x=0.6,color='r',linestyle='--',label='HERT Threshold')
+plt.xlim(0, 2)
+plt.ylim(0, 8)
+plt.xlabel('Kinetic Energy (MeV)')
+plt.ylabel('Time to 1000 counts (hours)')
+plt.title('Count Rate vs KE')
 plt.grid(True)
 plt.legend()
 plt.show()

@@ -48,6 +48,9 @@ Aero_Bfield = {}
 Aero_Bfield['csv_data'] = np.genfromtxt('C:/Users/Will/Box/HERT_Box/Aerospace Testing/Resources from Aero/Aerospace Beta-ray Spectrometer 2025-04-30.csv', delimiter=',', filling_values=0)
 Aero_Bfield['KE'] = Aero_Bfield['csv_data'][:, 6]
 Aero_Bfield['Bfield'] = Aero_Bfield['csv_data'][:, 1]
+
+KE_Aero = np.sqrt((Aero_Bfield['Bfield']/10000 * q * r / (sc.electron_volt * 1e6) * sc.c)**2 + e_E0**2) -  e_E0
+
 '''
 # Plotting B vs KE
 plt.figure(figsize=(8, 6)) 
@@ -77,8 +80,8 @@ plt.show()
 
 # Plotting B vs KE for both datasets on the same figure
 plt.figure(figsize=(8, 6))
-plt.plot(B*10000, KE, label='Theory')
-plt.plot(Aero_Bfield['Bfield'], Aero_Bfield['KE'] / 1000, label='Measured')  # Convert KE to MeV and B to G, label added
+plt.scatter(Aero_Bfield['Bfield'], KE_Aero, label='Theory')
+plt.scatter(Aero_Bfield['Bfield'], Aero_Bfield['KE'] / 1000, label='Measured')  # Convert KE to MeV and B to G, label added
 plt.xlabel('Magnetic Field (G)')
 plt.ylabel('Kinetic Energy (MeV)')
 plt.title('Electron Kinetic Energy vs Magnetic Field Strength')
