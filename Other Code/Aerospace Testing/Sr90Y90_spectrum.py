@@ -326,9 +326,11 @@ Y90_Aeromax_theory = Aeromax_scale * Beta_theory['Y90_per_energy']
 Combined_Aeromax_theory = Aeromax_scale * Beta_theory['combined_per_energy']
 
 # Plotting count rate v KE
-plt.figure(figsize=(14, 6))
+plt.figure(figsize=(12, 6))
 plt.scatter(Aero_data['KE']/1000, Aero_data['countrate'], color='black', marker='*', label='Aerospace')
 plt.xlim(0, 2)
+#plt.ylim(10**-0.5, 10**4.5)
+#plt.yscale('log')
 plt.xlabel('Kinetic Energy (MeV)')
 plt.ylabel('Count Rate (counts/hour)')
 plt.title('Count Rate vs KE')
@@ -336,14 +338,15 @@ plt.grid(True)
 plt.legend()
 plt.show()
 
-plt.figure(figsize=(14, 6))
-plt.scatter(Beta_theory['KE'], Beta_theory['Sr90_per_energy'] * Aeromax_maxscale_Sr, label="Sr90", color='C2', s=8)
+plt.figure(figsize=(8, 6))
+#plt.scatter(Beta_theory['KE'], Beta_theory['Sr90_per_energy'] * Aeromax_maxscale_Sr*4, label="Sr90", color='C2', s=8)
 #plt.scatter(Beta_theory['KE'], Y90_Aeromax_theory , label="Y90", color='C0', s=8)
-plt.scatter(Beta_theory['KE'], Beta_theory['combined_per_energy'] * Aeromax_maxscale_theory, label="Theory", s=10, color='C1')
-plt.scatter(LASP_spectrum['KE'], LASP_spectrum['combined'] * Aeromax_maxscale_LASP, label="LASP (scaled)", s=10, color='blue')
+plt.scatter(Beta_theory['KE'], Beta_theory['combined_per_energy'] * Aeromax_maxscale_theory*4, label="Theory", s=10, color='C1')
+#plt.scatter(LASP_spectrum['KE'], LASP_spectrum['combined'] * Aeromax_maxscale_LASP*2, label="LASP (scaled)", s=10, color='blue')
 plt.scatter(Aero_data['KE']/1000, Aero_data['countrate_per_MeV'], color='black', marker='*', label='Aerospace')
-plt.axvline(x=0.6,color='r',linestyle='--',label='HERT Threshold')
+#plt.axvline(x=0.6,color='r',linestyle='--',label='HERT Threshold')
 plt.xlim(0, 2)
+#plt.yscale('log')
 plt.xlabel('Kinetic Energy (MeV)')
 plt.ylabel('Count Rate / MeV (counts/hour/MeV)')
 plt.title('Count Rate per MeV vs KE')
@@ -375,8 +378,8 @@ plt.legend()
 plt.show()
 
 #%% Convert from Aero detector to HERT
-aero_detector = 8e-3
-hert_detector = 9e-3
+aero_detector = 8e-3 /2
+hert_detector = 18e-3 /2
 
 scale_factor = hert_detector**2 / aero_detector**2
 hert_countrate = Aero_data['countrate'] * scale_factor
@@ -425,7 +428,7 @@ plt.plot(Beta_theory['KE'], hert_fit, color='C1', label='HERT Fit')
 plt.axvline(x=0.6,color='black',linestyle='--',label='HERT Threshold')
 plt.scatter(Beta_theory['KE'][selected_indices],hert_fit[selected_indices],color='black',marker='o',label='selected energies',zorder=3)
 plt.xlim(0, 2)
-plt.ylim(0, 20000)
+#plt.ylim(0, 20000)
 plt.xlabel('Kinetic Energy (MeV)')
 plt.ylabel('Count Rate (counts/hour)')
 plt.title('Count Rate vs KE')
@@ -446,14 +449,14 @@ plt.plot(Beta_theory['KE'], time_to_100_aero, color='C0', linestyle='--', label=
 plt.plot(Beta_theory['KE'], time_to_1000_aero, color='C0', linestyle='-', label='1000 counts (Aero)')
 plt.plot(Beta_theory['KE'], time_to_100_hert, color='C1', linestyle='--', label='100 counts (HERT)')
 plt.plot(Beta_theory['KE'], time_to_1000_hert, color='C1', linestyle='-', label='1000 counts(HERT)')
-plt.errorbar(Beta_theory['KE'][selected_indices], time_to_100_hert[selected_indices], yerr=poisson_100_hert[selected_indices], color='black', marker='o',
+plt.errorbar(Beta_theory['KE'][selected_indices], time_to_100_hert[selected_indices], yerr=poisson_100_hert[selected_indices]*time_to_100_hert[selected_indices], color='black', marker='o',
              linestyle='None', capsize=5, label='Selected Energies', zorder=3)
-plt.errorbar(Beta_theory['KE'][selected_indices], time_to_1000_hert[selected_indices], yerr=poisson_1000_hert[selected_indices], color='black', marker='o',
+plt.errorbar(Beta_theory['KE'][selected_indices], time_to_1000_hert[selected_indices], yerr=poisson_1000_hert[selected_indices]*time_to_1000_hert[selected_indices], color='black', marker='o',
              linestyle='None', capsize=5, zorder=3)
 plt.axvline(x=0.6,color='black',linestyle='--',label='HERT Threshold')
 plt.xlim(0, 2)
 plt.ylim(0, 24)
-plt.yticks(np.arange(0, 25, 3))
+#plt.yticks(np.arange(0, 25, 3))
 plt.xlabel('Kinetic Energy (MeV)')
 plt.ylabel('Time to counts (hours)')
 plt.title('Count Rate vs KE')

@@ -26,13 +26,14 @@ KE = KE[1:]
 p = np.sqrt((KE + e_E0)**2 - e_E0**2) / sc.c 
 
 # Assuming the object and image slits are limiters (not source or detector)
-a_O = 15.1e-3       # object slit aperture (meters)
-a_I = 15.1e-3       # image slit aperture (meters)
+a_O = 5.5e-3       # object slit aperture (meters)
+a_I = 8e-3       # image slit aperture (meters)
 r = 191e-3 # radius of curverture in mm
 
 d_O = 507.405e-3    # Distance from object slit to magnetic field (meters)
 d_B = 299.6e-3      # Effective length in magnetic field (meters)
 d_I = 602.693e-3    # Distance from magnetic field to image slit (meters)
+d_D = 500e-3        # Distance from image slit to detector (meters)
 
 # Using full slit width as boundary
 r_min_abs = (d_B- 1/2 * min(a_O,a_I)) / (np.pi / 2)
@@ -49,6 +50,7 @@ KE_min_abs = np.sqrt((p_min_abs * sc.c)**2 + e_E0**2) - e_E0
 KE_max_abs = np.sqrt((p_max_abs * sc.c)**2 + e_E0**2) - e_E0
 Energy_resolution_abs = (KE_max_abs - KE_min_abs) / KE
 
+'''
 plt.figure(figsize=(8, 6)) 
 plt.plot(KE, 1/Energy_resolution_abs, label=f"Slit = {min(a_O,a_I) * 10**3:.1f} mm")
 plt.xlabel('Kinetic Energy (MeV)')
@@ -56,9 +58,10 @@ plt.ylabel('Resolving Power (E/$\Delta$E) ')
 plt.grid(True)
 plt.legend()
 plt.show()
+'''
 
 plt.figure(figsize=(8, 6)) 
-plt.plot(KE, Energy_resolution_abs, label=f"Slit = {min(a_O,a_I) * 10**3:.1f} mm")
+plt.plot(KE, Energy_resolution_abs, color='C1', label=f"Slit = {min(a_O,a_I) * 10**3:.1f} mm")
 plt.xlabel('Kinetic Energy (MeV)')
 plt.ylabel('Energy Resolution ($\Delta$E/E) ')
 plt.grid(True)
@@ -94,21 +97,6 @@ print(f"R^2 value: {r_squared:.4f}")
 
 Aero_data['energy_resolution'] = Aero_data['FWHM']/Aero_data['channel']
 
-# Plotting energy resolution v channel
-fig, ax1 = plt.subplots(figsize=(8, 6))  # Adjust figure size as needed
-ax1.plot(Aero_data['channel'], Aero_data['energy_resolution'])
-ax1.set_xlabel('Channel Number')
-ax1.set_ylabel(r'Energy Resolution $\Delta E/E$')
-ax1.set_title('Energy Resolution vs Channel Number')
-ax1.grid(True)
-# Get the limits from the first x-axis
-ax1.set_xlim(0, 2000)
-# Create the second x-axis
-ax2 = ax1.twiny()  # Create a twin axis sharing the y-axis
-ax2.set_xlim(intercept, slope * 2000 + intercept)
-ax2.set_xlabel('Kinetic Energy (keV)')  # Label the top x-axis
-plt.show()
-
 #%% Attempting to find trend in spectrometer manual energy resolution
 object_slit = np.array((0.5, 3, 3, 5, 5))
 image_slit = np.array((0.4, 3.2, 4.6, 4.8, 5.9))
@@ -140,15 +128,6 @@ plt.show()
 KE_aero = Aero_data['KE']/1000
 # Relativistic momentum of the electron
 p_aero = np.sqrt((KE_aero + e_E0)**2 - e_E0**2) / sc.c 
-
-# Assuming the object and image slits are limiters (not source or detector)
-a_O = 15.1e-3       # object slit aperture (meters)
-a_I = 8e-3       # image slit aperture (meters)
-r = 191e-3 # radius of curverture in mm
-
-d_O = 507.405e-3    # Distance from object slit to magnetic field (meters)
-d_B = 299.6e-3      # Effective length in magnetic field (meters)
-d_I = 602.693e-3    # Distance from magnetic field to image slit (meters)
 
 # Using full slit width as boundary
 r_min_aero = (d_B- 1/2 * min(a_O,a_I)) / (np.pi / 2)
@@ -204,10 +183,19 @@ plt.show()
 
 #%% Plotting FWHM
 plt.figure(figsize=(8, 6)) 
-plt.scatter(KE_aero, slope * Aero_data['FWHM'] + intercept)
-plt.scatter(KE_aero, (KE_max_aero - KE_min_aero)*1000)
-plt.xlabel('Kinetic Energy (MeV)')
-plt.ylabel('FWHM')
+plt.scatter(KE_aero*1000, slope * Aero_data['FWHM'], label='Aero')
+plt.plot(KE_aero*1000, (KE_max_aero - KE_min_aero)*1000, color='C1', label='Theory')
+plt.xlabel('Kinetic Energy (keV)')
+plt.ylabel('FWHM (keV)')
 plt.grid(True)
 plt.legend()
 plt.show()
+
+#%% Determine image width required for specified energy resolution
+KE_min_test = 1.02
+KE_max_test = 1.06
+KE_test = 1.04
+test_resolution = (KE_max_test-KE_min_test)/KE_test
+
+p_min_test = np.sqrt((KE_min_test + e_E0)**2 - e_E0**2)/sc.c
+p_max_test = np.sqrt((KE_max_test + e_E0)**2 - e_E0**2)/sc.c
