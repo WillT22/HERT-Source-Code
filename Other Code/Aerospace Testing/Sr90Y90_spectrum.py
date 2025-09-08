@@ -381,7 +381,8 @@ plt.show()
 aero_detector = 8e-3 /2
 hert_detector = 18e-3 /2
 
-scale_factor = hert_detector**2 / aero_detector**2
+#assuming that aero and HERT see only one source (the central source)
+scale_factor = 1
 hert_countrate = Aero_data['countrate'] * scale_factor
 
 from scipy.optimize import curve_fit
@@ -419,6 +420,7 @@ hert_fit = beta_func(Beta_theory['KE'], *popt_hert)
 selected_energies = [1.04,1.06,1.08,1.10,1.12,.915,.655,.87,1.25,1.35]
 selected_indices = np.searchsorted(Beta_theory['KE'], selected_energies)
 
+
 # Plotting count rate v KE
 plt.figure(figsize=(8, 6))
 plt.scatter(Aero_data['KE']/1000, Aero_data['countrate'], color='C0', marker='*', label='Aerospace')
@@ -435,7 +437,7 @@ plt.title('Count Rate vs KE')
 plt.grid(True)
 plt.legend()
 plt.show()
-
+'''
 time_to_100_aero = 100/(aero_fit)
 time_to_1000_aero = 1000/(aero_fit)
 time_to_100_hert = 100/(hert_fit)
@@ -445,8 +447,8 @@ poisson_1000_aero = np.sqrt(1000)/time_to_1000_aero/aero_fit
 poisson_100_hert = np.sqrt(100)/time_to_100_hert/hert_fit
 poisson_1000_hert = np.sqrt(1000)/time_to_1000_hert/hert_fit
 plt.figure(figsize=(8, 6))  # Adjust figure size as needed
-plt.plot(Beta_theory['KE'], time_to_100_aero, color='C0', linestyle='--', label='100 counts (Aero)')
-plt.plot(Beta_theory['KE'], time_to_1000_aero, color='C0', linestyle='-', label='1000 counts (Aero)')
+#plt.plot(Beta_theory['KE'], time_to_100_aero, color='C0', linestyle='--', label='100 counts (Aero)')
+#plt.plot(Beta_theory['KE'], time_to_1000_aero, color='C0', linestyle='-', label='1000 counts (Aero)')
 plt.plot(Beta_theory['KE'], time_to_100_hert, color='C1', linestyle='--', label='100 counts (HERT)')
 plt.plot(Beta_theory['KE'], time_to_1000_hert, color='C1', linestyle='-', label='1000 counts(HERT)')
 plt.errorbar(Beta_theory['KE'][selected_indices], time_to_100_hert[selected_indices], yerr=poisson_100_hert[selected_indices]*time_to_100_hert[selected_indices], color='black', marker='o',
@@ -459,7 +461,87 @@ plt.ylim(0, 24)
 #plt.yticks(np.arange(0, 25, 3))
 plt.xlabel('Kinetic Energy (MeV)')
 plt.ylabel('Time to counts (hours)')
-plt.title('Count Rate vs KE')
+plt.grid(True)
+plt.legend()
+plt.show()
+'''
+
+#%% Plot counts as function of energy for a given time
+# Calculate when Poisson uncertainty is less than 10%
+poisson_error = np.array((0.1,0.032,0.01))
+poisson_count = (1/poisson_error)**2
+plt.figure(figsize=(8, 6))  # Adjust figure size as needed
+plt.plot(Beta_theory['KE'], hert_fit, label='1 hour')
+plt.plot(Beta_theory['KE'], hert_fit*10, label='10 hours')
+plt.plot(Beta_theory['KE'], hert_fit*24, label='24 hours')
+plt.errorbar(Beta_theory['KE'][selected_indices], hert_fit[selected_indices], yerr=np.sqrt(hert_fit[selected_indices]), color='C0', marker='o',
+             linestyle='None', capsize=5, zorder=3)
+plt.errorbar(Beta_theory['KE'][selected_indices], hert_fit[selected_indices]*10, yerr=np.sqrt(hert_fit[selected_indices]*10), color='C1', marker='o',
+             linestyle='None', capsize=5, zorder=3)
+plt.errorbar(Beta_theory['KE'][selected_indices], hert_fit[selected_indices]*24, yerr=np.sqrt(hert_fit[selected_indices]*24), color='C2', marker='o',
+             linestyle='None', capsize=5, zorder=3)
+# 10**2 counts is 10%, 10**3 counts is 3.2%, 10**4 counts is 1%
+plt.axhline(y=poisson_count[0],color='black',linestyle=':', label=f'{poisson_error[0]*100:.0f}% Error')
+plt.axhline(y=poisson_count[1],color='black',linestyle='-.', label=f'{poisson_error[1]*100:.0f}% Error')
+plt.axhline(y=poisson_count[2],color='black',linestyle='-', label=f'{poisson_error[2]*100:.0f}% Error')
+plt.axvline(x=0.6,color='black',linestyle='--',label='HERT Threshold')
+plt.xlim(0, 2)
+plt.ylim(10**0, 10**6)
+#plt.yticks(np.arange(0, 25, 3))
+plt.yscale('log')
+plt.xlabel('Kinetic Energy (MeV)')
+plt.ylabel('# Counts')
+plt.grid(True)
+plt.legend()
+plt.show()
+
+#%% Figure out the time it takes to reach the Poisson error
+time_to_error = poisson_count/(hert_fit)
+plt.figure(figsize=(8, 6))  # Adjust figure size as needed
+plt.plot(time_to_error, Beta_theory['KE'], color='C0', label=f'{poisson_error*100:.0f}% Error')
+plt.axhline(y=0.6,color='black',linestyle='--',label='HERT Threshold')
+plt.ylim(0, 2)
+plt.xlim(0, 25)
+plt.xticks(np.arange(0, 26, 3))
+plt.xlabel(f'Time to % Error (hours)')
+plt.ylabel('Kinetic Energy (MeV)')
+plt.grid(True)
+plt.legend()
+plt.show()
+
+selected_times = [1,10,24]
+time_indices = np.searchsorted(time_to_error, selected_times)
+max_energies = Beta_theory['KE'][time_indices]
+
+#%% Replot Time to Counts as a function of KE
+time_to_100_hert = 100/(hert_fit)
+poisson_100_hert = np.sqrt(100)/time_to_100_hert/hert_fit
+plt.figure(figsize=(8, 6))  # Adjust figure size as needed
+plt.plot(Beta_theory['KE'], time_to_100_hert, color='C1', label='100 counts (HERT)')
+plt.errorbar(Beta_theory['KE'][selected_indices], time_to_100_hert[selected_indices], yerr=poisson_100_hert[selected_indices]*time_to_100_hert[selected_indices], color='C1', marker='o',
+             linestyle='None', capsize=5, label='Selected Energies', zorder=3)
+plt.axvline(x=0.6,color='black',linestyle='--',label='HERT Threshold')
+plt.xlim(0, 2)
+plt.ylim(0, 25)
+plt.yticks(np.arange(0, 26, 3))
+plt.xlabel('Kinetic Energy (MeV)')
+plt.ylabel('Time to counts (hours)')
+plt.grid(True)
+plt.legend()
+plt.show()
+
+time_to_100_hert = 100/(hert_fit)
+poisson_100_hert = np.sqrt(100)/time_to_100_hert/hert_fit
+plt.figure(figsize=(8, 6))  # Adjust figure size as needed
+plt.plot(Beta_theory['KE'], time_to_100_hert, color='C1', label='100 counts (HERT)')
+plt.errorbar(Beta_theory['KE'][selected_indices], time_to_100_hert[selected_indices], yerr=poisson_100_hert[selected_indices]*time_to_100_hert[selected_indices], color='C1', marker='o',
+             linestyle='None', capsize=5, label='Selected Energies', zorder=3)
+plt.axvline(x=0.6,color='black',linestyle='--',label='HERT Threshold')
+plt.xlim(0, 2)
+plt.ylim(0, 3.5)
+#plt.yticks(np.arange(0, 26, 3))
+plt.xlabel('Kinetic Energy (MeV)')
+plt.ylabel('Time to counts (hours)')
 plt.grid(True)
 plt.legend()
 plt.show()
