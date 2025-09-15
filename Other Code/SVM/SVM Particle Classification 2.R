@@ -170,8 +170,8 @@ prop.table(table(predict = radial_predictions, truth = test_data[test_data$Detec
 
 
 ### Simplified Linear SVM ###
-svm_linearsi <- svm(Particle_Type ~ Detector1+Detector2+Detector3+Detector4+Detector9,
-                    data = training_data, 
+svm_linearsi <- svm(Particle_Type ~ Detector1+Detector2,
+                    data = training_data_sample2, 
                     kernel = "linear", scale=FALSE, cost = 10)
 # Print a summary of the model
 summary(svm_linearsi)
@@ -188,10 +188,7 @@ prop.table(table(predict = linearsi_test, truth = test_data[, 11]),2) * 100
 # Test the simplified hyperplane
 linearsi_hp_test <- factor((linearsi_hp_coefs[1]
                                 + linearsi_hp_coefs[2] * test_data$Detector1
-                                + linearsi_hp_coefs[3] * test_data$Detector2
-                                + linearsi_hp_coefs[4] * test_data$Detector3
-                                + linearsi_hp_coefs[5] * test_data$Detector4
-                                + linearsi_hp_coefs[6] * test_data$Detector9)>0,
+                                + linearsi_hp_coefs[3] * test_data$Detector2)>0,
                              levels = c(TRUE, FALSE), labels = c("Electron", "Proton"))
 prop.table(table(predict=linearsi_hp_test, truth= test_data[,11]),2) * 100
 
@@ -484,12 +481,12 @@ density_fn_electron <- function(data, mapping, pt, ...) {
   di_emax <- max(returned_data[[2]][,map_i])
   d_eratio <- di_emax/d1_emax
   
-  e_colors <- c(rainbow(num_test_rows*2)[1:floor(num_test_rows/ep_ratio)],NA)
+  e_colors <- c(rainbow(num_test_rows*2)[1:floor(num_test_rows/ep_ratio)])
   
   ggplot(data = data[data$Particle_Type == "Electron",], mapping = mapping) +
     stat_density2d(aes(fill = ..density..), geom = "tile", contour = FALSE, h = c(1, 1)) +
     scale_fill_gradientn(colours = rev(e_colors), name = "Electron Density") +
-    geom_abline(intercept = -linear_hp_coefs[1] / linear_hp_coefs[map_j + 1],
+    geom_abline(intercept = -sum(linear_hp_coefs[-c(map_j+1,map_i+1)]) / linear_hp_coefs[map_j + 1],
                 slope = -linear_hp_coefs[map_i + 1] / linear_hp_coefs[map_j + 1], lwd = 2, lty = 1) +
     scale_x_continuous(limits = c(0, 16)) +
     scale_y_continuous(limits = c(0, 16)) +
@@ -508,13 +505,15 @@ density_fn_proton <- function(data, mapping, pt, ...) {
   di_pmax <- max(returned_data[[3]][,map_j])
   d_pratio <- di_pmax/d1_pmax
   
-  p_colors <- c(rainbow(num_test_rows*2)[(num_test_rows*7/10+ceiling(num_test_rows/ep_ratio+(1-d_pratio)*ep_ratio)):
-                                           (num_test_rows*7/10+ceiling(num_test_rows/ep_ratio)+ep_ratio)],NA)
+  p_colors <- c(rainbow(num_test_rows*2)[(num_test_rows*7/10+ceiling(num_test_rows/ep_ratio)):
+                                           (num_test_rows*7/10+ceiling(num_test_rows/ep_ratio)+e_colors_length)])
+  #p_colors <- c(rainbow(num_test_rows*2)[(num_test_rows*7/10+ceiling(num_test_rows/ep_ratio+(1-d_pratio)*ep_ratio)):
+  #                                         (num_test_rows*7/10+ceiling(num_test_rows/ep_ratio)+ep_ratio)])
   
   ggplot(data = data[data$Particle_Type == "Proton",], mapping = mapping) +
     stat_density2d(aes(fill = ..density..), geom = "tile", contour = FALSE, h = c(1, 1)) +
-    scale_fill_gradientn(colours = rev(p_colors), name = "Proton Density") +
-    geom_abline(intercept = -linear_hp_coefs[1] / linear_hp_coefs[map_j + 1],
+    scale_fill_gradientn(colours = p_colors, name = "Proton Density") +
+    geom_abline(intercept = -sum(linear_hp_coefs[-c(map_j+1,map_i+1)]) / linear_hp_coefs[map_j + 1],
                 slope = -linear_hp_coefs[map_i + 1] / linear_hp_coefs[map_j + 1], lwd = 2, lty = 1) +
     scale_x_continuous(limits = c(0, 16)) +
     scale_y_continuous(limits = c(0, 16)) +
@@ -540,8 +539,8 @@ diag_fn <- function(data, mapping, pt, ...) {
   colnames(plot_data) <- c("midpoints","ecounts", "pcounts")
   
   ggplot(data = plot_data, aes(midpoints)) +
-    geom_line(aes(y = ecounts/sum(ecounts)), colour = rainbow(num_test_rows*2)[(num_test_rows*7/10+ceiling(num_test_rows/ep_ratio))+floor(num_test_rows/ep_ratio)], lwd = 2) + 
-    geom_line(aes(y = pcounts/sum(pcounts)), colour = rainbow(num_test_rows*2)[1], lwd = 2) +
+    geom_line(aes(y = pcounts/sum(pcounts)), colour = rainbow(num_test_rows*2)[(num_test_rows*7/10+ceiling(num_test_rows/ep_ratio))+floor(num_test_rows/ep_ratio)], lwd = 2) + 
+    geom_line(aes(y = ecounts/sum(ecounts)), colour = rainbow(num_test_rows*2)[1], lwd = 2) +
     scale_x_continuous(limits = c(0, 16)) +
     scale_y_continuous(limits = c(0, 0.4)) +
     theme_few()
@@ -564,14 +563,16 @@ ep_ratio = returned_data[[4]]
 e_colors_length <- floor(num_test_rows/ep_ratio)
 e_colors <- c(rainbow(num_test_rows*2)[1:floor(num_test_rows/ep_ratio)])
 p_colors <- c(rainbow(num_test_rows*2)[(num_test_rows*7/10+ceiling(num_test_rows/ep_ratio)):
-                                         (num_test_rows*7/10+ceiling(num_test_rows/ep_ratio)+e_colors_length)],NA)
+                                         (num_test_rows*7/10+ceiling(num_test_rows/ep_ratio)+e_colors_length)])
 
 v <- ggplot(faithful[1:100,], aes(waiting, eruptions, fill = (returned_data[[2]][,1]/sum(returned_data[[2]][,1])))) +
   geom_tile()
 v + scale_fill_gradientn(colours = rev(e_colors), name = "Electron Density   ") + 
   theme(legend.key.width  = unit(5, "lines"), legend.position = "bottom",
         legend.text = element_text(size = 26), legend.title = element_text(size = 26))
-v + scale_fill_gradientn(colours = p_colors, name = "Proton Density   ") + 
-  theme(legend.key.width  = unit(5, "lines"), legend.position = "bottom",
+v <- ggplot(faithful[1:100,], aes(waiting, eruptions, fill = (returned_data[[3]][,1]/sum(returned_data[[3]][,1])))) +
+  geom_tile()
+v + scale_fill_gradientn(colours = p_colors, name = "Proton Density   ", breaks = c(0, 0.2)) + 
+  theme(legend.key.width  = unit(5/ep_ratio, "lines"), legend.position = "bottom",
         legend.text = element_text(size = 26), legend.title = element_text(size = 26))
 
