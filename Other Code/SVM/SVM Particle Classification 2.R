@@ -30,8 +30,8 @@ imported_electron_data$Particle_Type <- as.factor("Electron")
 imported_proton_data$Particle_Type <- as.factor("Proton")
 
 # Apply the condition to the full data sets first.
-electron_data_filtered <- imported_electron_data[imported_electron_data$Detector1 > 0.1, ]
-proton_data_filtered   <- imported_proton_data[imported_proton_data$Detector1 > 0.1, ]
+electron_data_filtered <- imported_electron_data[imported_electron_data$Detector1 >= 0.1, ]
+proton_data_filtered   <- imported_proton_data[imported_proton_data$Detector1 >= 0.1, ]
 rm(imported_electron_data)
 rm(imported_proton_data)
 
@@ -75,6 +75,11 @@ training_data$Particle_Type <- factor(training_data$Particle_Type, levels = c("E
 validation_data$Particle_Type <- factor(validation_data$Particle_Type, levels = c("Electron", "Proton"))
 test_data$Particle_Type <- factor(test_data$Particle_Type, levels = c("Electron", "Proton"))
 
+#Identify ideal HERT test data
+HERT_data_electrons <- test_data[test_data$Particle_Type=='Electron'&test_data$E_Inc>=0.6&test_data$E_Inc<=7.5,]
+HERT_data_protons <- test_data[test_data$Particle_Type=='Proton'&test_data$E_Inc>=14&test_data$E_Inc<=70,]
+HERT_data <- rbind(HERT_data_electrons, HERT_data_protons)
+
 # Combine 10% of data
 set.seed(1)
 training_data_sample    <- training_data[sample(1:nrow(training_data), 
@@ -108,9 +113,9 @@ print(weights)
 # Get the support vectors as a data frame
 linear_sv <- svm_linear$SV
 # Predict to validate model
-linear_predictions <- predict(svm_linear, test_data[test_data$Detector1>0.1,])
+linear_predictions <- predict(svm_linear, HERT_data)
 # Print predictions
-prop.table(table(predict = linear_predictions, truth = test_data[test_data$Detector1>0.1, 11]),2)*100
+prop.table(table(predict = linear_predictions, truth = HERT_data[, 11]),2)*100
 
 # Test the hyperplane
 linear_hp_test <- factor((linear_hp_coefs[1]
@@ -163,9 +168,9 @@ summary(svm_radial)
 # Get the support vectors as a data frame
 radial_sv <- svm_radial$SV
 # Predict to validate model
-radial_predictions <- predict(svm_radial, test_data[test_data$Detector1>0.1,])
+radial_predictions <- predict(svm_radial, HERT_data)
 # Print predictions (0: proton, 1: electron)
-prop.table(table(predict = radial_predictions, truth = test_data[test_data$Detector1>0.1, 11]),2)*100
+prop.table(table(predict = radial_predictions, truth = HERT_data[, 11]),2)*100
 
 
 
@@ -195,7 +200,8 @@ prop.table(table(predict=linearsi_hp_test, truth= test_data[,11]),2) * 100
 ### Slant and logic equations from Khoo 2022 for REPTile-2 ###
 REPTile2_data_electrons <- test_data[test_data$Particle_Type=='Electron'&test_data$E_Inc>=0.3&test_data$E_Inc<=4,]
 REPTile2_data_protons <- test_data[test_data$Particle_Type=='Proton'&test_data$E_Inc>=6.7&test_data$E_Inc<=35,]
-REPTile2_data <- rbind(REPT_data_electrons, REPT_data_protons)
+REPTile2_data <- rbind(REPTile2_data_electrons, REPTile2_data_protons)
+REPTile2_data <- test_data
 
 slant_eq_D12 <- (REPTile2_data$Detector1/2.8 + REPTile2_data$Detector2/4.2)>1
 slant_eq_D34 <- (REPTile2_data$Detector3/13.5 + REPTile2_data$Detector2/30)>1
@@ -252,6 +258,7 @@ print(REPTile2_logic)
 REPT_data_electrons <- test_data[test_data$Particle_Type=='Electron'&test_data$E_Inc>=1.6&test_data$E_Inc<=18.9,]
 REPT_data_protons <- test_data[test_data$Particle_Type=='Proton'&test_data$E_Inc>=18&test_data$E_Inc<=75,]
 REPT_data <- rbind(REPT_data_electrons, REPT_data_protons)
+REPT_data <- test_data
 # Creating initial logic functions
 Rxy <- function(x,y){
   Rxy_result <- rep(0, length(REPT_data$Detector1))
@@ -486,7 +493,7 @@ density_fn_electron <- function(data, mapping, pt, ...) {
   ggplot(data = data[data$Particle_Type == "Electron",], mapping = mapping) +
     stat_density2d(aes(fill = ..density..), geom = "tile", contour = FALSE, h = c(1, 1)) +
     scale_fill_gradientn(colours = rev(e_colors), name = "Electron Density") +
-    geom_abline(intercept = -sum(linear_hp_coefs[-c(map_j+1,map_i+1)]) / linear_hp_coefs[map_j + 1],
+    geom_abline(intercept = -sum(c(linear_hp_coefs[1],1.05*linear_hp_coefs[-c(1,map_j+1,map_i+1)])) / linear_hp_coefs[map_j + 1],
                 slope = -linear_hp_coefs[map_i + 1] / linear_hp_coefs[map_j + 1], lwd = 2, lty = 1) +
     scale_x_continuous(limits = c(0, 16)) +
     scale_y_continuous(limits = c(0, 16)) +
@@ -513,7 +520,7 @@ density_fn_proton <- function(data, mapping, pt, ...) {
   ggplot(data = data[data$Particle_Type == "Proton",], mapping = mapping) +
     stat_density2d(aes(fill = ..density..), geom = "tile", contour = FALSE, h = c(1, 1)) +
     scale_fill_gradientn(colours = p_colors, name = "Proton Density") +
-    geom_abline(intercept = -sum(linear_hp_coefs[-c(map_j+1,map_i+1)]) / linear_hp_coefs[map_j + 1],
+    geom_abline(intercept = -sum(c(linear_hp_coefs[1],1.05*linear_hp_coefs[-c(1,map_j+1,map_i+1)])) / linear_hp_coefs[map_j + 1],
                 slope = -linear_hp_coefs[map_i + 1] / linear_hp_coefs[map_j + 1], lwd = 2, lty = 1) +
     scale_x_continuous(limits = c(0, 16)) +
     scale_y_continuous(limits = c(0, 16)) +
@@ -542,13 +549,13 @@ diag_fn <- function(data, mapping, pt, ...) {
     geom_line(aes(y = pcounts/sum(pcounts)), colour = rainbow(num_test_rows*2)[(num_test_rows*7/10+ceiling(num_test_rows/ep_ratio))+floor(num_test_rows/ep_ratio)], lwd = 2) + 
     geom_line(aes(y = ecounts/sum(ecounts)), colour = rainbow(num_test_rows*2)[1], lwd = 2) +
     scale_x_continuous(limits = c(0, 16)) +
-    scale_y_continuous(limits = c(0, 0.4)) +
+    scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, by = 0.2)) +
     theme_few()
 }
 
 ggpairs(test_data_plot,
         columns = c(1:8),
-        #columns = c(1, 2, 4, 8),
+        #columns = c(1, 2, 3, 8),
         #columns = c(1, 2),
         upper = list(continuous = density_fn_proton),
         diag = list(continuous = diag_fn),
