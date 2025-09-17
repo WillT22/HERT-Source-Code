@@ -1,6 +1,7 @@
 % Least Squares and Count Rate Analysis for HERT
 % Last modified: 5/29/2024
 close all
+cd 'C:\Users\wzt0020\Box\HERT_Box\Inverse Problem\FS_figures'
 %warning('off','last')
 
 %% Inputs
@@ -24,14 +25,14 @@ energy_channels = readmatrix('E:\HERT_Drive\Matlab Main\Result\channel_select\el
 %flux = ones(1,bins)*10^3;
 
 % Exponential % Vary coefficient from 0.2 to 2
-%flux = 10^6 * exp(-(energy_midpoints)/0.3);
+%flux = 10^6 * exp(-(energy_midpoints)/2);
 
 % BOT/Inverse %
 %flux = 1/0.01 * exp(log(energy_midpoints.^-0.69))+ 1/0.001 .* exp(-(log(energy_midpoints)-log(2.365)).^2./(2*0.14));
-%flux = 1/0.001 * exp(log(energy_midpoints.^-1.2))+ 1/0.001 .* exp(-(log(energy_midpoints)-log(4)).^2./(2*0.08));
+flux = 1/0.001 * exp(log(energy_midpoints.^-1.2))+ 1/0.001 .* exp(-(log(energy_midpoints)-log(4)).^2./(2*0.08));
 
 % Power Law % alpha can be between 2 and 6
-flux = 10^5 .* energy_midpoints.^-2.8;
+%flux = 10^5 .* energy_midpoints.^-2;
 
 % Gaussian %
 %flux = 1/0.000001 .* exp(-(log(energy_midpoints)-log(2)).^2./(2*0.004));
@@ -63,7 +64,7 @@ inv_A = pinv(A);                    % take pseudo inverse (not square matrix)
 flux_lin = inv_A * hits_whole_EC;  % find flux from linear algebra
 
 % Plot
-%
+%{
 f = figure;
 f.Position = [0 0 1200 900];
 hold on
@@ -74,10 +75,10 @@ plot(energy_midpoints,flux_lin,'.', 'Color', 'r','MarkerSize',12);
 xline(0.6, '--','color', [.5 .5 .5],'LineWidth',2);
 
 % Plot Bowtie points
-%plot(E_eff,j_nom,'o', 'Color', '#0072BD','MarkerSize',10,'LineWidth',2);
+plot(E_eff,j_nom,'o', 'Color', '#0072BD','MarkerSize',10,'LineWidth',2);
 
-%legend({['Acutal Flux'],['Basic Linear Regression'],['Low Energy Threshold'],['Bowtie']},...
-%                 'Location', 'northeast','FontSize',18);
+legend({['Acutal Flux'],['Basic Linear Regression'],['Low Energy Threshold'],['Bowtie']},...
+                 'Location', 'northeast','FontSize',18);
 
 textsize = 24;
 set(gca, 'FontSize', textsize)
@@ -90,7 +91,7 @@ xticks((0:1:8))
 ylabel('Flux  (# cm^{-2} sr^{-1} s^{-1} MeV^{-1})','FontSize',textsize)
 xlabel('Energy (MeV)','FontSize',textsize)
 hold off
-%
+%}
 
 %% Least Squares Function for Energy Channels (Selesnick/Khoo) %%
 % Initialize variables
@@ -112,7 +113,7 @@ hold off
     sigma_m = 2000; % Exp = 2000   BOT = 2000,   POW = ? Use same as exp for alpha=2-4
 
     % Initialize smoothness parameter
-    delta = 50; % Exp = 50  BOT = 4,   POW = ?
+    delta = 4; % Exp = 50  BOT = 4,   POW = ?
 
     % Create C_m covariance matrix, covariance of model/guess
     Cm = sigma_m.^2 .* exp(-((energy_midpoints' - energy_midpoints).^2) ./ (2 * delta.^2));
@@ -185,7 +186,7 @@ plot(energy_midpoints(bound_plot),flux(bound_plot), 'Color', 'black','LineWidth'
 %plot(energy_midpoints(bounds),M_energy_bin(bounds)./(4*pi^2*r_source^2)./bin_width(bounds),'.', 'Color', 'black','MarkerSize',8);
 
 % Plot Bowtie points
-%plot(E_eff,j_nom,'o', 'Color', '#0072BD','MarkerSize',10,'LineWidth',2);
+plot(E_eff,j_nom,'o', 'Color', '#0072BD','MarkerSize',10,'LineWidth',2);
 
 % Plot LSQR Selesnick Method
 % Plot calculated fit
@@ -194,11 +195,11 @@ plot(energy_midpoints(bound_plot),flux_lsqr(bound_plot), 'Color', 'r', 'LineWidt
 plot(energy_midpoints(bound_plot),flux_lsqr(bound_plot)+jsig(bound_plot),'r--','LineWidth',2);
 plot(energy_midpoints(bound_plot),flux_lsqr(bound_plot)-jsig(bound_plot),'r--','LineWidth',2);
 
-legend({['Acutal Flux'],['LSQR'],['Standard Deviation']},...
+legend({['Theoretical Flux'],['Bowtie Analysis'],['LSQR'],['Standard Deviation']},...
                  'Location', 'northeast','FontSize',18);
 
 %legend({['Theoretical Flux'],['Incident Particle Measurement'],['Bowtie Analysis'],['LSQR'],['Standard Deviation']},...
- %                'Location', 'northeast','FontSize',18);
+%                 'Location', 'northeast','FontSize',18);
 
 textsize = 24;
 set(gca, 'FontSize', textsize)
@@ -214,11 +215,19 @@ hold off
 %% Chi Squared Goodness of Fit Test
 null = chi2inv(0.05,size(energy_channels,1)-2); %2 DOF stripped from sigma and delta?
 chi_squared = sum(((d_obs - g_mn(iteration,:)')./sigma_d).^2);
+chi_squared_bowtie = sum(((d_obs - log(j_nom))./sigma_d).^2);
 
 if chi_squared < null
     fprintf("Chi Squared %.6f < Null %.6f \n",chi_squared,null)
     fprintf("Do Not Reject Null Hypotheses (fit is good) \n")
 else
     fprintf("Chi Squared %.6f > Null %.6f \n",chi_squared,null)
+    fprintf("Reject Null Hypotheses (fit is poor) \n")
+end
+if chi_squared_bowtie < null
+    fprintf("Bowtie Chi Squared %.6f < Null %.6f \n",chi_squared_bowtie,null)
+    fprintf("Do Not Reject Null Hypotheses (fit is good) \n")
+else
+    fprintf("Bowtie Chi Squared %.6f > Null %.6f \n",chi_squared_bowtie,null)
     fprintf("Reject Null Hypotheses (fit is poor) \n")
 end

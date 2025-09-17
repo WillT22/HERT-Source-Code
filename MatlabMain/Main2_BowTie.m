@@ -7,9 +7,11 @@ close all
 
 %% Bow Tie Analysis-Selesnick/Blake
 %Changes directory for png of graphs
-cd '..\Bow Tie'
+cd 'E:\HERT_Drive\Matlab Main\Bow Tie'
 
-%geo_EC = readmatrix('E:\HERT_Drive\Matlab Main\Result\geometric_factor_EC.txt');
+geo_EC = readmatrix('E:\HERT_Drive\Matlab Main\Result\geofactor_EC_FS.txt');
+valid_geo_EC = geo_EC(:,1:size(energy_midpoints,2));
+%hits_whole_EC= ones(size(geo_EC,1),1);
 
 %Sets Ei and Range of Eo
 %Ei is the incident energy from the GEANT4 results
@@ -57,7 +59,7 @@ fprintf('\nFull Width at Half Max Values:\n')
 fwhm = zeros(1,length(energy_channels));
 
 for u = 1:length(energy_channels)
-    fwhm(u) = findFWHM(energy_midpoints,geo_EC(u,:));
+    fwhm(u) = findFWHM(energy_midpoints,valid_geo_EC(u,:));
     % Print full width half max values into command window
     fprintf('%.2f - %.2f MeV: %.4f\n',energy_channels(u,1),energy_channels(u,2),fwhm(u))
 end
@@ -73,8 +75,8 @@ for c=1:length(energy_channels)
         
     %Calculates line for each Eo
     for i = 1:length(Eo)
-        valid_geo = ~isnan(geo_EC(c,:));
-        G_int(valid_geo,i,c) = geo_EC(c,valid_geo)'.*J_e(valid_geo,i);
+        valid_geo = ~isnan(valid_geo_EC(c,:));
+        G_int(valid_geo,i,c) = valid_geo_EC(c,valid_geo)'.*J_e(valid_geo,i);
         G_term(:,i,c) = trapz(energy_midpoints,G_int(:,i,c));
         G_E_eff(:,i,c)= G_term(:,i,c).*J_e_inv(:,i);  
     end
@@ -91,14 +93,13 @@ for c=1:length(energy_channels)
     %Finds average intersection point
     E_eff(c) = mean(xi(:,c));
     G_eff_dE(c) = mean(yi(:,c));
-    
-    %Calculate Bin Characteristics
-    Geff(c) = G_eff_dE(c)/fwhm(c);
-    BinWidth(c) = fwhm(c);
 end
+%Calculate Bin Characteristics
+Geff = G_eff_dE./fwhm;
+BinWidth = fwhm;
 
 % Calculate Flux
-j_nom = hits_whole_EC./G_eff_dE;
+j_nom = hits_whole_EC./G_eff_dE';
 
 fprintf('\n');
 
@@ -210,6 +211,7 @@ data_to_export = [energy_channels(Energy_Resolution~=0,:), E_eff(Energy_Resoluti
 % Write the matrix to a text file
 dlmwrite('output.txt', data_to_export, 'delimiter', '\t', 'precision', '%.4f');
 
+%{
 figure
 plot(Energy_Resolution,'xb')
 title('Energy Resolution per Energy Channel')
@@ -239,6 +241,7 @@ legend(['Energy Resolution Requirement'],'Location', 'northeast','NumColumns',8)
 hold off
 effsave = append(date(),' Energy Resolution',' Eo ',num2str(min(Eo)),' to ',num2str(max(Eo)),' MeV','_',addin,num2str(length(energy_channels)),'.png');
 saveas(gcf,effsave)
+%}
 
 %% Write to Text File
 %{
