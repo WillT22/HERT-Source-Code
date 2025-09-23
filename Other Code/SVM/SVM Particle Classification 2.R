@@ -5,6 +5,7 @@ library(ggplot2)
 library(GGally)
 library(ggthemes)
 library(colorBlindness)
+library(pracma)
 
 setwd("C:\\Users\\wzt0020\\Box\\HERT_Box\\Particle Classification")
 
@@ -13,7 +14,6 @@ electron_file <- "E:\\HERT_Drive\\Matlab Main\\Result\\Electron_FS\\Aggregate Da
 proton_file   <- "E:\\HERT_Drive\\Matlab Main\\Result\\Proton_FS\\Aggregate Data\\Aggregate Proton_FS Data.txt"
 
 # Read the data
-### REMINDER: This data has energy deposition < 0.1 set to zero for each detector!
 imported_electron_data <- read.table(electron_file, sep="", skip = 1)
 imported_proton_data   <- read.table(proton_file, sep="", skip = 1)
 
@@ -38,6 +38,10 @@ rm(imported_proton_data)
 # Sum detectors 7 and 8 after the data is filtered.
 electron_data_filtered$Detector7_8_sum <- electron_data_filtered$Detector7 + electron_data_filtered$Detector8
 proton_data_filtered$Detector7_8_sum <- proton_data_filtered$Detector7 + proton_data_filtered$Detector8
+
+cols_to_modify <- names(electron_data_filtered)[!names(electron_data_filtered) %in% c("E_Inc", "Detector7", "Detector8", "Particle_Type")]
+electron_data_filtered[, cols_to_modify][electron_data_filtered[, cols_to_modify] < 0.1] <- 0
+proton_data_filtered[, cols_to_modify][proton_data_filtered[, cols_to_modify] < 0.1] <- 0
 
 # Set the number of rows you want for each data set.
 num_training_rows <- 400000
@@ -66,10 +70,13 @@ write.csv(training_data, "training_data.csv", row.names = FALSE)
 write.csv(validation_data, "validation_data.csv", row.names = FALSE)
 write.csv(test_data, "test_data.csv", row.names = FALSE)
 
+rm(electron_data_filtered)
+rm(proton_data_filtered)
+
 # Read in the saved data frames.
-training_data  <- read.csv("training_data.csv")
-validation_data <- read.csv("validation_data.csv")
-test_data       <- read.csv("test_data.csv")
+# training_data  <- read.csv("training_data.csv")
+# validation_data <- read.csv("validation_data.csv")
+# test_data       <- read.csv("test_data.csv")
 
 training_data$Particle_Type <- factor(training_data$Particle_Type, levels = c("Electron", "Proton"))
 validation_data$Particle_Type <- factor(validation_data$Particle_Type, levels = c("Electron", "Proton"))
@@ -79,6 +86,7 @@ test_data$Particle_Type <- factor(test_data$Particle_Type, levels = c("Electron"
 HERT_data_electrons <- test_data[test_data$Particle_Type=='Electron'&test_data$E_Inc>=0.6&test_data$E_Inc<=7.5,]
 HERT_data_protons <- test_data[test_data$Particle_Type=='Proton'&test_data$E_Inc>=14&test_data$E_Inc<=70,]
 HERT_data <- rbind(HERT_data_electrons, HERT_data_protons)
+HERT_data <- test_data
 
 # Combine 10% of data
 set.seed(1)
@@ -119,16 +127,57 @@ prop.table(table(predict = linear_predictions, truth = HERT_data[, 11]),2)*100
 
 # Test the hyperplane
 linear_hp_test <- factor((linear_hp_coefs[1]
-                            + linear_hp_coefs[2] * test_data$Detector1[test_data$Detector1>0.1]
-                            + linear_hp_coefs[3] * test_data$Detector2[test_data$Detector1>0.1]
-                            + linear_hp_coefs[4] * test_data$Detector3[test_data$Detector1>0.1]
-                            + linear_hp_coefs[5] * test_data$Detector4[test_data$Detector1>0.1]
-                            + linear_hp_coefs[6] * test_data$Detector5[test_data$Detector1>0.1]
-                            + linear_hp_coefs[7] * test_data$Detector6[test_data$Detector1>0.1]
-                            + linear_hp_coefs[8] * test_data$Detector7_8_sum[test_data$Detector1>0.1]
-                            + linear_hp_coefs[9] * test_data$Detector9[test_data$Detector1>0.1])>0,
+                            + linear_hp_coefs[2] * HERT_data$Detector1[HERT_data$Detector1>0.1]
+                            + linear_hp_coefs[3] * HERT_data$Detector2[HERT_data$Detector1>0.1]
+                            + linear_hp_coefs[4] * HERT_data$Detector3[HERT_data$Detector1>0.1]
+                            + linear_hp_coefs[5] * HERT_data$Detector4[HERT_data$Detector1>0.1]
+                            + linear_hp_coefs[6] * HERT_data$Detector5[HERT_data$Detector1>0.1]
+                            + linear_hp_coefs[7] * HERT_data$Detector6[HERT_data$Detector1>0.1]
+                            + linear_hp_coefs[8] * HERT_data$Detector7_8_sum[HERT_data$Detector1>0.1]
+                            + linear_hp_coefs[9] * HERT_data$Detector9[HERT_data$Detector1>0.1])>0,
                            levels = c(TRUE, FALSE), labels = c("Electron", "Proton"))
-prop.table(table(predict=linear_hp_test, truth=test_data[test_data$Detector1>0.1,11]), 2) * 100
+prop.table(table(predict=linear_hp_test, truth=HERT_data[,11]), 2) * 100
+
+# electron_misclassified_mask <- (linear_predictions == 'Proton') & (HERT_data$Particle_Type == "Electron")
+# electron_misclassified_indices <- which(electron_misclassified_mask)
+# hist(HERT_data[electron_misclassified_mask,1],
+#      seq(from = 0, to = 8, by = 0.1),
+#      main = '',
+#      xlab = "Electron Incident Energy (MeV)",
+#      ylab = "Misclassification as Protons",
+#      col = "lightblue",
+#      border = "black")
+# 
+# proton_misclassified_mask <- (linear_predictions == 'Electron') & (HERT_data$Particle_Type == "Proton")
+# proton_misclassified_indices <- which(proton_misclassified_mask)
+# hist(HERT_data[proton_misclassified_mask,1],
+#      seq(from = 0, to = 200, by = 1),
+#      main = '',
+#      xlab = "Proton Incident Energy (MeV)",
+#      ylab = "Misclassification as Electrons",
+#      col = "lightblue",
+#      border = "black")
+# hist(HERT_data[proton_misclassified_mask,2],
+#      seq(from = 0, to = 5, by = 0.1),
+#      main = '',
+#      xlab = "Proton D1 Energy (MeV)",
+#      ylab = "Misclassification as Electrons",
+#      col = "lightblue",
+#      border = "black")
+# hist(rowSums(HERT_data[proton_misclassified_mask,3:10]),
+#      breaks = seq(from = 0, to = 11, by = 1),
+#      main = '',
+#      xlab = "Proton D2-D9 Energy (MeV)",
+#      ylab = "Misclassification as Electrons",
+#      col = "lightblue",
+#      border = "black")
+# hist(HERT_data[proton_misclassified_mask,][rowSums(HERT_data[proton_misclassified_mask,3:10])>0,1],
+#      breaks = seq(from = 0, to = 200, by = 1),
+#      main = '',
+#      xlab = "Proton D2-D9 Energy (MeV)",
+#      ylab = "Misclassification as Electrons",
+#      col = "lightblue",
+#      border = "black")
 
 ### Polynomial SVM ###
 # Tune SVM to find optimized cost
@@ -146,9 +195,9 @@ summary(svm_poly)
 # Get the support vectors as a data frame
 poly_sv <- svm_poly$SV
 # Predict to validate model
-poly_predictions <- predict(svm_poly, test_data)
+poly_predictions <- predict(svm_poly, HERT_data)
 # Print predictions (0: proton, 1: electron)
-prop.table(table(predict = poly_predictions, truth = test_data[test_data$Detector1>0.1, 11]),2) * 100
+prop.table(table(predict = poly_predictions, truth = HERT_data[, 11]),2) * 100
 
 
 ### Radial SVM ###
@@ -186,20 +235,20 @@ print(linearsi_hp_coefs)
 # Get the support vectors as a data frame
 linearsi_sv <- svm_linearsi$SV
 # Test model
-linearsi_test <- predict(svm_linearsi, test_data)
+linearsi_test <- predict(svm_linearsi, HERT_data)
 # Print test results (0: proton, 1: electron)
-prop.table(table(predict = linearsi_test, truth = test_data[, 11]),2) * 100
+prop.table(table(predict = linearsi_test, truth = HERT_data[, 11]),2) * 100
 
 # Test the simplified hyperplane
 linearsi_hp_test <- factor((linearsi_hp_coefs[1]
-                                + linearsi_hp_coefs[2] * test_data$Detector1
-                                + linearsi_hp_coefs[3] * test_data$Detector2)>0,
+                                + linearsi_hp_coefs[2] * HERT_data$Detector1
+                                + linearsi_hp_coefs[3] * HERT_data$Detector2)>0,
                              levels = c(TRUE, FALSE), labels = c("Electron", "Proton"))
-prop.table(table(predict=linearsi_hp_test, truth= test_data[,11]),2) * 100
+prop.table(table(predict=linearsi_hp_test, truth= HERT_data[,11]),2) * 100
 
 ### Slant and logic equations from Khoo 2022 for REPTile-2 ###
-REPTile2_data_electrons <- test_data[test_data$Particle_Type=='Electron'&test_data$E_Inc>=0.3&test_data$E_Inc<=4,]
-REPTile2_data_protons <- test_data[test_data$Particle_Type=='Proton'&test_data$E_Inc>=6.7&test_data$E_Inc<=35,]
+REPTile2_data_electrons <- electron_data_filtered[electron_data_filtered$Particle_Type=='Electron'&electron_data_filtered$E_Inc>=0.3&electron_data_filtered$E_Inc<=4,]
+REPTile2_data_protons <- proton_data_filtered[proton_data_filtered$Particle_Type=='Proton'&proton_data_filtered$E_Inc>=6.7&proton_data_filtered$E_Inc<=35,]
 REPTile2_data <- rbind(REPTile2_data_electrons, REPTile2_data_protons)
 REPTile2_data <- test_data
 
@@ -229,22 +278,22 @@ prop.table(khoo_penetab, 2) * 100
 #      col = "lightblue",
 #      border = "black")
 
-khoo_etab <- table(predict=factor(rng_e[REPTile2_data$Detector1>0.1] | pen_e[REPTile2_data$Detector1>0.1],
+khoo_etab <- table(predict=factor(rng_e | pen_e,
                                      levels = c(TRUE, FALSE), labels = c("Electron", "Rejected Electron")),
-                      truth= REPTile2_data[REPTile2_data$Detector1>0.1,11])
+                      truth= REPTile2_data[,11])
 prop.table(khoo_etab, 2) * 100
 
-khoo_rngptab <- table(predict=factor(rng_p[REPTile2_data$Detector1>0.1],
+khoo_rngptab <- table(predict=factor(rng_p,
                                      levels = c(TRUE, FALSE), labels = c("Proton", "Rejected RNG_P")),
-                      truth= REPTile2_data[REPTile2_data$Detector1>0.1,11])
+                      truth= REPTile2_data[,11])
 prop.table(khoo_rngptab, 2) * 100
-khoo_penptab <- table(predict=factor(pen_p[REPTile2_data$Detector1>0.1],
+khoo_penptab <- table(predict=factor(pen_p,
                                      levels = c(TRUE, FALSE), labels = c("Proton", "Rejected PEN_P")),
-                      truth= REPTile2_data[REPTile2_data$Detector1>0.1,11])
+                      truth= REPTile2_data[,11])
 prop.table(khoo_penptab, 2) * 100
-khoo_ptab <- table(predict=factor(rng_p[REPTile2_data$Detector1>0.1] | pen_p[REPTile2_data$Detector1>0.1],
+khoo_ptab <- table(predict=factor(rng_p | pen_p,
                                   levels = c(TRUE, FALSE), labels = c("Proton", "Rejected Proton")),
-                   truth= REPTile2_data[REPTile2_data$Detector1>0.1,11])
+                   truth= REPTile2_data[,11])
 prop.table(khoo_ptab, 2) * 100
 
 REPTile2_logic <- rbind(khoo_etab, khoo_ptab)
@@ -256,7 +305,7 @@ print(REPTile2_logic)
 
 ### Logic Equations from Baker 2013 for REPT ###
 REPT_data_electrons <- test_data[test_data$Particle_Type=='Electron'&test_data$E_Inc>=1.6&test_data$E_Inc<=18.9,]
-REPT_data_protons <- test_data[test_data$Particle_Type=='Proton'&test_data$E_Inc>=18&test_data$E_Inc<=75,]
+REPT_data_protons <- proton_data_filtered[proton_data_filtered$Particle_Type=='Proton'&proton_data_filtered$E_Inc>=18&proton_data_filtered$E_Inc<=75,]
 REPT_data <- rbind(REPT_data_electrons, REPT_data_protons)
 REPT_data <- test_data
 # Creating initial logic functions
@@ -419,25 +468,65 @@ test_data_plot <- test_data_plot[, columns_to_keep]
 pairs(~ Detector1+Detector2+Detector3+Detector4+Detector5
       +Detector6+Detector7_8_sum+Detector9, data=test_data_plot,
       panel=function(x,y){
-      points(x,y,col = ifelse(test_data_plot$Particle_Type == "Electron", "red","blue"),
-                              xlim = c(0,20), ylim = c(0,20),
-                              pch = 20, cex = 0.25 # Solid circle for all points
-      )
-      for (i in 1:8){
-        if (sum(x-test_data_plot[i])==0){
-          for (j in 1:8){
-            if (sum(y-test_data_plot[j])==0){
-              abline(a = -linear_hp_coefs[1]/linear_hp_coefs[j+1],
-                     b = -linear_hp_coefs[i+1]/linear_hp_coefs[j+1], lwd = 3, lty = 2)
+        points(x,y,col = ifelse(test_data_plot$Particle_Type == "Electron", "red","blue"),
+               xlim = c(0,20), ylim = c(0,20),
+               pch = 20, cex = 0.25 # Solid circle for all points
+        )
+        for (i in 1:8){
+          if (sum(x-test_data_plot[i])==0){
+            for (j in 1:8){
+              if (sum(y-test_data_plot[j])==0){
+                abline(a = -linear_hp_coefs[1]/linear_hp_coefs[j+1],
+                       b = -linear_hp_coefs[i+1]/linear_hp_coefs[j+1], lwd = 3, lty = 2)
+              }
             }
           }
         }
-      }
-})
+      })
+
+output_col_names <- names(test_data_plot)[1:(ncol(test_data_plot) - 1)]
+test_data_means_electrons <- matrix(0, nrow = length(output_col_names), ncol = length(output_col_names))
+test_data_means_protons <- matrix(0, nrow = length(output_col_names), ncol = length(output_col_names))
+colnames(test_data_means_electrons) <- output_col_names
+colnames(test_data_means_protons) <- output_col_names
+test_data_medians_electrons <- test_data_means_electrons
+test_data_medians_protons <- test_data_means_protons
+# Loop through each detector column.
+for (i in 1:length(output_col_names)) {
+  for (j in 1:i) {
+    # Filter the data based on particle type.
+    electrons <- test_data_plot[test_data_plot$Particle_Type == "Electron", ]
+    protons <- test_data_plot[test_data_plot$Particle_Type == "Proton", ]
+    
+    if ((i+1) < length(output_col_names)) {
+      # Filter to find rows where current column is non-zero
+      # AND all higher columns are zero.
+      mask_electrons <- (electrons[, j] != 0) & (rowSums(electrons[, (i + 1):length(output_col_names)]) == 0)
+      mask_protons <- (protons[, j] != 0) & (rowSums(protons[, (i + 1):length(output_col_names)]) == 0)
+    } else if ((i+1) == length(output_col_names)){
+      mask_electrons <- (electrons[, j] != 0) & (electrons[, length(output_col_names)] == 0)
+      mask_protons <- (protons[, j] != 0) & (protons[, length(output_col_names)] == 0)
+    } else if (i == length(output_col_names)){
+      mask_electrons <- (electrons[, j] != 0)
+      mask_protons <- (protons[, j] != 0)
+    }
+    # Calculate the mean and assign it to the correct row and column.
+    test_data_means_electrons[i, j] <- mean(electrons[mask_electrons, j])
+    test_data_means_protons[i, j] <- mean(protons[mask_protons, j])
+    # Calculate the median and assign it to the correct row and column.
+    test_data_medians_electrons[i, j] <- median(electrons[mask_electrons, j])
+    test_data_medians_protons[i, j] <- median(protons[mask_protons, j])
+  }
+}
+print(test_data_means_electrons)
+print(test_data_means_protons)
+print(test_data_medians_electrons)
+print(test_data_medians_protons)
 
 binning_fn <- function(data){
+  nbins <- 100
   #finding bin edges
-  edges = seq(from=0,to=max(apply(data[,1:8], 2, max)),length.out = 101)
+  edges = logspace(log10(0.1), log10(max(data[,1:8])), nbins+1)
   
   # Binning electron and proton counts
   ecounts <- lapply(c(1:8), function(x) {
@@ -445,9 +534,8 @@ binning_fn <- function(data){
                  breaks = edges)
     data.frame(table(ebins))
   })
-  
-  ebins_midpoints <- matrix(0, nrow = 100, ncol = length(ecounts))
-  ecounts_new <- matrix(0, nrow = 100, ncol = length(ecounts))
+  ebins_midpoints <- matrix(0, nrow = nbins, ncol = length(ecounts))
+  ecounts_new <- matrix(0, nrow = nbins, ncol = length(ecounts))
   max_ecounts <- matrix(0, nrow = 1, ncol = length(ecounts))
   colnames(ecounts_new) <- c("Detector1", "Detector2", "Detector3", "Detector4", "Detector5", "Detector6", "Detector7_8_sum", "Detector9")
   colnames(max_ecounts) <- c("Detector1", "Detector2", "Detector3", "Detector4", "Detector5", "Detector6", "Detector7_8_sum", "Detector9")
@@ -461,8 +549,8 @@ binning_fn <- function(data){
                  breaks = edges)
     data.frame(table(pbins))
   })
-  
-  pcounts_new <- matrix(0, nrow = 100, ncol = length(pcounts))
+  pbins_midpoints <- matrix(0, nrow = nbins, ncol = length(pcounts))
+  pcounts_new <- matrix(0, nrow = nbins, ncol = length(pcounts))
   max_pcounts <- matrix(0, nrow = 1, ncol = length(pcounts))
   colnames(pcounts_new) <- c("Detector1", "Detector2", "Detector3", "Detector4", "Detector5", "Detector6", "Detector7_8_sum", "Detector9")
   colnames(max_pcounts) <- c("Detector1", "Detector2", "Detector3", "Detector4", "Detector5", "Detector6", "Detector7_8_sum", "Detector9")
@@ -481,19 +569,13 @@ density_fn_electron <- function(data, mapping, pt, ...) {
   map_i <- which(names(data) == quo_name(mapping[[1]]))  # Index of x variable
   map_j <- which(names(data) == quo_name(mapping[[2]]))  # Index of y variable
   
-  # Create color mapping
-  returned_data <- binning_fn(data)
-  ep_ratio = returned_data[[4]]
-  d1_emax <- max(returned_data[[2]][,1])
-  di_emax <- max(returned_data[[2]][,map_i])
-  d_eratio <- di_emax/d1_emax
-  
-  e_colors <- c(rainbow(num_test_rows*2)[1:floor(num_test_rows/ep_ratio)])
+  max_detect <- max(map_i,map_j)
+  temp_boundary_guess <- tcounts_min_E
   
   ggplot(data = data[data$Particle_Type == "Electron",], mapping = mapping) +
-    stat_density2d(aes(fill = ..density..), geom = "tile", contour = FALSE, h = c(1, 1)) +
-    scale_fill_gradientn(colours = rev(e_colors), name = "Electron Density") +
-    geom_abline(intercept = -sum(c(linear_hp_coefs[1],1.05*linear_hp_coefs[-c(1,map_j+1,map_i+1)])) / linear_hp_coefs[map_j + 1],
+    stat_bin_2d(aes(fill = after_stat(count/num_test_rows)), breaks = edges, limits=c(0,e_max)) +
+    scale_fill_gradient(low = "yellow", high = "red1") +
+    geom_abline(intercept = -sum(c(linear_hp_coefs[1],temp_boundary_guess[-c(map_j,map_i)]*linear_hp_coefs[-c(1,map_j+1,map_i+1)])) / linear_hp_coefs[map_j + 1],
                 slope = -linear_hp_coefs[map_i + 1] / linear_hp_coefs[map_j + 1], lwd = 2, lty = 1) +
     scale_x_continuous(limits = c(0, 16)) +
     scale_y_continuous(limits = c(0, 16)) +
@@ -505,22 +587,13 @@ density_fn_proton <- function(data, mapping, pt, ...) {
   map_i <- which(names(data) == quo_name(mapping[[1]]))  # Index of x variable
   map_j <- which(names(data) == quo_name(mapping[[2]]))  # Index of y variable
   
-  # Create color mapping
-  returned_data <- binning_fn(data)
-  ep_ratio = returned_data[[4]]
-  d1_pmax <- max(returned_data[[3]][,1])
-  di_pmax <- max(returned_data[[3]][,map_j])
-  d_pratio <- di_pmax/d1_pmax
-  
-  p_colors <- c(rainbow(num_test_rows*2)[(num_test_rows*7/10+ceiling(num_test_rows/ep_ratio)):
-                                           (num_test_rows*7/10+ceiling(num_test_rows/ep_ratio)+e_colors_length)])
-  #p_colors <- c(rainbow(num_test_rows*2)[(num_test_rows*7/10+ceiling(num_test_rows/ep_ratio+(1-d_pratio)*ep_ratio)):
-  #                                         (num_test_rows*7/10+ceiling(num_test_rows/ep_ratio)+ep_ratio)])
+  max_detect <- max(map_i,map_j)
+  temp_boundary_guess <- tcounts_min_E
   
   ggplot(data = data[data$Particle_Type == "Proton",], mapping = mapping) +
-    stat_density2d(aes(fill = ..density..), geom = "tile", contour = FALSE, h = c(1, 1)) +
-    scale_fill_gradientn(colours = p_colors, name = "Proton Density") +
-    geom_abline(intercept = -sum(c(linear_hp_coefs[1],1.05*linear_hp_coefs[-c(1,map_j+1,map_i+1)])) / linear_hp_coefs[map_j + 1],
+    stat_bin_2d(aes(fill = after_stat(count/num_test_rows)), breaks = edges, limits=c(0,p_max)) +
+    scale_fill_gradient(low = "#00E2FF", high = "blue1") +
+    geom_abline(intercept = -sum(c(linear_hp_coefs[1],temp_boundary_guess[-c(map_j,map_i)]*linear_hp_coefs[-c(1,map_j+1,map_i+1)])) / linear_hp_coefs[map_j + 1],
                 slope = -linear_hp_coefs[map_i + 1] / linear_hp_coefs[map_j + 1], lwd = 2, lty = 1) +
     scale_x_continuous(limits = c(0, 16)) +
     scale_y_continuous(limits = c(0, 16)) +
@@ -539,23 +612,43 @@ diag_fn <- function(data, mapping, pt, ...) {
   for (i in 1:length(edges)-1){
     midpoints[i] = (edges[i+1]+edges[i])/2
   }
-  ecounts_new = returned_data[[2]]
-  pcounts_new = returned_data[[3]]
+  ecounts_new <- returned_data[[2]]
+  pcounts_new <- returned_data[[3]]
   
   plot_data <- data.frame(midpoints, ecounts_new[,mapping_index], pcounts_new[,mapping_index])
   colnames(plot_data) <- c("midpoints","ecounts", "pcounts")
   
   ggplot(data = plot_data, aes(midpoints)) +
-    geom_line(aes(y = pcounts/sum(pcounts)), colour = rainbow(num_test_rows*2)[(num_test_rows*7/10+ceiling(num_test_rows/ep_ratio))+floor(num_test_rows/ep_ratio)], lwd = 2) + 
-    geom_line(aes(y = ecounts/sum(ecounts)), colour = rainbow(num_test_rows*2)[1], lwd = 2) +
+    geom_line(aes(y = ecounts/sum(ecounts)), colour = 'red1', lwd = 2) +
+    geom_line(aes(y = pcounts/sum(pcounts)), colour = 'blue1', lwd = 2) + 
+    geom_line(aes(y = pcounts/sum(pcounts)+ecounts/sum(ecounts)), colour = 'black', lwd = 2) +
+    geom_vline(xintercept=ecounts_max_E[mapping_index], col='red1', linetype='dashed', lwd = 1) +
+    geom_vline(xintercept=pcounts_max_E[mapping_index], col='blue1', linetype='dashed', lwd = 1) +
+    geom_vline(xintercept=tcounts_min_E[mapping_index], col='black', linetype='dashed', lwd = 1) +
     scale_x_continuous(limits = c(0, 16)) +
-    scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, by = 0.2)) +
+    scale_y_continuous(limits = c(0, 0.1), breaks = seq(0, 0.1, by = 0.05)) +
     theme_few()
 }
 
+returned_data <- binning_fn(test_data_plot)
+edges <- returned_data[[1]]
+ecounts_new <- returned_data[[2]]
+ecounts_max_index <- apply(ecounts_new, 2, which.max)
+ecounts_max_E <- (edges[ecounts_max_index+1]+edges[ecounts_max_index])/2
+e_max <- ceiling(max(ecounts_new/num_test_rows) * 100) / 100
+#e_max <- max(ecounts_new/num_test_rows)
+pcounts_new <- returned_data[[3]]
+pcounts_max_index <- apply(pcounts_new, 2, which.max)
+pcounts_max_E <- (edges[pcounts_max_index+1]+edges[pcounts_max_index])/2
+p_max <- ceiling(max(pcounts_new/num_test_rows) * 100) / 100
+tcounts <- ecounts_new+pcounts_new
+tcounts_min_index <- apply(tcounts[ecounts_max_index:pcounts_max_index,], 2, which.min)+ecounts_max_index
+tcounts_min_E <- (edges[tcounts_min_index+1]+edges[tcounts_min_index])/2
+#p_max <- max(pcounts_new/num_test_rows)
+
 ggpairs(test_data_plot,
         columns = c(1:8),
-        #columns = c(1, 2, 3, 8),
+        #columns = c(1, 2, 6, 8),
         #columns = c(1, 2),
         upper = list(continuous = density_fn_proton),
         diag = list(continuous = diag_fn),
@@ -565,21 +658,19 @@ ggpairs(test_data_plot,
         panel.spacing=grid::unit(1.2,"lines"))
 
 # Creating color scales
-returned_data <- binning_fn(test_data_plot)
-ep_ratio = returned_data[[4]]
-e_colors_length <- floor(num_test_rows/ep_ratio)
-e_colors <- c(rainbow(num_test_rows*2)[1:floor(num_test_rows/ep_ratio)])
-p_colors <- c(rainbow(num_test_rows*2)[(num_test_rows*7/10+ceiling(num_test_rows/ep_ratio)):
-                                         (num_test_rows*7/10+ceiling(num_test_rows/ep_ratio)+e_colors_length)])
+electron_palette <- colorRampPalette(c("yellow", "red1"))
+electron_colors <- electron_palette(100)
 
-v <- ggplot(faithful[1:100,], aes(waiting, eruptions, fill = (returned_data[[2]][,1]/sum(returned_data[[2]][,1])))) +
+proton_palette <- colorRampPalette(c("#00E2FF", "blue1"))
+proton_colors <- proton_palette(100)
+
+v <- ggplot(faithful[1:100,], aes(waiting, eruptions, fill = (seq(e_max, 0, -e_max/99)))) +
   geom_tile()
-v + scale_fill_gradientn(colours = rev(e_colors), name = "Electron Density   ") + 
+v + scale_fill_gradientn(colours = electron_colors, name = "Electron Density     ", breaks = c(0, 0.02,0.04,0.06, 0.08)) + 
   theme(legend.key.width  = unit(5, "lines"), legend.position = "bottom",
         legend.text = element_text(size = 26), legend.title = element_text(size = 26))
-v <- ggplot(faithful[1:100,], aes(waiting, eruptions, fill = (returned_data[[3]][,1]/sum(returned_data[[3]][,1])))) +
+v <- ggplot(faithful[1:100,], aes(waiting, eruptions, fill = (seq(p_max, 0, -p_max/99)))) +
   geom_tile()
-v + scale_fill_gradientn(colours = p_colors, name = "Proton Density   ", breaks = c(0, 0.2)) + 
-  theme(legend.key.width  = unit(5/ep_ratio, "lines"), legend.position = "bottom",
+v + scale_fill_gradientn(colours = proton_colors, name = "Proton Density     ", breaks = c(0, 0.02,0.04,0.06)) + 
+  theme(legend.key.width  = unit(5/(e_max/p_max), "lines"), legend.position = "bottom",
         legend.text = element_text(size = 26), legend.title = element_text(size = 26))
-
