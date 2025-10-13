@@ -7,9 +7,9 @@
 ##### Test Track ############
 
 /control/shell del *.txt
-/control/alias startNumber 626
+/control/alias startNumber 1905
 /control/alias stepNumber  1	
-/control/alias endNumber   1000
+/control/alias endNumber   2000
 
 #/control/alias startE0Number 0.2
 #/control/alias stepE0Number  0.1	
