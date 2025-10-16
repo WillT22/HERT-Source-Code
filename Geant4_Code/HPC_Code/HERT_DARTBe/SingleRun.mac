@@ -16,31 +16,25 @@
 #/control/alias energyValue 5			# Assign energyValue (for descrete energy run)
 /control/alias energyMin 0			# Assign energy minimum (0 MeV for electron, 10MeV for proton)
 /control/alias energyMax 2			# Assign energy maximum (8MeV for electron, 80MeV for proton)
-/control/alias particleCount 1000   	# Assign particleCount (1000000)
-#/control/alias runNumber 15 			# Assign a run number for randomized runs
+/control/alias particleCount 1000000	   	# Assign particleCount (1000000)
+#/control/alias runNumber 1  			# Assign a run number for randomized runs
 #/control/alias E0 2
 
 ### Randomization Seed Restoration ###
-# Descretized energy file name
-#/random/resetEngineFrom ./Results/seeds/HERT_CADoutput_{particleType}_Ene_{energyValue}_{particleCount}_seed.rndm
-# Randomized energy file name
 /random/resetEngineFrom ../../seeds/HERT_CADoutput_{particleType}_{particleCount}_Run{runNumber}_seed.rndm
 
 ### GPS Initialization ###
 /gps/particle e-
 
-# Boresight Particle Firing #
-#/gps/direction 0 0 10 mm
-#/gps/position 0 0 -10 mm
-
 # Generate the source #
 /gps/pos/type Volume
-/gps/shape Cylinder
-/gps/radius 1.5 mm
-/gps/halfz 5 um 
-/gps/centre 0 0 -10 mm
-/gps/ang/type beam
-/gps/direction 0 0 1
+/gps/pos/shape Cylinder
+/gps/pos/radius 1.5 mm
+/gps/pos/halfz 5 um 
+/gps/pos/centre 0 0 -64 mm
+/gps/ang/type cos
+/gps/ang/maxtheta 10 deg
+/gps/ang/rot1 -1 0 0
 
 # Deterministic Energy Selection
 #/gps/ene/mono {energyValue} MeV
@@ -49,12 +43,10 @@
 /gps/ene/type Lin			# Defines distribution of particle energies (Lin or Exp usually)
 /gps/ene/gradient 0	            # Defines slope for linear distribution (default = 0)
 /gps/ene/intercept 1   	        # Defines y-intercept for linear distribution (default = 0)
-#/gps/ene/ezero {E0} MeV		# Defines E_0 for exponential distribution (default = 0)
 /gps/ene/min {energyMin} MeV			
 /gps/ene/max {energyMax} MeV
 
 ### Visualization ###
-
 #/vis/open HepRepFile			# write heprep
 #/vis/scene/create				# Create a new empty scene
 #/vis/scene/add/volume			# Declare that the world volume should be added to the scene
@@ -78,9 +70,7 @@
 
 # Randomized energy file names
 /control/alias outputFileName HERT_CADoutput_{particleType}_{particleCount}_Run{runNumber}_DARTmod
-#/control/alias seedFileName HERT_CADoutput_{particleType}_{particleCount}_Run{runNumber}_seed
-#/control/alias outputFileName HERT_CADoutput_{particleType}_{particleCount}_{E0}
-#/control/alias seedFileName HERT_CADoutput_{particleType}_{particleCount}_{E0}_seed
+/control/alias seedFileName HERT_CADoutput_{particleType}_{particleCount}_Run{runNumber}_seed
 
 /control/shell mv EnergyDepositResult.txt {outputFileName}.txt
 /control/shell mv {outputFileName}.txt ../../DARTmod_Results
@@ -89,3 +79,4 @@
 /control/shell mv {seedFileName}.rndm ../../DARTmod_seeds
 
 exit
+
