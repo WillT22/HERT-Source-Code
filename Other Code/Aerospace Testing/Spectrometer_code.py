@@ -192,10 +192,33 @@ plt.legend()
 plt.show()
 
 #%% Determine image width required for specified energy resolution
-KE_min_test = 1.02
-KE_max_test = 1.06
-KE_test = 1.04
-test_resolution = (KE_max_test-KE_min_test)/KE_test
+def image_slit(KE_min_test, KE_max_test, KE_test):
+    test_resolution = (KE_max_test-KE_min_test)/KE_test
 
-p_min_test = np.sqrt((KE_min_test + e_E0)**2 - e_E0**2)/sc.c
-p_max_test = np.sqrt((KE_max_test + e_E0)**2 - e_E0**2)/sc.c
+    p_min_test = np.sqrt((KE_min_test + e_E0)**2 - e_E0**2)/sc.c
+    p_max_test = np.sqrt((KE_max_test + e_E0)**2 - e_E0**2)/sc.c
+
+    p_ke_test = np.sqrt((KE_test  + e_E0)**2 - e_E0**2) / sc.c 
+    B_ke_test = p_ke_test * (sc.electron_volt * 1e6) / (sc.elementary_charge * r)
+
+    # Rearranging to find r_min and r_max
+    r_min_test = (p_min_test * sc.electron_volt * 1e6) / (sc.elementary_charge * B_ke_test)
+    r_max_test = (p_max_test * sc.electron_volt * 1e6) / (sc.elementary_charge * B_ke_test)
+
+    image_slit1 = (r_min_test * (np.pi / 2) - d_B)*-2
+    image_slit2 = (r_max_test * (np.pi / 2) - d_B)*2
+    image_slit_required = np.min([image_slit1, image_slit2])
+    return image_slit_required, test_resolution
+
+
+KE_min_channel = 1.0450 # channel 7 = 1.0450 MeV
+KE_max_channel = 1.1172 # channel 9 = 1.1172 MeV
+KE_test = 1.0805
+image_slit_channel, test_resolution_channel = image_slit(KE_min_channel, KE_max_channel, KE_test)
+print(f"Image slit required for {test_resolution_channel*100:.2f}% resolution at {KE_test:.2f} MeV: {image_slit_channel*1e3:.2f} mm")
+
+KE_min_between = 1.0590 # channel 7 = 1.0450 MeV
+KE_max_between = 1.1024 # channel 9 = 1.1172 MeV
+KE_test = 1.0805
+image_slit_between, test_resolution_between = image_slit(KE_min_between, KE_max_between, KE_test)
+print(f"Image slit required for {test_resolution_between*100:.2f}% resolution at {KE_test:.2f} MeV: {image_slit_between*1e3:.2f} mm")

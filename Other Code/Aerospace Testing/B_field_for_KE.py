@@ -167,20 +167,76 @@ error_at_x = get_fit_error(x_test, popt, pcov)
 fit_value_at_x = power_law(x_test, *popt)
 
 # %% Select nominal energies 
-selected_energies = np.array((1.04,1.06,1.08,1.10,1.12,.915,.655,.87,1.25,1.35))*1000  # in keV
-b_theory = np.sqrt((selected_energies/1000 + e_E0)**2 - e_E0**2) / sc.c * (sc.electron_volt * 1e6) / (q * r)*1e4
-b_predict = b_theory * power_law(selected_energies, *popt)
-b_error =  b_theory * np.diag(get_fit_error(selected_energies, popt, pcov))
+# Optional Energies: 0.723, 0.7531, 0.957, 0.983, 1.010, 1.155, 1.202, 1.294, 1.402, 1.459
+selected_energies = [1.038, 1.059, 1.080, 1.102, 1.117, .9265, .6950, .8782, 1.25, 1.347, 1.50]
+selected_energies =np.sort(selected_energies)
+b_theory = np.sqrt((selected_energies + e_E0)**2 - e_E0**2) / sc.c * (sc.electron_volt * 1e6) / (q * r)*1e4
+b_predict = b_theory * power_law(selected_energies*1000, *popt)
+b_error =  b_theory * np.diag(get_fit_error(selected_energies*1000, popt, pcov))
 
 # Predict currents
 current_predict = np.interp(b_predict, Aero_Bfield['Bfield'], Aero_Bfield['Current'])
 
 plt.figure()
-plt.plot(Aero_Bfield['KE'], Aero_Bfield['Bfield'], color='C1', label='Measured')
-plt.errorbar(selected_energies, b_predict, yerr=b_error, color='black', marker='o',
-             linestyle='None', capsize=5, label='Selected Energies', zorder=3)
-plt.xlabel('Kinetic Energy (keV)')
-plt.ylabel('Magnetic Field (G)')
-plt.legend()
-plt.grid(True)
+fig, ax1 = plt.subplots()
+# Left axis: Current vs KE
+ax1.plot(Aero_Bfield['KE']/1000, Aero_Bfield['Current'], color='C1', label='Measured Current')
+ax1.scatter(selected_energies, current_predict, color='black', marker='o',
+            label='Predicted Current', zorder=3)
+ax1.set_xlabel('Kinetic Energy (MeV)')
+ax1.set_ylabel('Current (A)', color='C1')
+ax1.tick_params(axis='y', labelcolor='C1')
+
+# Create an exact mapping between Current and B using measured calibration points
+# We will interpolate between measured pairs (Current -> B) and invert the mapping for B -> Current
+valid = np.isfinite(Aero_Bfield['Current']) & np.isfinite(Aero_Bfield['Bfield'])
+cur = Aero_Bfield['Current'][valid]
+bf = Aero_Bfield['Bfield'][valid]
+
+# If necessary, sort by current to make interpolation well-defined
+if cur.size >= 2:
+    sort_idx = np.argsort(cur)
+    cur_sorted = cur[sort_idx]
+    bf_sorted = bf[sort_idx]
+    # Remove duplicate current values by keeping the first occurrence (np.interp requires increasing x)
+    unique_cur, unique_indices = np.unique(cur_sorted, return_index=True)
+    cur_u = unique_cur
+    bf_u = bf_sorted[unique_indices]
+
+    def current_to_B(current_val):
+        # interpolate; for values outside measured range, extrapolate using edge values
+        return np.interp(np.array(current_val), cur_u, bf_u, left=bf_u[0], right=bf_u[-1])
+
+    def B_to_current(B_val):
+        # inverse mapping: interpolate B -> Current. Need B sorted for this
+        # sort by B for inverse interpolation
+        sort_b_idx = np.argsort(bf_u)
+        bf_for_inv = bf_u[sort_b_idx]
+        cur_for_inv = cur_u[sort_b_idx]
+        return np.interp(np.array(B_val), bf_for_inv, cur_for_inv, left=cur_for_inv[0], right=cur_for_inv[-1])
+else:
+    # fallback when data insufficient
+    def current_to_B(current_val):
+        return np.array(current_val) * 0.0
+
+    def B_to_current(B_val):
+        return np.array(B_val) * 0.0
+
+# Secondary axis shows B but aligned to the Current axis ticks
+ax2 = ax1.secondary_yaxis('right', functions=(current_to_B, B_to_current))
+ax2.set_ylabel('Predicted B (G)', color='C2')
+ax2.tick_params(axis='y', labelcolor='C2')
+
+# Invert the B axis so that smaller B appears at the top and larger B at the bottom
+ax2.invert_yaxis()
+
+# Combine legends — both handles come from ax1 (we plotted current items there)
+handles, labels = ax1.get_legend_handles_labels()
+ax1.legend(handles, labels, loc='best')
+ax1.grid(True)
+plt.title('Kinetic Energy vs Predicted Current (left) and Predicted B (right)')
 plt.show()
+
+np.savetxt('Test Theory and Data/Aero_predicted_currents.csv', np.column_stack((selected_energies, current_predict, b_predict, b_error)),
+           fmt='%.3f, %.6f, %.3f, %.3f',
+           header='Kinetic Energy (MeV), Predicted Current (A), Predicted B (G), B Error (G)', delimiter=',')

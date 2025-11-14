@@ -4,6 +4,8 @@ import scipy.constants as sc
 from scipy.special import gamma
 import scipy.integrate as integrate
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+import matplotlib.ticker as ticker
 
 
 #%%
@@ -176,22 +178,22 @@ LASP_spectrum['Y90_CR_norm'] = LASP_spectrum['Y90_CR'] / total_counts_LASP
 LASP_spectrum['combined_CR_norm'] = LASP_spectrum['combined_CR'] / total_counts_LASP
 
 # Plot Normalized Sr90 and Y90
-fig, ax = plt.subplots(figsize=(14, 6))
-Sr90_scatter = ax.scatter(LASP_spectrum['KE'], LASP_spectrum['Sr90_CR_norm'], label="Sr90", color='C2', s=8)
-Y90_scatter = ax.scatter(LASP_spectrum['KE'], LASP_spectrum['Y90_CR_norm'], label="Y90", color='C0', s=8)
-# Plot the sum, making it more prominent
-combined_scatter = ax.scatter(LASP_spectrum['KE'], LASP_spectrum['combined_CR_norm'], label="Combined", s=8, color='C1')
+# fig, ax = plt.subplots(figsize=(14, 6))
+# Sr90_scatter = ax.scatter(LASP_spectrum['KE'], LASP_spectrum['Sr90_CR_norm'], label="Sr90", color='C2', s=8)
+# Y90_scatter = ax.scatter(LASP_spectrum['KE'], LASP_spectrum['Y90_CR_norm'], label="Y90", color='C0', s=8)
+# # Plot the sum, making it more prominent
+# combined_scatter = ax.scatter(LASP_spectrum['KE'], LASP_spectrum['combined_CR_norm'], label="Combined", s=8, color='C1')
 
-ax.set_xlim(0, 2.3)
-ax.set_xlabel("Kinetic Energy (MeV)")
-ax.set_ylabel("Counts/s")
-ax.set_title("Normalized LASP Beta Decay Spectra of Sr90 and Y90")
-ax.grid(True)
-# Add vertical lines for mean energies
-# plt.axvline(x=0.196, color='C2', linestyle='--', label='Sr90 Mean: 0.196 MeV')
-# plt.axvline(x=0.933, color='C0', linestyle='--', label='Y90 Mean: 0.933 MeV')
-ax.legend()
-plt.show()
+# ax.set_xlim(0, 2.3)
+# ax.set_xlabel("Kinetic Energy (MeV)")
+# ax.set_ylabel("Counts/s")
+# ax.set_title("Normalized LASP Beta Decay Spectra of Sr90 and Y90")
+# ax.grid(True)
+# # Add vertical lines for mean energies
+# # plt.axvline(x=0.196, color='C2', linestyle='--', label='Sr90 Mean: 0.196 MeV')
+# # plt.axvline(x=0.933, color='C0', linestyle='--', label='Y90 Mean: 0.933 MeV')
+# ax.legend()
+# plt.show()
 
 #%% Calculate Expected LASP Flux
 lda = np.log(2) / 28.91  # Decay constant for Sr90 in years
@@ -231,22 +233,23 @@ ax.set_title("Today's LASP Beta Decay Spectra of Sr90 and Y90", fontsize=18)
 ax.grid(True)
 
 # create secondary x-axis for channel numbers
-E_eff = np.genfromtxt(r"C:\Users\wzt0020\Box\HERT_Box\Sr90 Testing\effective_energies_DARTBe.txt")
-differences = np.diff(E_eff)
+E_eff_all = np.genfromtxt(r"C:\Users\wzt0020\Box\HERT_Box\Sr90 Testing\effective_energies_DARTBe.txt")
+differences = np.diff(E_eff_all)
 try:
     # We add 1 because np.diff shrinks the array by 1.
     break_index = np.where(differences <= 0)[0][0] + 1
 except IndexError:
     # If the array is fully sorted, there is no negative difference.
-    break_index = len(E_eff)
-E_eff = E_eff[:break_index]
+    break_index = len(E_eff_all)
+E_eff_reduce = (np.arange(len(E_eff_all)) < break_index) & (E_eff_all < 2.3)
+E_eff_DART = E_eff_all[E_eff_reduce]
 
 ax2 = ax.twiny()
 ax2.set_xlim(ax.get_xlim())
-channel_indices = np.arange(1, len(E_eff) + 1)
-ax2.set_xticks(LASP_spectrum['KE'][np.searchsorted(LASP_spectrum['KE'], E_eff[E_eff <= LASP_spectrum['KE'][-1]])])
-channel_labels = [''] * len(E_eff[E_eff <= LASP_spectrum['KE'][-1]])
-for i in range(len(E_eff[E_eff <= LASP_spectrum['KE'][-1]])):
+channel_indices = np.arange(1, len(E_eff_DART) + 1)
+ax2.set_xticks(LASP_spectrum['KE'][np.searchsorted(LASP_spectrum['KE'], E_eff_DART[E_eff_DART <= LASP_spectrum['KE'][-1]])])
+channel_labels = [''] * len(E_eff_DART[E_eff_DART <= LASP_spectrum['KE'][-1]])
+for i in range(len(E_eff_DART[E_eff_DART <= LASP_spectrum['KE'][-1]])):
     if (i + 1) % 5 == 0:  # Label every 5th channel
         channel_labels[i] = str(i + 1)
 ax2.set_xticklabels(channel_labels)
@@ -264,7 +267,7 @@ energy_edges_LASP = np.linspace(0, 8, bins_LASP + 1)
 bin_width_LASP = np.diff(energy_edges_LASP)
 energy_midpoints_LASP = (energy_edges_LASP[1:] + energy_edges_LASP[:-1]) / 2
 energy_range_LASP = energy_edges_LASP[:-1] < 2
-geo_factor_LASP = geo_factor_LASP[:break_index, energy_range_LASP] 
+geo_factor_LASP = geo_factor_LASP[E_eff_reduce,:][:,energy_range_LASP] 
 geo_factor_total_LASP = geo_factor_total_LASP[energy_range_LASP]
 
 LASP_count_rate_EC = np.zeros(geo_factor_LASP.shape[0])
@@ -273,7 +276,7 @@ for channel in range(geo_factor_LASP.shape[0]):
 
 # Plot expected count rates
 fig, ax = plt.subplots(figsize=(16, 3))
-count_rate_scatter = ax.scatter(E_eff, LASP_count_rate_EC, color='C2', s=60)
+count_rate_scatter = ax.scatter(E_eff_DART, LASP_count_rate_EC, color='C2', s=60)
 ax.set_xlim(0, 2.2)
 ax.set_xlabel("Kinetic Energy (MeV)", fontsize=16)
 ax.set_ylabel("Count Rate (#/s)", fontsize=16)
@@ -282,10 +285,10 @@ ax.set_title("Today's LASP Predicted Count Rates", fontsize=18)
 ax.grid(True)
 ax2 = ax.twiny()
 ax2.set_xlim(ax.get_xlim())
-channel_indices = np.arange(1, len(E_eff) + 1)
-ax2.set_xticks(LASP_spectrum['KE'][np.searchsorted(LASP_spectrum['KE'], E_eff[E_eff <= LASP_spectrum['KE'][-1]])])
-channel_labels = [''] * len(E_eff[E_eff <= LASP_spectrum['KE'][-1]])
-for i in range(len(E_eff[E_eff <= LASP_spectrum['KE'][-1]])):
+channel_indices = np.arange(1, len(E_eff_DART) + 1)
+ax2.set_xticks(LASP_spectrum['KE'][np.searchsorted(LASP_spectrum['KE'], E_eff_DART[E_eff_DART <= LASP_spectrum['KE'][-1]])])
+channel_labels = [''] * len(E_eff_DART[E_eff_DART <= LASP_spectrum['KE'][-1]])
+for i in range(len(E_eff_DART[E_eff_DART <= LASP_spectrum['KE'][-1]])):
     if (i + 1) % 5 == 0:  # Label every 5th channel
         channel_labels[i] = str(i + 1)
 ax2.set_xticklabels(channel_labels)
@@ -295,13 +298,70 @@ plt.yscale('log')
 plt.ylim(1e-3, 4)
 plt.show()
 
+# Plot expected counts at 10 minutes
+fig, ax = plt.subplots(figsize=(16, 4))
+count_rate_plot = ax.errorbar(
+    E_eff_DART, 
+    LASP_count_rate_EC * (10 * 60),               # Y-data (Counts)
+    yerr=np.sqrt(LASP_count_rate_EC * (10 * 60)), # Y-Error (square root of counts for Poisson statistics)
+    # Appearance Settings for the Error Bar:
+    fmt='o',                                      # Format string: use 'o' for circle markers
+    markersize=10,                                 # Size of the data marker (the circle)
+    color='C2',                                   # Color of both marker and error bars
+    capsize=10,                                    # Makes the horizontal end-caps larger
+    elinewidth=2                                  # Sets the thickness of the error bars and caps
+)
+ax.set_xlim(0, 2.2)
+ax.set_xlabel("Kinetic Energy (MeV)", fontsize=16)
+ax.set_ylabel("Counts", fontsize=16)
+ax.tick_params(axis='both', which='major', labelsize=14)
+ax.set_title("Today's LASP Predicted Counts at 10 minutes", fontsize=18)
+ax.grid(True)
+ax2 = ax.twiny()
+ax2.set_xlim(ax.get_xlim())
+channel_indices = np.arange(1, len(E_eff_DART) + 1)
+ax2.set_xticks(LASP_spectrum['KE'][np.searchsorted(LASP_spectrum['KE'], E_eff_DART[E_eff_DART <= LASP_spectrum['KE'][-1]])])
+channel_labels = [''] * len(E_eff_DART[E_eff_DART <= LASP_spectrum['KE'][-1]])
+for i in range(len(E_eff_DART[E_eff_DART <= LASP_spectrum['KE'][-1]])):
+    if (i + 1) % 5 == 0:  # Label every 5th channel
+        channel_labels[i] = str(i + 1)
+ax2.set_xticklabels(channel_labels)
+ax2.set_xlabel("Channel Number", fontsize=16, labelpad=10) # labelpad moves the label up
+ax2.tick_params(axis='x', which='major', labelsize=14)
+plt.ylim(1e0,1e4)
+plt.yscale('log')
+plt.show()
+
+# Plot expected counts at 10 minutes for each detector
+detector_number = np.linspace(1,9,9)
+detector_efficiency = np.genfromtxt(r"C:\Users\wzt0020\Box\HERT_Box\Sr90 Testing\efficiency_Detectors_LASPTest.txt")
+fig, ax = plt.subplots(figsize=(16, 4))
+count_rate_plot = ax.bar(
+    detector_number, 
+    detector_efficiency * today_count_rate * (10 * 60),               # Y-data (Counts)
+    yerr=np.sqrt(detector_efficiency * today_count_rate * (10 * 60)), # Y-Error (square root of counts for Poisson statistics)
+    # Appearance Settings for the Error Bar:
+    width=0.8,                                      
+    color='C2',                                   # Color of both marker and error bars
+    capsize=20,                                    # Makes the horizontal end-caps larger
+)
+ax.set_xlabel("Detector Number", fontsize=16)
+ax.set_ylabel("Counts", fontsize=16)
+ax.tick_params(axis='both', which='major', labelsize=14)
+ax.set_xticks(np.arange(1, 10, 1))
+ax.set_title("Today's LASP Predicted Counts at 10 minutes", fontsize=18)
+ax.grid(True)
+plt.ylim(1e0,1e4)
+plt.yscale('log')
+plt.show()
+
 #%% Calculate Expected LASP time to counts and save
 LASP_time_to_10 = 10 / LASP_count_rate_EC /60 #convert to minutes
 LASP_time_to_100 = 100 / LASP_count_rate_EC /60 #convert to minutes
 
 fig, ax = plt.subplots(figsize=(16, 4))
-time_to_100_LASP_scatter = ax.scatter(E_eff, LASP_time_to_10, color='C0', label='10 Counts', s=60)
-time_to_1000_LASP_scatter = ax.scatter(E_eff, LASP_time_to_100, color='C1', label='100 Counts', s=60)
+time_to_100_LASP_scatter = ax.scatter(E_eff_DART, LASP_time_to_10, color='C0', label='10 Counts', s=60)
+time_to_1000_LASP_scatter = ax.scatter(E_eff_DART, LASP_time_to_100, color='C1', label='100 Counts', s=60)
 ax.set_xlim(0, 2)
 ax.set_ylim(0, 20)
 ax.set_xlabel("Kinetic Energy (MeV)", fontsize=16)
@@ -312,10 +372,10 @@ ax.grid(True)
 ax.legend(loc =  'upper left',fontsize=14)
 ax2 = ax.twiny()
 ax2.set_xlim(ax.get_xlim())
-channel_indices = np.arange(1, len(E_eff) + 1)
-ax2.set_xticks(LASP_spectrum['KE'][np.searchsorted(LASP_spectrum['KE'], E_eff[E_eff <= LASP_spectrum['KE'][-1]])])
-channel_labels = [''] * len(E_eff[E_eff <= LASP_spectrum['KE'][-1]])
-for i in range(len(E_eff[E_eff <= LASP_spectrum['KE'][-1]])):
+channel_indices = np.arange(1, len(E_eff_DART) + 1)
+ax2.set_xticks(LASP_spectrum['KE'][np.searchsorted(LASP_spectrum['KE'], E_eff_DART[E_eff_DART <= LASP_spectrum['KE'][-1]])])
+channel_labels = [''] * len(E_eff_DART[E_eff_DART <= LASP_spectrum['KE'][-1]])
+for i in range(len(E_eff_DART[E_eff_DART <= LASP_spectrum['KE'][-1]])):
     if (i + 1) % 5 == 0:  # Label every 5th channel
         channel_labels[i] = str(i + 1)
 ax2.set_xticklabels(channel_labels)
@@ -323,8 +383,8 @@ ax2.set_xlabel("Channel Number", fontsize=16, labelpad=10) # labelpad moves the 
 ax2.tick_params(axis='x', which='major', labelsize=14)
 plt.show()
 
-channel_numbers = np.arange(1, len(E_eff) + 1)
-time_to_counts = np.column_stack((channel_numbers, E_eff, LASP_time_to_10, LASP_time_to_100))
+channel_numbers = np.arange(1, len(E_eff_DART) + 1)
+time_to_counts = np.column_stack((channel_numbers, E_eff_DART, LASP_time_to_10, LASP_time_to_100))
 np.savetxt('LASP_time_to_counts.txt', time_to_counts,
     fmt=['%6d', '%30.6f', '%23.6f', '%24.6f'],
     delimiter='\t',
@@ -361,28 +421,27 @@ LASP_comp['Y90_total_scaled'] = sum(LASP_comp['Y90'])
 LASP_comp['combined_total_scaled'] = sum(LASP_comp['combined'])
 
 # Plot Sr90 and Y90
-'''
-fig, ax = plt.subplots(figsize=(14, 6))
+# fig, ax = plt.subplots(figsize=(14, 6))
 
-Sr90_scatter = ax.scatter(LASP_spectrum['KE'], LASP_comp['Sr90'], label="Sr90", color='C2', s=8)
-Y90_scatter = ax.scatter(LASP_spectrum['KE'], LASP_comp['Y90'], label="Y90", color='C0', s=8)
+# Sr90_scatter = ax.scatter(LASP_spectrum['KE'], LASP_comp['Sr90'], label="Sr90", color='C2', s=8)
+# Y90_scatter = ax.scatter(LASP_spectrum['KE'], LASP_comp['Y90'], label="Y90", color='C0', s=8)
 
-# Plot the sum, making it more prominent
-combined_scatter = ax.scatter(LASP_spectrum['KE'], LASP_comp['combined'], label="Combined", s=8, color='C1')
+# # Plot the sum, making it more prominent
+# combined_scatter = ax.scatter(LASP_spectrum['KE'], LASP_comp['combined'], label="Combined", s=8, color='C1')
 
-ax.set_xlim(0, 2.3)
-ax.set_xlabel("Kinetic Energy (MeV)")
-ax.set_ylabel("Counts/s/MeV")
-ax.set_title("Scaled Beta Decay Spectra of Sr90 and Y90 to LASP Spectrum")
-ax.grid(True)
+# ax.set_xlim(0, 2.3)
+# ax.set_xlabel("Kinetic Energy (MeV)")
+# ax.set_ylabel("Counts/s/MeV")
+# ax.set_title("Scaled Beta Decay Spectra of Sr90 and Y90 to LASP Spectrum")
+# ax.grid(True)
 
-# Add vertical lines for mean energies
-plt.axvline(x=LASP_comp['Sr90_mean'], color='C2', linestyle='--', label=f"Sr90 Mean: {Beta_theory['Sr90_mean']:.3f} MeV")
-plt.axvline(x=LASP_comp['Y90_mean'], color='C0', linestyle='--', label=f"Y90 Mean: {Beta_theory['Y90_mean']:.3f} MeV")
+# # Add vertical lines for mean energies
+# plt.axvline(x=LASP_comp['Sr90_mean'], color='C2', linestyle='--', label=f"Sr90 Mean: {Beta_theory['Sr90_mean']:.3f} MeV")
+# plt.axvline(x=LASP_comp['Y90_mean'], color='C0', linestyle='--', label=f"Y90 Mean: {Beta_theory['Y90_mean']:.3f} MeV")
 
-ax.legend()
-plt.show()
-'''
+# ax.legend()
+# plt.show()
+
 
 Error = abs(LASP_comp['combined'] - LASP_spectrum['combined'])
 SSE = sum((LASP_comp['combined'] - LASP_spectrum['combined'])**2)
@@ -443,13 +502,13 @@ Aero_data['counts_per_day'] = Aero_data['csv_data'][:, 11]
 
 #%% Comparing Aero channels and energies
 # Plotting E v channel
-plt.figure(figsize=(14, 6))
-plt.plot(Aero_data['channel'], Aero_data['KE'])
-plt.xlabel('Channel Number')
-plt.ylabel('Kinetic Energy (keV)')  # Label the y-axis with the correct unit
-plt.title('Kinetic Energy vs Channel Number')
-plt.grid(True)
-plt.show()
+# plt.figure(figsize=(14, 6))
+# plt.plot(Aero_data['channel'], Aero_data['KE'])
+# plt.xlabel('Channel Number')
+# plt.ylabel('Kinetic Energy (keV)')  # Label the y-axis with the correct unit
+# plt.title('Kinetic Energy vs Channel Number')
+# plt.grid(True)
+# plt.show()
 
 # Fit a linear equation
 coefficients = np.polyfit(Aero_data['channel'], Aero_data['KE'], 1)  # 1 for linear fit
@@ -496,18 +555,18 @@ ke_at_max_counts_LASP = LASP_spectrum['KE'][max_counts_index_LASP]
 max_counts_index_Aero = np.argmax(Aero_data['countrate_per_MeV'])
 ke_at_max_counts_Aero = Aero_data['KE'][max_counts_index_Aero]/1000
 
-plt.figure(figsize=(14, 6))  # Adjust figure size as needed
-plt.scatter(Beta_theory['KE'] - ke_at_max_counts_theory, Beta_theory['Sr90_per_energy'] * Aeromax_maxscale_Sr, label="Sr90", color='C2', s=8)
-plt.scatter(Beta_theory['KE'] - ke_at_max_counts_theory, Beta_theory['combined_per_energy'] * Aeromax_maxscale_theory, label="Theory", s=10, color='C1')
-plt.scatter(LASP_spectrum['KE'] - ke_at_max_counts_LASP, LASP_spectrum['combined'] * Aeromax_maxscale_LASP, label="LASP (scaled)", s=10, color='blue')
-plt.scatter(Aero_data['KE']/1000 - ke_at_max_counts_Aero, Aero_data['countrate_per_MeV'], color='black', marker='*', label='Aerospace')
-plt.xlim(-0.5, 2)
-plt.xlabel('Kinetic Energy (MeV)')
-plt.ylabel('Count Rate / MeV (counts/hour/MeV)')
-plt.title('Count Rate per MeV vs KE centerted at Sr90 peak energy')
-plt.grid(True)
-plt.legend()
-plt.show()
+# plt.figure(figsize=(14, 6))  # Adjust figure size as needed
+# plt.scatter(Beta_theory['KE'] - ke_at_max_counts_theory, Beta_theory['Sr90_per_energy'] * Aeromax_maxscale_Sr, label="Sr90", color='C2', s=8)
+# plt.scatter(Beta_theory['KE'] - ke_at_max_counts_theory, Beta_theory['combined_per_energy'] * Aeromax_maxscale_theory, label="Theory", s=10, color='C1')
+# plt.scatter(LASP_spectrum['KE'] - ke_at_max_counts_LASP, LASP_spectrum['combined'] * Aeromax_maxscale_LASP, label="LASP (scaled)", s=10, color='blue')
+# plt.scatter(Aero_data['KE']/1000 - ke_at_max_counts_Aero, Aero_data['countrate_per_MeV'], color='black', marker='*', label='Aerospace')
+# plt.xlim(-0.5, 2)
+# plt.xlabel('Kinetic Energy (MeV)')
+# plt.ylabel('Count Rate / MeV (counts/hour/MeV)')
+# plt.title('Count Rate per MeV vs KE centerted at Sr90 peak energy')
+# plt.grid(True)
+# plt.legend()
+# plt.show()
 
 #%% Convert from Aero detector to HERT
 aero_detector = 8e-3 /2
@@ -561,28 +620,92 @@ geo_factor_total = geo_factor_total[energy_range]
 hert_fit = beta_func(energy_midpoints[energy_range], *popt_hert) * geo_factor_total
 
 #%% Plot instrument efficiency with points on selected energies
-# Optional Energies: 0.9580, 0.9840, 1.0110, 1.1552, 1.2025, 1.2942, 1.4023, 1.4597, 1.5194
-selected_energies = [1.045, 1.059, 1.080, 1.102, 1.117, .9265, .6950, .8782, 1.25, 1.347, 1.5502, 0.7235, 0.7531, 0.9580, 0.9840, 1.0110, 1.1552, 1.2025, 1.2942, 1.4023, 1.4597, 1.5194]
+# Optional Energies: 0.723, 0.7531, 0.957, 0.983, 1.010, 1.155, 1.202, 1.294, 1.402, 1.459
+selected_energies = [1.038, 1.059, 1.080, 1.102, 1.117, .9265, .6950, .8782, 1.25, 1.347, 1.50]
 selected_energies =np.sort(selected_energies)
 selected_indices = np.searchsorted(energy_midpoints[energy_range], selected_energies)
 
-import matplotlib.cm as cm # Import colormap module
 plasma_cmap = cm.get_cmap('plasma')
 colors = plasma_cmap(np.linspace(0, 1, geo_factor.shape[0]))
+# plt.figure(figsize=(14, 6))
+# for channel in range(geo_factor.shape[0]):
+#     current_color = colors[channel]
+#     plt.plot(energy_midpoints[energy_range], geo_factor[channel, energy_range], color=current_color, linewidth=3, alpha=0.7)
+#     plt.scatter(energy_midpoints[selected_indices], geo_factor[channel, energy_range][selected_indices], color=current_color, marker='o', zorder=3)
+# for idx in selected_indices:
+#     plt.axvline(x=energy_midpoints[idx],color='black',linestyle='--',alpha=0.5,linewidth=2)
+# plt.tick_params(axis='both', which='major', labelsize=16)
+# plt.xlim(0.5, 2)
+# plt.ylim(1e-4, 1)
+# plt.yscale('log')
+# plt.xlabel('Kinetic Energy (MeV)',fontsize=16)
+# plt.ylabel('Insturment Efficiency',fontsize=16)
+# plt.grid(True)
+# plt.show()
+
 plt.figure(figsize=(14, 6))
 for channel in range(geo_factor.shape[0]):
     current_color = colors[channel]
-    plt.plot(energy_midpoints[energy_range], geo_factor[channel, energy_range], color=current_color, linewidth=3, alpha=0.7)
-    plt.scatter(energy_midpoints[selected_indices], geo_factor[channel, energy_range][selected_indices], color=current_color, marker='o', zorder=3)
+    plt.plot(energy_midpoints[energy_range], 1000*geo_factor[channel, energy_range], color=current_color, linewidth=3, alpha=0.7)
+    plt.scatter(energy_midpoints[selected_indices], 1000*geo_factor[channel, energy_range][selected_indices], color=current_color, marker='o', zorder=3)
 for idx in selected_indices:
     plt.axvline(x=energy_midpoints[idx],color='black',linestyle='--',alpha=0.5,linewidth=2)
 plt.tick_params(axis='both', which='major', labelsize=16)
 plt.xlim(0.5, 2)
-plt.ylim(1e-4, 1)
+plt.ylim(1, 1000)
 plt.yscale('log')
+ax = plt.gca()
+ax.yaxis.set_major_formatter(ticker.ScalarFormatter())
 plt.xlabel('Kinetic Energy (MeV)',fontsize=16)
-plt.ylabel('Insturment Efficiency',fontsize=16)
+plt.ylabel('Expected Counts',fontsize=16)
 plt.grid(True)
+plt.show()
+
+#%% Show expected counts at a specific energy
+specific_index = 9 #4,5,9
+specific_energy = selected_energies[specific_index]
+specific_energy_all = np.searchsorted(energy_midpoints, specific_energy)
+specific_geo_factor = geo_factor[:, specific_energy_all]
+
+E_eff = np.genfromtxt(r"C:\Users\wzt0020\Box\HERT_Box\Aerospace Testing\E_eff_Aero.txt")
+differences = np.diff(E_eff)
+
+channels = np.linspace(1, E_eff.shape[0], E_eff.shape[0])
+
+# fig, ax1 = plt.subplots(figsize=(10, 6))
+# ax1.bar(channels[:E_eff.shape[0]], specific_geo_factor[:E_eff.shape[0]])
+# ax1.set_xlim(0, E_eff.shape[0]+1)
+# ax1.set_xlabel('Channel Number', fontsize=14)
+# ax1.set_ylabel('Instrument Efficiency', fontsize=14)
+# ax1.tick_params(axis='x', which='major', labelsize=12)
+# ax1.grid(True, axis='y', linestyle='--', alpha=0.7)
+# ax2 = ax1.twiny()
+# ax2.set_xlim(ax1.get_xlim())
+# ax2.set_xticks(channels)
+# ax2.set_xticklabels([f'{e:.2f}' if i % 5 == 0 else '' for i, e in enumerate(E_eff)], rotation=45, ha='left')
+# ax2.set_xlabel('Effective Energy (MeV)', fontsize=14, labelpad=15)
+# plt.title('Instrument Efficiency at {:.4f} MeV Per Channel'.format(specific_energy), fontsize=16)
+# plt.show()
+
+channels_show = 20
+fig, ax1 = plt.subplots(figsize=(10, 6))
+ax1.bar(channels[:channels_show], 1000*specific_geo_factor[:channels_show])
+ax1.errorbar(channels[:channels_show], 1000*specific_geo_factor[:channels_show], yerr=np.sqrt(1000*specific_geo_factor[:channels_show]), fmt='none', color='black', ecolor='black', capsize=5)
+ax1.set_ylim(0, max(1000*specific_geo_factor)*1.2)
+ax1.set_xlabel('Channel Number', fontsize=14)
+ax1.set_ylabel('Predicted Counts', fontsize=14)
+ax1.tick_params(axis='x', which='major', labelsize=12)
+ax1.grid(True, axis='y', linestyle='--', alpha=0.7)
+max_channel = channels[:channels_show][-1]
+tick_locations = np.arange(1, max_channel + 1)
+ax1.set_xticks(tick_locations)
+ax1.set_xlim(0, 20.5)
+ax2 = ax1.twiny()
+ax2.set_xlim(ax1.get_xlim())
+ax2.set_xticks(tick_locations)
+ax2.set_xlabel('Effective Energy (MeV)', fontsize=14, labelpad=15)
+ax2.set_xticklabels([f'{e:.2f}' if i % 2 == 0 else '' for i, e in enumerate(E_eff[:channels_show])], rotation=45, ha='left')
+plt.title('Predicted Counts at {:.4f} MeV Per Channel'.format(specific_energy), fontsize=16)
 plt.show()
 
 #%% Plotting count rate v KE
@@ -677,30 +800,63 @@ plt.legend()
 plt.show()
 
 
-plt.figure(figsize=(8, 6))  # Adjust figure size as needed
-plt.plot(energy_midpoints[energy_range], time_to_100_hert, color='C0', label='100 counts (HERT)')
-plt.errorbar(energy_midpoints[selected_indices], time_to_100_hert[selected_indices], yerr=poisson_100_hert[selected_indices]*time_to_100_hert[selected_indices], color='C0', marker='o',
-             linestyle='None', capsize=5, label='Selected Energies', zorder=3)
-plt.plot(energy_midpoints[energy_range], time_to_1000_hert, color='C1', label='1000 counts (HERT)')
-plt.errorbar(energy_midpoints[selected_indices], time_to_1000_hert[selected_indices], yerr=poisson_1000_hert[selected_indices]*time_to_1000_hert[selected_indices], color='C1', marker='o',
-             linestyle='None', capsize=5, zorder=3)
-plt.plot(energy_midpoints[energy_range], time_to_10000_hert, color='C2', label='10000 counts (HERT)')
-plt.errorbar(energy_midpoints[selected_indices], time_to_10000_hert[selected_indices], yerr=poisson_10000_hert[selected_indices]*time_to_10000_hert[selected_indices], color='C2', marker='o',
-             linestyle='None', capsize=5, zorder=3)
-plt.axvline(x=0.6,color='black',linestyle='--',label='HERT Threshold')
-plt.xlim(0.5, 2)
-plt.ylim(0, 6)
-plt.xlabel('Kinetic Energy (MeV)')
-plt.ylabel('Time to counts (hours)')
-plt.grid(True)
-plt.legend()
-plt.show()
+# plt.figure(figsize=(8, 6))  # Adjust figure size as needed
+# plt.plot(energy_midpoints[energy_range], time_to_100_hert, color='C0', label='100 counts (HERT)')
+# plt.errorbar(energy_midpoints[selected_indices], time_to_100_hert[selected_indices], yerr=poisson_100_hert[selected_indices]*time_to_100_hert[selected_indices], color='C0', marker='o',
+#              linestyle='None', capsize=5, label='Selected Energies', zorder=3)
+# plt.plot(energy_midpoints[energy_range], time_to_1000_hert, color='C1', label='1000 counts (HERT)')
+# plt.errorbar(energy_midpoints[selected_indices], time_to_1000_hert[selected_indices], yerr=poisson_1000_hert[selected_indices]*time_to_1000_hert[selected_indices], color='C1', marker='o',
+#              linestyle='None', capsize=5, zorder=3)
+# plt.plot(energy_midpoints[energy_range], time_to_10000_hert, color='C2', label='10000 counts (HERT)')
+# plt.errorbar(energy_midpoints[selected_indices], time_to_10000_hert[selected_indices], yerr=poisson_10000_hert[selected_indices]*time_to_10000_hert[selected_indices], color='C2', marker='o',
+#              linestyle='None', capsize=5, zorder=3)
+# plt.axvline(x=0.6,color='black',linestyle='--',label='HERT Threshold')
+# plt.xlim(0.5, 2)
+# plt.ylim(0, 6)
+# plt.xlabel('Kinetic Energy (MeV)')
+# plt.ylabel('Time to counts (hours)')
+# plt.grid(True)
+# plt.legend()
+# plt.show()
 
+#%% Save time to counts at selected energies
 time_to_counts = np.column_stack((energy_midpoints[selected_indices], time_to_100_hert[selected_indices], time_to_400_hert[selected_indices], time_to_1000_hert[selected_indices], time_to_10000_hert[selected_indices]))
-np.savetxt('Aero_time_to_counts_extra.txt', time_to_counts,
-    fmt=['%14.4f', '%24.6f', '%24.6f', '%25.6f', '%26.6f'],
-    delimiter='\t',
-    header="Energy_(MeV)\tTime_to_100_Counts_(hrs)\tTime_to_400_Counts_(hrs)\tTime_to_1000_Counts_(hrs)\tTime_to_10000_Counts_(hrs)",
+np.savetxt('Test Theory and Data/Aero_time_to_counts.csv', time_to_counts,
+    fmt='%.4f, %.4f, %.4f, %.4f, %.4f',
+    delimiter=',',
+    header="Energy (MeV), 100 Counts (hrs), 400 Counts (hrs), 1000 Counts (hrs), 10000 Counts (hrs)",
 )
 
 total_time = np.sum(time_to_1000_hert[selected_indices][:-2]) + time_to_400_hert[selected_indices][-2] + time_to_100_hert[selected_indices][-1]
+
+#%% FOV rotation calculation
+# this needs to be corrected based on the actual distance between the front of the instrument and the axis of rotation
+d_rotation = 220 / 10 / 2 # cm, distance between axis of rotation and front of collimator
+d_FOV = (63 - 32) / 10 # cm, distance between field of view and front of collimator
+aperture_hw = 18 / 2 / 10 # cm, half width of the aperture of the instrument
+FOV_half_angle = np.rad2deg(np.atan(aperture_hw/d_FOV))
+FOV_angle = FOV_half_angle * 2
+
+max_rotation = np.rad2deg(np.atan(aperture_hw/d_rotation))
+print(f"Max Angle of Rotation for FOV Angle: {FOV_angle:.2f} degrees is {max_rotation:.2f} degrees")
+
+# Find how angles correspond between 0 and FOV
+rotation_angle_steps = np.linspace(0, max_rotation, 1000)
+FOV_angle_steps = np.linspace(0, FOV_half_angle, 1000)
+
+plt.plot(rotation_angle_steps, FOV_angle_steps)
+plt.xlabel('Rotation Angle (degrees)')
+plt.ylabel('FOV Half Angle (degrees)')
+plt.title('Rotation Angle vs FOV Angle')
+plt.grid(True)
+plt.show()
+
+set_rotation_type = 'FOV' # 'axis' or 'FOV'
+if set_rotation_type == 'axis':
+    set_rotation = 1 # degrees
+    FOV_half_angle_rotation = (set_rotation / max_rotation) * FOV_half_angle
+    print(f"For a rotation of {set_rotation:.2f} degrees, the FOV half angle is {FOV_half_angle_rotation:.2f} degrees")
+elif set_rotation_type == 'FOV':
+    set_FOV_half_angle = 5 # degrees
+    rotation_angle = (set_FOV_half_angle / FOV_half_angle) * max_rotation
+    print(f"For a FOV half angle of {set_FOV_half_angle:.2f} degrees, the rotation angle is {rotation_angle:.2f} degrees")
