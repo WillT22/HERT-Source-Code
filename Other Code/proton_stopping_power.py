@@ -58,7 +58,7 @@ def read_pstar_file_pandas(filepath):
 
 #%% Plot Stopping Power and Range for Silicon
 material_name = "Silicon"
-data_silicon = read_pstar_file_pandas("C:\\Users\\wzt0020\\Box\\HERT_Box\\Problem Particles\\proton_range_data.txt")
+data_silicon = read_pstar_file_pandas("C:\\Users\\wzt0020\\Box\\HERT_Box\\Problem Particles\\proton_range_data_Si.txt")
 kinetic_energy = data_silicon['Kinetic_Energy_MeV'].values
 
 # 1. STOPPING POWER PLOT
@@ -164,3 +164,72 @@ required_range_diag_d5_d1 = (diag_d5_d1_thickness * density + 2*data_silicon[dat
 energy_diag_d5_d1 = np.interp(required_range_diag_d5_d1,
                                data_silicon['Projected_Range_gcm2'], data_silicon['Kinetic_Energy_MeV'])
 print(f"Energy required to penetrate diagonal from D5 to D1 ({diag_d5_d1_thickness:.2f} cm): {energy_diag_d5_d1:.2f} MeV")
+
+
+#%% Plot Stopping Power and Range for Silicon
+material_name = "Tungsten"
+data_tungsten = read_pstar_file_pandas("C:\\Users\\wzt0020\\Box\\HERT_Box\\Problem Particles\\proton_range_data_W.txt")
+kinetic_energy = data_tungsten['Kinetic_Energy_MeV'].values
+
+# 1. STOPPING POWER PLOT
+plt.figure(figsize=(10, 6))
+
+# Plot Total Stopping Power
+plt.plot(kinetic_energy, data_tungsten['Total_Stp_Pow'], 
+            label='Total Stopping Power', linewidth=2, color='C3')
+
+# Plot components for comparison (optional)
+plt.plot(kinetic_energy, data_tungsten['Electron_Stp_Pow'], 
+            label='Electronic Component', linestyle='--', color='C0')
+
+plt.xscale('log')
+plt.yscale('log')
+
+plt.title(f'Proton Stopping Power in {material_name} (PSTAR)', fontsize=14)
+plt.xlabel('Kinetic Energy (MeV)', fontsize=12)
+plt.ylabel(r'Stopping Power ($\text{MeV} \cdot \text{cm}^2/\text{g}$)', fontsize=12)
+plt.grid(which='both', linestyle='--', alpha=0.6)
+plt.legend()
+plt.tight_layout()
+
+
+# 2. RANGE PLOT
+plt.figure(figsize=(10, 6))
+
+# Plot CSDA Range
+plt.plot(kinetic_energy, data_tungsten['CSDA_Range_gcm2'], 
+            label='CSDA Range', linewidth=3, color='C2')
+
+# Plot Projected Range for comparison
+plt.plot(kinetic_energy, data_tungsten['Projected_Range_gcm2'], 
+            label='Projected Range', linestyle='--', color='C4')
+
+plt.xscale('log')
+plt.yscale('log')
+
+plt.title(f'Proton Range in {material_name} (PSTAR)', fontsize=14)
+plt.xlabel('Kinetic Energy (MeV)', fontsize=12)
+plt.ylabel(r'Range ($\text{g}/\text{cm}^2$)', fontsize=12)
+plt.tick_params(axis='both', which='major', labelsize=12)
+plt.grid(which='both', linestyle='--', alpha=0.6)
+plt.legend()
+plt.tight_layout()
+
+plt.show()
+
+#%% Determine energy to penetrate different thicknesses of W
+density = 16.7  # g/cm^3 for 90% Tungsten, 10% Copper alloy
+front_thickness = 1.5e-1 + 3.5e-1  # cm
+rear_thickness = 5e-1  # cm
+
+# 1) Front Layer
+required_range_front = front_thickness * density
+energy_front = np.interp(required_range_front, 
+                               data_tungsten['Projected_Range_gcm2'], data_tungsten['Kinetic_Energy_MeV'])
+print(f"Energy required to penetrate front layer ({front_thickness:.2f} cm): {energy_front:.2f} MeV")
+
+# 2) Rear Layer
+required_range_rear = rear_thickness * density
+energy_rear = np.interp(required_range_rear, 
+                               data_tungsten['Projected_Range_gcm2'], data_tungsten['Kinetic_Energy_MeV'])
+print(f"Energy required to penetrate rear layer ({rear_thickness:.2f} cm): {energy_rear:.2f} MeV")
