@@ -50,7 +50,7 @@ class DetectorConstruction : public G4VUserDetectorConstruction
 	G4LogicalVolume* logic_TaTooth1;
 	G4LogicalVolume* logic_WFr1;
 	G4LogicalVolume* logic_AlFrShim;
-	G4LogicalVolume* logic_WFrIn1;
+	G4LogicalVolume* logic_WFr2;
 	G4LogicalVolume* logic_AlChShim1;
 	G4LogicalVolume* logic_BackW;
 	G4LogicalVolume* logic_EpoxCham;
@@ -88,7 +88,7 @@ class DetectorConstruction : public G4VUserDetectorConstruction
 	G4VPhysicalVolume* physi_EpoxCham;
 	G4VPhysicalVolume* physi_AlBkShim1;
 	G4VPhysicalVolume* physi_AlBkPlate;
-	G4VPhysicalVolume* physi_WFrIn1;
+	G4VPhysicalVolume* physi_WFr2;
 
 	G4VPhysicalVolume* physi_d1;
     G4VPhysicalVolume* physi_d2;

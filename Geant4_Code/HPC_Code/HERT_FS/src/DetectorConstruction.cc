@@ -218,7 +218,7 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 	G4double pDTheta = 180 * deg - pSTheta; // for 15 degree cap;
 	G4double S1_x = 0.0 * mm; // x location
 	G4double S1_y = 0.0 * mm; // y location
-	G4double S1_z = 0.5 * 1.5 * mm; // z location-centered on first detector  d1_z
+	G4double S1_z = 0.0 * mm; // z location-centered on first detector  d1_z
 	const G4String& pName = "source";
 
 	G4Sphere* S1 = new G4Sphere(pName, pRmin, pRmax, pSPhi, pDPhi, pSTheta, pDTheta);
@@ -235,7 +235,7 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 	G4double d1_spa = 360 * deg; // span angle
 	G4double d1_x = 0.0 * mm; // x location
 	G4double d1_y = 0.0 * mm; // y location
-	G4double d1_z = d1_hd; // z location
+	G4double d1_z = 0.0 * mm; // z location
 
 	G4Tubs* solid_d1 = new G4Tubs("detector_1", d1_ir, d1_or, d1_hd, d1_sta, d1_spa);
 	logic_d1 = new G4LogicalVolume(solid_d1, Si, "detector_1", 0, 0, 0);
@@ -360,285 +360,167 @@ G4VPhysicalVolume* DetectorConstruction::Construct()
 	G4Tubs* solid_d9 = new G4Tubs("detector_9", d9_ir, d9_or, d9_hd, d9_sta, d9_spa);
 	logic_d9 = new G4LogicalVolume(solid_d9, Si, "detector_9", 0, 0, 0);
 	physi_d9 = new G4PVPlacement(0, G4ThreeVector(d9_x, d9_y, d9_z), logic_d9, "detector_9", logic_w, false, 0);
-	
-	G4RotationMatrix* rotm_AlHousing = new G4RotationMatrix();
-	rotm_AlHousing->rotateX(-90. * deg);
-	rotm_AlHousing->rotateY(-30. * deg);
 
-	//Rotation Matrices
-	G4RotationMatrix* rotm_negZ = new G4RotationMatrix();
-	rotm_negZ->rotateZ(-90. * deg);
-
-	G4RotationMatrix* rotm_negY = new G4RotationMatrix();
-	rotm_negY->rotateY(-90. * deg);
-
-	G4RotationMatrix* rotm_Y = new G4RotationMatrix();
-	rotm_Y->rotateY(90. * deg);
-
-	G4RotationMatrix* rotm_X = new G4RotationMatrix();
-	rotm_X->rotateX(90. * deg);
-
-	G4RotationMatrix* rotm_negX = new G4RotationMatrix();
-	rotm_negX->rotateX(-90. * deg);
 
 	/* W Second Layer of Shielding */
-	auto mesh_WFrIn1 = CADMesh::TessellatedMesh::FromOBJ("/home/wzt0020/Geant4/HERT_FS/src/GEANT4_HERT_Obj_Files/W_Fr2.obj");
+	auto mesh_WFrIn1 = CADMesh::TessellatedMesh::FromOBJ("/home/wzt0020/geant4/HERT_FS/src/GEANT4_HERT_Obj_Files/W_Fr2.obj");
 	G4VSolid* solid_WFrIn1 = mesh_WFrIn1->GetSolid();
 	solid_WFrIn1->SetName("solid_WFrIn1");
-	G4double x_WFrIn1 = 0 * mm;
-	G4double y_WFrIn1 = 0 * mm;
-	G4double z_WFrIn1 = -2 * mm;
-
 	logic_WFrIn1 = new G4LogicalVolume(solid_WFrIn1, W, "logical_WFrIn1", 0, 0, 0);
-	physi_WFrIn1 = new G4PVPlacement(rotm_AlHousing, G4ThreeVector(x_WFrIn1, y_WFrIn1, z_WFrIn1), logic_WFrIn1, "physical_WFrIn1", logic_w, false, 0);
+	physi_WFrIn1 = new G4PVPlacement(0, G4ThreeVector(0,0,0), logic_WFrIn1, "physical_WFrIn1", logic_w, false, 0);
 
 	/* Ta Last Tooth */
-	auto mesh_TaTooth5 = CADMesh::TessellatedMesh::FromOBJ("/home/wzt0020/Geant4/HERT_FS/src/GEANT4_HERT_Obj_Files/Ta_Tooth.obj");
+	auto mesh_TaTooth5 = CADMesh::TessellatedMesh::FromOBJ("/home/wzt0020/geant4/HERT_FS/src/GEANT4_HERT_Obj_Files/Ta_Tooth5.obj");
 	G4VSolid* solid_TaTooth5 = mesh_TaTooth5->GetSolid();
 	solid_TaTooth5->SetName("solid_TaTooth5");
-	G4double x_TaTooth5 = 0 * mm;
-	G4double y_TaTooth5 = 0 * mm;
-	G4double z_TaTooth5 = d1_z-3.75*mm;
 	logic_TaTooth5 = new G4LogicalVolume(solid_TaTooth5, Ta, "logical_TaTooth5", 0, 0, 0);
-	physi_TaTooth5 = new G4PVPlacement(rotm_negX, G4ThreeVector(x_TaTooth5, y_TaTooth5, z_TaTooth5), logic_TaTooth5, "physical_TaTooth5", logic_w, false, 0);
+	physi_TaTooth5 = new G4PVPlacement(0, G4ThreeVector(0,0,0), logic_TaTooth5, "physical_TaTooth5", logic_w, false, 0);
 
 	/* Be Window */
-	auto mesh_BeWin = CADMesh::TessellatedMesh::FromOBJ("/home/wzt0020/Geant4/HERT_FS/src/GEANT4_HERT_Obj_Files/Be_Window.obj");
+	auto mesh_BeWin = CADMesh::TessellatedMesh::FromOBJ("/home/wzt0020/geant4/HERT_FS/src/GEANT4_HERT_Obj_Files/Be_Window.obj");
 	G4VSolid* solid_BeWin = mesh_BeWin->GetSolid();
 	solid_BeWin->SetName("solid_BeWin");
-	G4double x_BeWin = 0 * mm;
-	G4double y_BeWin = 0 * mm;
-	G4double z_BeWin = z_TaTooth5 - 1.5 * mm;
-
 	logic_BeWin = new G4LogicalVolume(solid_BeWin, Be, "logical_BeWin", 0, 0, 0);
-	physi_BeWin = new G4PVPlacement(rotm_Y, G4ThreeVector(x_BeWin, y_BeWin, z_BeWin), logic_BeWin, "physical_BeWin", logic_w, false, 0);
+	physi_BeWin = new G4PVPlacement(0, G4ThreeVector(0,0,0), logic_BeWin, "physical_BeWin", logic_w, false, 0);
 	
 	 /* Ta 4th Spacer */
-        auto mesh_TaSpac4 = CADMesh::TessellatedMesh::FromOBJ("/home/wzt0020/Geant4/HERT_FS/src/GEANT4_HERT_Obj_Files/Ta_Spacer2.obj");
-        G4VSolid* solid_TaSpac4 = mesh_TaSpac4->GetSolid();
-        solid_TaSpac4->SetName("solid_TaSpac4");
-        G4double x_TaSpac4 = 0 * mm;
-        G4double y_TaSpac4 = 0 * mm;
-        G4double z_TaSpac4 = z_BeWin-12.5 *mm;
-
-        logic_TaSpac4 = new G4LogicalVolume(solid_TaSpac4, Ta, "logical_TaSpac4", 0, 0, 0);
-        physi_TaSpac4 = new G4PVPlacement(rotm_negX, G4ThreeVector(x_TaSpac4, y_TaSpac4, z_TaSpac4), logic_TaSpac4, "physical_TaSpac4", logic_w, false, 0);
+	auto mesh_TaSpac4 = CADMesh::TessellatedMesh::FromOBJ("/home/wzt0020/geant4/HERT_FS/src/GEANT4_HERT_Obj_Files/Ta_Spacer4.obj");
+	G4VSolid* solid_TaSpac4 = mesh_TaSpac4->GetSolid();
+	solid_TaSpac4->SetName("solid_TaSpac4");
+	logic_TaSpac4 = new G4LogicalVolume(solid_TaSpac4, Ta, "logical_TaSpac4", 0, 0, 0);
+	physi_TaSpac4 = new G4PVPlacement(0, G4ThreeVector(0,0,0), logic_TaSpac4, "physical_TaSpac4", logic_w, false, 0);
 
 	/* Ta 4th Tooth */
-	auto mesh_TaTooth4 = CADMesh::TessellatedMesh::FromOBJ("/home/wzt0020/Geant4/HERT_FS/src/GEANT4_HERT_Obj_Files/Ta_Tooth.obj");
+	auto mesh_TaTooth4 = CADMesh::TessellatedMesh::FromOBJ("/home/wzt0020/geant4/HERT_FS/src/GEANT4_HERT_Obj_Files/Ta_Tooth4.obj");
 	G4VSolid* solid_TaTooth4 = mesh_TaTooth4->GetSolid();
 	solid_TaTooth4->SetName("solid_TaTooth4");
-	G4double x_TaTooth4 = 0 * mm;
-	G4double y_TaTooth4 = 0 * mm;
-	G4double z_TaTooth4 = z_TaSpac4 - 1.0 * mm;
 	logic_TaTooth4 = new G4LogicalVolume(solid_TaTooth4, Ta, "logical_TaTooth4", 0, 0, 0);
-	physi_TaTooth4 = new G4PVPlacement(rotm_negX, G4ThreeVector(x_TaTooth4, y_TaTooth4, z_TaTooth4), logic_TaTooth4, "physical_TaTooth4", logic_w, false, 0);
+	physi_TaTooth4 = new G4PVPlacement(0, G4ThreeVector(0,0,0), logic_TaTooth4, "physical_TaTooth4", logic_w, false, 0);
 
 	/* Ta 3rd Spacer */
-	auto mesh_TaSpac3 = CADMesh::TessellatedMesh::FromOBJ("/home/wzt0020/Geant4/HERT_FS/src/GEANT4_HERT_Obj_Files/Ta_Spacer1.obj");
+	auto mesh_TaSpac3 = CADMesh::TessellatedMesh::FromOBJ("/home/wzt0020/geant4/HERT_FS/src/GEANT4_HERT_Obj_Files/Ta_Spacer3.obj");
 	G4VSolid* solid_TaSpac3 = mesh_TaSpac3->GetSolid();
 	solid_TaSpac3->SetName("solid_TaSpac3");
-	G4double x_TaSpac3 = 0 * mm;
-	G4double y_TaSpac3 = 0 * mm;
-	G4double z_TaSpac3 = z_TaTooth4 -14.00* mm;
-
 	logic_TaSpac3 = new G4LogicalVolume(solid_TaSpac3, Ta, "logical_TaSpac3", 0, 0, 0);
-	physi_TaSpac3 = new G4PVPlacement(rotm_negX, G4ThreeVector(x_TaSpac3, y_TaSpac3, z_TaSpac3), logic_TaSpac3, "physical_TaSpac3", logic_w, false, 0);
+	physi_TaSpac3 = new G4PVPlacement(0, G4ThreeVector(0,0,0), logic_TaSpac3, "physical_TaSpac3", logic_w, false, 0);
 
 	/* Ta 3rd Tooth */
-	auto mesh_TaTooth3 = CADMesh::TessellatedMesh::FromOBJ("/home/wzt0020/Geant4/HERT_FS/src/GEANT4_HERT_Obj_Files/Ta_Tooth.obj");
+	auto mesh_TaTooth3 = CADMesh::TessellatedMesh::FromOBJ("/home/wzt0020/geant4/HERT_FS/src/GEANT4_HERT_Obj_Files/Ta_Tooth3.obj");
 	G4VSolid* solid_TaTooth3 = mesh_TaTooth3->GetSolid();
 	solid_TaTooth3->SetName("solid_TaTooth3");
-	G4double x_TaTooth3 = 0 * mm;
-	G4double y_TaTooth3 = 0 * mm;
-	G4double z_TaTooth3 = z_TaSpac3 - 1.0 * mm;
 	logic_TaTooth3 = new G4LogicalVolume(solid_TaTooth3, Ta, "logical_TaTooth3", 0, 0, 0);
-	physi_TaTooth3 = new G4PVPlacement(rotm_negX, G4ThreeVector(x_TaTooth3, y_TaTooth3, z_TaTooth3), logic_TaTooth3, "physical_TaTooth3", logic_w, false, 0);
+	physi_TaTooth3 = new G4PVPlacement(0, G4ThreeVector(0,0,0), logic_TaTooth3, "physical_TaTooth3", logic_w, false, 0);
 
 	/* Ta 2nd Spacer */
-	auto mesh_TaSpac2 = CADMesh::TessellatedMesh::FromOBJ("/home/wzt0020/Geant4/HERT_FS/src/GEANT4_HERT_Obj_Files/Ta_Spacer1.obj");
+	auto mesh_TaSpac2 = CADMesh::TessellatedMesh::FromOBJ("/home/wzt0020/geant4/HERT_FS/src/GEANT4_HERT_Obj_Files/Ta_Spacer2.obj");
 	G4VSolid* solid_TaSpac2 = mesh_TaSpac2->GetSolid();
 	solid_TaSpac2->SetName("solid_TaSpac2");
-	G4double x_TaSpac2 = 0 * mm;
-	G4double y_TaSpac2 = 0 * mm;
-	G4double z_TaSpac2 = z_TaTooth3 - 14.00 * mm;
-
 	logic_TaSpac2 = new G4LogicalVolume(solid_TaSpac2, Ta, "logical_TaSpac2", 0, 0, 0);
-	physi_TaSpac2 = new G4PVPlacement(rotm_negX, G4ThreeVector(x_TaSpac2, y_TaSpac2, z_TaSpac2), logic_TaSpac2, "physical_TaSpac2", logic_w, false, 0);
+	physi_TaSpac2 = new G4PVPlacement(0, G4ThreeVector(0,0,0), logic_TaSpac2, "physical_TaSpac2", logic_w, false, 0);
 
 	/* Ta 2nd Tooth */
-	auto mesh_TaTooth2 = CADMesh::TessellatedMesh::FromOBJ("/home/wzt0020/Geant4/HERT_FS/src/GEANT4_HERT_Obj_Files/Ta_Tooth.obj");
+	auto mesh_TaTooth2 = CADMesh::TessellatedMesh::FromOBJ("/home/wzt0020/geant4/HERT_FS/src/GEANT4_HERT_Obj_Files/Ta_Tooth2.obj");
 	G4VSolid* solid_TaTooth2 = mesh_TaTooth2->GetSolid();
 	solid_TaTooth2->SetName("solid_TaTooth2");
-	G4double x_TaTooth2 = 0 * mm;
-	G4double y_TaTooth2 = 0 * mm;
-	G4double z_TaTooth2 = z_TaSpac2 - 1.0 * mm;
 	logic_TaTooth2 = new G4LogicalVolume(solid_TaTooth2, Ta, "logical_TaTooth2", 0, 0, 0);
-	physi_TaTooth2 = new G4PVPlacement(rotm_negX, G4ThreeVector(x_TaTooth2, y_TaTooth2, z_TaTooth2), logic_TaTooth2, "physical_TaTooth2", logic_w, false, 0);
+	physi_TaTooth2 = new G4PVPlacement(0, G4ThreeVector(0,0,0), logic_TaTooth2, "physical_TaTooth2", logic_w, false, 0);
 
 	/* Ta 1st Spacer */
-	auto mesh_TaSpac1 = CADMesh::TessellatedMesh::FromOBJ("/home/wzt0020/Geant4/HERT_FS/src/GEANT4_HERT_Obj_Files/Ta_Spacer1.obj");
+	auto mesh_TaSpac1 = CADMesh::TessellatedMesh::FromOBJ("/home/wzt0020/geant4/HERT_FS/src/GEANT4_HERT_Obj_Files/Ta_Spacer1.obj");
 	G4VSolid* solid_TaSpac1 = mesh_TaSpac1->GetSolid();
 	solid_TaSpac1->SetName("solid_TaSpac1");
-	G4double x_TaSpac1 = 0 * mm;
-	G4double y_TaSpac1 = 0 * mm;
-	G4double z_TaSpac1 = z_TaTooth2 - 14.00 * mm;
-
 	logic_TaSpac1 = new G4LogicalVolume(solid_TaSpac1, Ta, "logical_TaSpac1", 0, 0, 0);
-	physi_TaSpac1 = new G4PVPlacement(rotm_negX, G4ThreeVector(x_TaSpac1, y_TaSpac1, z_TaSpac1), logic_TaSpac1, "physical_TaSpac1", logic_w, false, 0);
+	physi_TaSpac1 = new G4PVPlacement(0, G4ThreeVector(0,0,0), logic_TaSpac1, "physical_TaSpac1", logic_w, false, 0);
 
 	/* Ta 1st Tooth */
-	auto mesh_TaTooth1 = CADMesh::TessellatedMesh::FromOBJ("/home/wzt0020/Geant4/HERT_FS/src/GEANT4_HERT_Obj_Files/Ta_Tooth.obj");
+	auto mesh_TaTooth1 = CADMesh::TessellatedMesh::FromOBJ("/home/wzt0020/geant4/HERT_FS/src/GEANT4_HERT_Obj_Files/Ta_Tooth1.obj");
 	G4VSolid* solid_TaTooth1 = mesh_TaTooth1->GetSolid();
 	solid_TaTooth1->SetName("solid_TaTooth1");
-	G4double x_TaTooth1 = 0 * mm;
-	G4double y_TaTooth1 = 0 * mm;
-	G4double z_TaTooth1 = z_TaSpac1 - 1.0 * mm;
 	logic_TaTooth1 = new G4LogicalVolume(solid_TaTooth1, Ta, "logical_TaTooth1", 0, 0, 0);
-	physi_TaTooth1 = new G4PVPlacement(rotm_negX, G4ThreeVector(x_TaTooth1, y_TaTooth1, z_TaTooth1), logic_TaTooth1, "physical_TaTooth1", logic_w, false, 0);
+	physi_TaTooth1 = new G4PVPlacement(0, G4ThreeVector(0,0,0), logic_TaTooth1, "physical_TaTooth1", logic_w, false, 0);
 
 	/* Al Front Shim */
-	auto mesh_AlFrShim = CADMesh::TessellatedMesh::FromOBJ("/home/wzt0020/Geant4/HERT_FS/src/GEANT4_HERT_Obj_Files/Al_Front_Shim.obj");
+	auto mesh_AlFrShim = CADMesh::TessellatedMesh::FromOBJ("/home/wzt0020/geant4/HERT_FS/src/GEANT4_HERT_Obj_Files/Al_Front_Shim.obj");
 	G4VSolid* solid_AlFrShim = mesh_AlFrShim->GetSolid();
 	solid_AlFrShim->SetName("solid_AlFrShim");
-	G4double x_AlFrShim = 0 * mm;
-	G4double y_AlFrShim = 0 * mm;
-	G4double z_AlFrShim = z_WFrIn1 - 0.5 * mm;
 	logic_AlFrShim = new G4LogicalVolume(solid_AlFrShim, Alalloy, "logical_AlFrShim", 0, 0, 0);
-	physi_AlFrShim = new G4PVPlacement(rotm_AlHousing, G4ThreeVector(x_AlFrShim, y_AlFrShim, z_AlFrShim), logic_AlFrShim, "physical_AlFrShim", logic_w, false, 0);
+	physi_AlFrShim = new G4PVPlacement(0, G4ThreeVector(0,0,0), logic_AlFrShim, "physical_AlFrShim", logic_w, false, 0);
 
 	/* W Front Plate 1 */
-	auto mesh_WFr1 = CADMesh::TessellatedMesh::FromOBJ("/home/wzt0020/Geant4/HERT_FS/src/GEANT4_HERT_Obj_Files/W_Fr1.obj");
+	auto mesh_WFr1 = CADMesh::TessellatedMesh::FromOBJ("/home/wzt0020/geant4/HERT_FS/src/GEANT4_HERT_Obj_Files/W_Fr1.obj");
 	G4VSolid* solid_WFr1 = mesh_WFr1->GetSolid();
 	solid_WFr1->SetName("solid_WFr1");
-	G4double x_WFr1 = 0 * mm;
-	G4double y_WFr1 = 0 * mm;
-	G4double z_WFr1 = z_AlFrShim - 3.5 * mm;
 	logic_WFr1 = new G4LogicalVolume(solid_WFr1, W, "logical_WFr1", 0, 0, 0);
-	physi_WFr1 = new G4PVPlacement(rotm_AlHousing, G4ThreeVector(x_WFr1, y_WFr1, z_WFr1), logic_WFr1, "physical_WFr1", logic_w, false, 0);
+	physi_WFr1 = new G4PVPlacement(0, G4ThreeVector(0,0,0), logic_WFr1, "physical_WFr1", logic_w, false, 0);
 
 
 	/* Aluminum Housing */
-	auto mesh_alHousing = CADMesh::TessellatedMesh::FromOBJ("/home/wzt0020/Geant4/HERT_FS/src/GEANT4_HERT_Obj_Files/Al_Collimator_Housing.obj");
+	auto mesh_alHousing = CADMesh::TessellatedMesh::FromOBJ("/home/wzt0020/geant4/HERT_FS/src/GEANT4_HERT_Obj_Files/Al_Collimator_Housing.obj");
 	G4VSolid* solid_alHousing = mesh_alHousing->GetSolid();
 	solid_alHousing->SetName("solid_alHousing");
-	G4double x_alHousing = 0 * mm;
-	G4double y_alHousing = 0 * mm;
-	G4double z_alHousing = -64.0 * mm;
-
 	logic_alHousing = new G4LogicalVolume(solid_alHousing, Alalloy, "logical_alHousing", 0, 0, 0);
-	physi_alHousing = new G4PVPlacement(rotm_AlHousing, G4ThreeVector(x_alHousing, y_alHousing, z_alHousing), logic_alHousing, "physical_alHousing", logic_w, false, 0);
+	physi_alHousing = new G4PVPlacement(0, G4ThreeVector(0,0,0), logic_alHousing, "physical_alHousing", logic_w, false, 0);
 
 	
 	/* Epoxy Chamber*/
-	auto mesh_EpoxCham = CADMesh::TessellatedMesh::FromOBJ("/home/wzt0020/Geant4/HERT_FS/src/GEANT4_HERT_Obj_Files/W_Epoxy_Chamber.obj");
+	auto mesh_EpoxCham = CADMesh::TessellatedMesh::FromOBJ("/home/wzt0020/geant4/HERT_FS/src/GEANT4_HERT_Obj_Files/W_Epoxy_Chamber.obj");
 	G4VSolid* solid_EpoxCham = mesh_EpoxCham->GetSolid();
 	solid_EpoxCham->SetName("solid_EpoxCham");
-	G4double x_EpoxCham = 0 * mm;
-	G4double y_EpoxCham = 0 * mm;
-	G4double z_EpoxCham = -0.5 * mm;
-
-	G4RotationMatrix* rotm_EpoCham = new G4RotationMatrix();
-	rotm_EpoCham->rotateY(90. * deg);
-	rotm_EpoCham->rotateZ(90. * deg);
-
 	logic_EpoxCham = new G4LogicalVolume(solid_EpoxCham, EpoxyTungsten, "logical_EpoxCham", 0, 0, 0);
-	physi_EpoxCham = new G4PVPlacement(rotm_EpoCham, G4ThreeVector(x_EpoxCham, y_EpoxCham, z_EpoxCham), logic_EpoxCham, "physical_EpoxCham", logic_w, false, 0);
+	physi_EpoxCham = new G4PVPlacement(0, G4ThreeVector(0,0,0), logic_EpoxCham, "physical_EpoxCham", logic_w, false, 0);
 
 
 	/* Al Chamber Shim 1*/
-	auto mesh_AlChShim1 = CADMesh::TessellatedMesh::FromOBJ("/home/wzt0020/Geant4/HERT_FS/src/GEANT4_HERT_Obj_Files/Al_Chamber_Shim_Block.obj");
+	auto mesh_AlChShim1 = CADMesh::TessellatedMesh::FromOBJ("/home/wzt0020/geant4/HERT_FS/src/GEANT4_HERT_Obj_Files/Al_Chamber_Shim.obj");
 	G4VSolid* solid_AlChShim1 = mesh_AlChShim1->GetSolid();
 	solid_AlChShim1->SetName("solid_AlChShim1");
-	G4double x_AlChShim1 = 0 * mm;
-	G4double y_AlChShim1 = 0 * mm;
-	G4double z_AlChShim1 = z_EpoxCham - 2 * mm + 24.86 * mm;
-
-	G4RotationMatrix* rotm_AlCham = new G4RotationMatrix();
-	rotm_AlCham->rotateX(-90. * deg);
-	rotm_AlCham->rotateY(180. * deg);
-
 	logic_AlChShim1 = new G4LogicalVolume(solid_AlChShim1, Alalloy, "logical_AlChShim1", 0, 0, 0);
-	physi_AlChShim1 = new G4PVPlacement(rotm_AlCham, G4ThreeVector(x_AlChShim1, y_AlChShim1, z_AlChShim1), logic_AlChShim1, "physical_AlChShim1", logic_w, false, 0);
+	physi_AlChShim1 = new G4PVPlacement(0, G4ThreeVector(0,0,0), logic_AlChShim1, "physical_AlChShim1", logic_w, false, 0);
 
 
 	/* Back W Shielding*/
-	auto mesh_BackW = CADMesh::TessellatedMesh::FromOBJ("/home/wzt0020/Geant4/HERT_FS/src/GEANT4_HERT_Obj_Files/W_Back_Plate.obj");
+	auto mesh_BackW = CADMesh::TessellatedMesh::FromOBJ("/home/wzt0020/geant4/HERT_FS/src/GEANT4_HERT_Obj_Files/W_Back_Plate.obj");
 	G4VSolid* solid_BackW = mesh_BackW->GetSolid();
 	solid_BackW->SetName("solid_BackW");
-	G4double x_BackW = -33.95 * mm;
-	G4double y_BackW = -34.75 * mm;
-	G4double z_BackW = z_EpoxCham + 5 * mm + 24.86 * mm;
-
-	G4RotationMatrix* rotm_BackW = new G4RotationMatrix();
-	rotm_BackW->rotateX(90. * deg);
 	logic_BackW = new G4LogicalVolume(solid_BackW, W, "logical_BackW", 0, 0, 0);
-	physi_BackW = new G4PVPlacement(rotm_BackW, G4ThreeVector(x_BackW, y_BackW, z_BackW), logic_BackW, "physical_BackW", logic_w, false, 0);
+	physi_BackW = new G4PVPlacement(0, G4ThreeVector(0,0,0), logic_BackW, "physical_BackW", logic_w, false, 0);
 
 
 	/* Al Back Shim 1*/
-	auto mesh_AlBkShim1 = CADMesh::TessellatedMesh::FromOBJ("/home/wzt0020/Geant4/HERT_FS/src/GEANT4_HERT_Obj_Files/Al_Back_Shim_Block.obj");
+	auto mesh_AlBkShim1 = CADMesh::TessellatedMesh::FromOBJ("/home/wzt0020/geant4/HERT_FS/src/GEANT4_HERT_Obj_Files/Al_Back_Shim.obj");
 	G4VSolid* solid_AlBkShim1 = mesh_AlBkShim1->GetSolid();
 	solid_AlBkShim1->SetName("solid_AlBkShim1");
-	G4double x_AlBkShim1 = -33.95 * mm;
-	G4double y_AlBkShim1 = 34.75 * mm;
-	G4double z_AlBkShim1 = z_BackW + 0 * mm;
-
-	G4RotationMatrix* rotm_AlBackShim = new G4RotationMatrix();
-	rotm_AlBackShim->rotateX(-90. * deg);
 	logic_AlBkShim1 = new G4LogicalVolume(solid_AlBkShim1, Alalloy, "logical_AlBkShim1", 0, 0, 0);
-	physi_AlBkShim1 = new G4PVPlacement(rotm_AlBackShim, G4ThreeVector(x_AlBkShim1, y_AlBkShim1, z_AlBkShim1), logic_AlBkShim1, "physical_AlBkShim1", logic_w, false, 0);
-
+	physi_AlBkShim1 = new G4PVPlacement(0, G4ThreeVector(0,0,0), logic_AlBkShim1, "physical_AlBkShim1", logic_w, false, 0);
 
 	/* Al Back Plate*/
-	auto mesh_AlBkPlate = CADMesh::TessellatedMesh::FromOBJ("/home/wzt0020/Geant4/HERT_FS/src/GEANT4_HERT_Obj_Files/Al_Back_Plate.obj");
+	auto mesh_AlBkPlate = CADMesh::TessellatedMesh::FromOBJ("/home/wzt0020/geant4/HERT_FS/src/GEANT4_HERT_Obj_Files/Al_Back_Plate.obj");
 	G4VSolid* solid_AlBkPlate = mesh_AlBkPlate->GetSolid();
 	solid_AlBkPlate->SetName("solid_AlBkPlate");
-	G4double x_AlBkPlate = 43 * mm;
-	G4double y_AlBkPlate = 45 * mm;
-	G4double z_AlBkPlate = z_AlBkShim1 + 6 * mm;
-
-	G4RotationMatrix* rotm_AlBackPlate = new G4RotationMatrix();
-	rotm_AlBackPlate->rotateX(-90. * deg);
-	rotm_AlBackPlate->rotateZ(180. * deg);
-
 	logic_AlBkPlate = new G4LogicalVolume(solid_AlBkPlate, Alalloy, "logical_AlBkPlate", 0, 0, 0);
-	physi_AlBkPlate = new G4PVPlacement(rotm_AlBackPlate, G4ThreeVector(x_AlBkPlate, y_AlBkPlate, z_AlBkPlate), logic_AlBkPlate, "physical_AlBkPlate", logic_w, false, 0);
+	physi_AlBkPlate = new G4PVPlacement(0, G4ThreeVector(0,0,0), logic_AlBkPlate, "physical_AlBkPlate", logic_w, false, 0);
 
 	/* Stainless Steel Alignment Pin 1*/
-	auto mesh_AlignPin1 = CADMesh::TessellatedMesh::FromOBJ("/home/wzt0020/Geant4/HERT_FS/src/GEANT4_HERT_Obj_Files/Alignment_Pin.obj");
+	auto mesh_AlignPin1 = CADMesh::TessellatedMesh::FromOBJ("/home/wzt0020/geant4/HERT_FS/src/GEANT4_HERT_Obj_Files/Alignment_Pin1.obj");
 	G4VSolid* solid_AlignPin1 = mesh_AlignPin1->GetSolid();
 	solid_AlignPin1->SetName("solid_AlignPin1");
-	G4double x_AlignPin1 = 25.730 * mm;
-	G4double y_AlignPin1 = 0* mm;
-	G4double z_AlignPin1 = -10 * mm;
-	G4RotationMatrix* rotm_StAlignPin = new G4RotationMatrix();
-	rotm_StAlignPin->rotateX(-90. * deg);
-	//rotm_StAlignPin->rotateY(180. * deg);
-
 	logic_AlignPin1 = new G4LogicalVolume(solid_AlignPin1, StainlessSteel, "logical_AlignPin1", 0, 0, 0);
-	physi_AlignPin1 = new G4PVPlacement(rotm_StAlignPin, G4ThreeVector(x_AlignPin1, y_AlignPin1, z_AlignPin1), logic_AlignPin1, "physical_AlignPin1", logic_w, false, 0);
+	physi_AlignPin1 = new G4PVPlacement(0, G4ThreeVector(0,0,0), logic_AlignPin1, "physical_AlignPin1", logic_w, false, 0);
 
 	/* Stainless Steel Alignment Pin 2*/
-	auto mesh_AlignPin2 = CADMesh::TessellatedMesh::FromOBJ("/home/wzt0020/Geant4/HERT_FS/src/GEANT4_HERT_Obj_Files/Alignment_Pin.obj");
+	auto mesh_AlignPin2 = CADMesh::TessellatedMesh::FromOBJ("/home/wzt0020/geant4/HERT_FS/src/GEANT4_HERT_Obj_Files/Alignment_Pin2.obj");
 	G4VSolid* solid_AlignPin2 = mesh_AlignPin2->GetSolid();
 	solid_AlignPin2->SetName("solid_AlignPin2");
-	G4double x_AlignPin2 = -12.865 * mm;
-	G4double y_AlignPin2 = 22.283 * mm;
-	G4double z_AlignPin2 = z_AlignPin1;
 	logic_AlignPin2 = new G4LogicalVolume(solid_AlignPin2, StainlessSteel, "logical_AlignPin2", 0, 0, 0);
-	physi_AlignPin2 = new G4PVPlacement(rotm_StAlignPin, G4ThreeVector(x_AlignPin2, y_AlignPin2, z_AlignPin2), logic_AlignPin2, "physical_AlignPin2", logic_w, false, 0);
+	physi_AlignPin2 = new G4PVPlacement(0, G4ThreeVector(0,0,0), logic_AlignPin2, "physical_AlignPin2", logic_w, false, 0);
 
 	/* Stainless Steel Alignment Pin 3*/
-	auto mesh_AlignPin3 = CADMesh::TessellatedMesh::FromOBJ("/home/wzt0020/Geant4/HERT_FS/src/GEANT4_HERT_Obj_Files/Alignment_Pin.obj");
+	auto mesh_AlignPin3 = CADMesh::TessellatedMesh::FromOBJ("/home/wzt0020/geant4/HERT_FS/src/GEANT4_HERT_Obj_Files/Alignment_Pin3.obj");
 	G4VSolid* solid_AlignPin3 = mesh_AlignPin3->GetSolid();
 	solid_AlignPin3->SetName("solid_AlignPin3");
-	G4double x_AlignPin3 = x_AlignPin2;
-	G4double y_AlignPin3 = -y_AlignPin2;
-	G4double z_AlignPin3 = z_AlignPin1;
 	logic_AlignPin3 = new G4LogicalVolume(solid_AlignPin3, StainlessSteel, "logical_AlignPin3", 0, 0, 0);
-	physi_AlignPin3 = new G4PVPlacement(rotm_StAlignPin, G4ThreeVector(x_AlignPin3, y_AlignPin3, z_AlignPin3), logic_AlignPin3, "physical_AlignPin3", logic_w, false, 0);
-
+	physi_AlignPin3 = new G4PVPlacement(0, G4ThreeVector(0,0,0), logic_AlignPin3, "physical_AlignPin3", logic_w, false, 0);
+	
 	//____________________ visible attributes ____________________
 
     VisAtt_w = new G4VisAttributes(true,G4Colour(0.0,0.0,0.0));
