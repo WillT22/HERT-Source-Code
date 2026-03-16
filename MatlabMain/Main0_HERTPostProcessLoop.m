@@ -7,14 +7,17 @@
 clear all;
 close all;
 clc;
-addpath 'E:\HERT_Drive\Matlab Main\'
+addpath 'D:\HERT_Drive\Matlab Main\'
 %% Reads in all files names
 
 % Changes address to where results are stored
-cd 'E:\HERT_Drive\Matlab Main\Result\'; 
+cd 'D:\HERT_Drive\Matlab Main\Result\'; 
 
 % Location for where post process files should be saved
-outputfolder = 'E:\HERT_Drive\Matlab Main\Result\PostProcess'; 
+outputfolder = 'D:\HERT_Drive\Matlab Main\Result\PostProcess'; 
+
+textsize = 20;
+titlesize = 28;
 
 % Get Folder Names for User
 topLevelFolder = pwd; % Current folder
@@ -75,12 +78,35 @@ while choice ~= 1
 
         % Start Run
         case 4
+            min_Energy = 0;
+            max_Energy = 1000;
+            energy_edges = min_Energy:0.01:max_Energy;
+            energy_average = (energy_edges(1:end-1)+energy_edges(2:end))/2;
+            
+            Inc_hist = zeros(size(energy_average));
             for file_index = 1:number_files
                 tic % finds elapsed time of reading each data file
                 % processes each file
-                HERTPostProcessWhole(filename{file_index}, inputfolder,outputfolder);
+                Einc_out = HERTPostProcessWhole(filename{file_index}, inputfolder,outputfolder);
+                Inc_hist = Inc_hist + histcounts(Einc_out,energy_edges);
                 toc
             end
+            
+            f = figure;
+            f.Position = [0 0 1920 1080];
+            hold on
+            scatter(energy_average,Inc_hist,'.');
+            hold off
+            
+            xlabel('Energy (MeV)', 'FontSize', textsize); % Label the x-axis
+            ylabel('Count', 'FontSize', textsize);         % Label the y-axis
+            title('Distribution of Incident Energy'); % (Optional) Add a title to the plot
+            
+            % Saving the figure as a png then returning to the main directory
+            effsave = append('Incident Energy Counts', string(datetime("today")), '.png');
+            saveas(f, effsave)
+
+
             % Report all files are loaded and move on
             fprintf('All Files Processed\n')
     end % switch end

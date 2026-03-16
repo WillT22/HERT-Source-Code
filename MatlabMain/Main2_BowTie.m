@@ -7,26 +7,29 @@ close all
 
 %% Bow Tie Analysis-Selesnick/Blake
 %Changes directory for png of graphs
-cd 'E:\HERT_Drive\Matlab Main\Bow Tie'
+cd 'D:\HERT_Drive\Matlab Main\Bow Tie'
 
-geo_EC = readmatrix('E:\HERT_Drive\Matlab Main\Result\geofactor_EC_FS.txt');
-valid_geo_EC = geo_EC(:,1:size(energy_midpoints,2));
+%geo_EC = readmatrix('D:\HERT_Drive\Matlab Main\Result\geofactor_EC_FS.txt');
+energy_max_select = 70; % MeV 8 for electrons, 70 for protons
+energy_range = energy_midpoints(energy_midpoints<energy_max_select);
+valid_geo_EC = geo_EC(:,1:size(energy_range,2));
 %hits_whole_EC= ones(size(geo_EC,1),1);
 
 %Sets Ei and Range of Eo
 %Ei is the incident energy from the GEANT4 results
 %Eo set by user.
-Eo = 0.2:0.2:2.0;
+%Eo = 0.2:0.2:2.0; % for electrons
+Eo = 20:0.5:50; % for protons
 
 %Sets up color vectors for plotting the different Eo curves
 Eo_color = magma(length(Eo)+1);
 
 %Preallocates all variables prior to For Loops
-J_e = zeros(length(energy_midpoints),length(Eo));
+J_e = zeros(length(energy_range),length(Eo));
 
-G_int = zeros(length(energy_midpoints),length(Eo),length(energy_channels));
-G_term = zeros(length(energy_midpoints),length(Eo),length(energy_channels));
-G_E_eff = zeros(length(energy_midpoints),length(Eo),length(energy_channels));
+G_int = zeros(length(energy_range),length(Eo),length(energy_channels));
+G_term = zeros(length(energy_range),length(Eo),length(energy_channels));
+G_E_eff = zeros(length(energy_range),length(Eo),length(energy_channels));
 
 xi = zeros(sum(1:length(Eo)-1),length(energy_channels));
 yi = zeros(sum(1:length(Eo)-1),length(energy_channels));
@@ -42,7 +45,7 @@ Geff = zeros(1, length(energy_channels));
 
 %Creates J(e) and creates String Array for Plot Legends
 for i = 1:length(Eo)
-    J_e(:,i) = exp(-energy_midpoints/Eo(i));
+    J_e(:,i) = exp(-energy_range/Eo(i));
     BowTieLegend(i) = num2str(Eo(i));
 end
 
@@ -59,25 +62,33 @@ fprintf('\nFull Width at Half Max Values:\n')
 fwhm = zeros(1,length(energy_channels));
 
 for u = 1:length(energy_channels)
-    fwhm(u) = findFWHM(energy_midpoints,valid_geo_EC(u,:));
+    fwhm(u) = findFWHM(energy_range,valid_geo_EC(u,:));
     % Print full width half max values into command window
     fprintf('%.2f - %.2f MeV: %.4f\n',energy_channels(u,1),energy_channels(u,2),fwhm(u))
 end
 
 %For Loop for calculating a line for each Eo and finding the average intersection point
 fprintf('Energy Channel Processing: ')
-for c=1:length(energy_channels)
-    % Display the percentage complete (every 10% for example)
-    percentage = floor(c / length(energy_channels) * 100);  
-    if (mod(c / length(energy_channels) * 100, 10) == 0)
-        fprintf('%.0f ',percentage);
+
+next_threshold = 10; 
+num_channels = length(energy_channels);
+for c = 1:num_channels
+    % [Your existing processing code goes here]
+    
+    % Calculate current completion percentage
+    percentage = (c / num_channels) * 100;
+    
+    % Check if we crossed one or more 10% thresholds
+    while percentage >= next_threshold
+        fprintf('%.0f%% ', next_threshold);
+        next_threshold = next_threshold + 10;
     end
         
     %Calculates line for each Eo
     for i = 1:length(Eo)
         valid_geo = ~isnan(valid_geo_EC(c,:));
         G_int(valid_geo,i,c) = valid_geo_EC(c,valid_geo)'.*J_e(valid_geo,i);
-        G_term(:,i,c) = trapz(energy_midpoints,G_int(:,i,c));
+        G_term(:,i,c) = trapz(energy_range,G_int(:,i,c));
         G_E_eff(:,i,c)= G_term(:,i,c).*J_e_inv(:,i);  
     end
     
@@ -85,7 +96,7 @@ for c=1:length(energy_channels)
     num = 0;
     for j = 1:(length(Eo)-1)
         for k = 1:(length(Eo)-j)
-            [xi(num+k,c),yi(num+k,c)] = polyxpoly(energy_midpoints,G_E_eff(:,j,c),energy_midpoints,G_E_eff(:,j+k,c),'unique');   
+            [xi(num+k,c),yi(num+k,c)] = polyxpoly(energy_range,G_E_eff(:,j,c),energy_range,G_E_eff(:,j+k,c),'unique');   
         end
         num = num + k;
     end
@@ -211,7 +222,7 @@ data_to_export = [energy_channels(Energy_Resolution~=0,:), E_eff(Energy_Resoluti
 % Write the matrix to a text file
 dlmwrite('output.txt', data_to_export, 'delimiter', '\t', 'precision', '%.4f');
 
-%{
+%
 figure
 plot(Energy_Resolution,'xb')
 title('Energy Resolution per Energy Channel')
@@ -226,30 +237,32 @@ textsize = 28;
 
 %Plots each energy channel FWHM value
 hold on
-plot(E_eff(Energy_Resolution~=0),Energy_Resolution(Energy_Resolution~=0),'o','MarkerSize',8,...
+plot([0,max(max(M_energy_beam))],[12,12],'k--','LineWidth',2)%,'DisplayName','Energy Resolution Requirement')
+plot(E_eff(1:end-1),Energy_Resolution(1:end-1),'o','MarkerSize',8,...
         'MarkerEdgeColor','b','MarkerFaceColor','b')
 set(gca,'FontSize',textsize)
 %title('HERT Energy Resolution','FontSize',textsize)
 ylabel('Spectral Resolution dE/E(%)','FontSize',textsize)
 xlabel('Nominal Energy (MeV)','FontSize',textsize)
+xlim([20,40])
 ylim([0,40])
-plot([0,max(max(M_energy_beam))],[12,12],'k--','LineWidth',2)%,'DisplayName','Energy Resolution Requirement')
+%yscale('log')
 
-%legend([EngLegend,'Energy Resolution Requirement'],'Location', 'southoutside','NumColumns',8)
 legend(['Energy Resolution Requirement'],'Location', 'northeast','NumColumns',8)
 
 hold off
 effsave = append(date(),' Energy Resolution',' Eo ',num2str(min(Eo)),' to ',num2str(max(Eo)),' MeV','_',addin,num2str(length(energy_channels)),'.png');
 saveas(gcf,effsave)
-%}
+%
 
 %% Write to Text File
-%{
-fileID = fopen('effective_energies_DARTBe.txt','w');
+%
+filename = sprintf('proton_resolution_v4.txt');
+fileID = fopen(filename, 'w');
 for i = 1:length(E_eff)
-fprintf(fileID,'%.6f \n',E_eff(i));
+fprintf(fileID,'%.6f %.6f\n',E_eff(i),Energy_Resolution(i));
 end
 fclose(fileID);
-%}
+%
 
 

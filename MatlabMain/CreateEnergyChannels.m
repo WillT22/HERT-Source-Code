@@ -1,94 +1,104 @@
-
 clc
 clear all
-%% Electrons
-%{
-ExLow_Limit = 0.1;
-Low_Limit = 0.5; %0.5
-Med_Limit = 1.0; %1.0
-High_Limit = 2.5; %2.5
-Max_Limit = 8; %8
-%}
+cd 'D:\HERT_Drive\MATLAB Main\Result'
+particle_type = 'proton'; % Change to 'proton' to run the proton case
 
-%% Protons
-%
-ExLow_Limit = 0.1;
-Low_Limit = 0.5;
-Med_Limit = 100;
-%High_Limit = 50;
-%Max_Limit = 100;
-%
-
-% Number of channels in each range:
-ExLownum = 1; %2
-Lownum = 39; %12
-%Mednum = 16; %16
-%Highnum = 10; %10
-
-% Excluded energy channels (below threshold)
-x = 1:(ExLownum+1);
-
-DE = (log10(Low_Limit(1))-log10(ExLow_Limit(1)))/ExLownum; %energy resolution
-
-for i = 1:(length(x)-1)
-    ExLow_Limit(i+1) = 10^(DE+log10(ExLow_Limit(i)));
+%% Parameters
+if strcmp(particle_type, 'electron')
+    ExLow_Limit = 0.1;
+    DE_threshold = 0.025;
+    linear_step = 0.2;
+    log_break = 2.5; 
+    Max_Limit = 7.0;
+    diffLow_total = 30;
+    diffHigh_total = 10;
     
-    ExLowChannels(i,1) = ExLow_Limit(i);
-    ExLowChannels(i,2) = ExLow_Limit(i+1);
-end
-
-% Low energy channels
-x = 1:(Lownum+1);
-
-DE = (log10(Med_Limit(1))-log10(Low_Limit(1)))/Lownum;
-
-
-for i = 1:(length(x)-1)
-    Low_Limit(i+1) = 10^(DE+log10(Low_Limit(i)));
+elseif strcmp(particle_type, 'proton')
+    ExLow_Limit = 0.1;
+    DE_threshold = 0.6;
+    linear_step = 1.0;
+    log_break = 53; 
+    Max_Limit = 65;
+    diffLow_total = 25;
+    diffHigh_total = 5;
     
-    LowChannels(i,1) = Low_Limit(i);
-    LowChannels(i,2) = Low_Limit(i+1);
+else
+    error('Invalid particle type. Choose ''electron'' or ''proton''.');
 end
-%{
-% Mid-range energy channels
-x_med = 1:(Mednum+1);
 
-DE_med = (log10(High_Limit(1))-log10(Med_Limit(1)))/Mednum;
+%% 1. Initialize Channels
+% Total channels includes low, high, and 1 integral bin at the end
+NumChannels = diffLow_total + diffHigh_total + 1;
+Channels = zeros(NumChannels, 2);
 
-for i = 1:(length(x_med)-1)
-    Med_Limit(i+1) = 10^(DE_med+log10(Med_Limit(i)));
+%% 2. Generate Linear Channels
+Linlowtemp = ExLow_Limit;
+current_idx = 1;
+
+while true
+    % Calculate remaining bins for the low-energy section
+    bins_left = diffLow_total - current_idx + 1;
     
-    MedChannels(i,1) = Med_Limit(i);
-    MedChannels(i,2) = Med_Limit(i+1);
-end
-
-% High energy channels
-x_high = 1:(Highnum+1);
-
-DE_high = (log10(Max_Limit)-log10(High_Limit(1)))/Highnum;
-
-for i = 1:(length(x_high)-1)
-    High_Limit(i+1) = 10^(DE_high+log10(High_Limit(i)));
+    % Check prospective log bin width if we switched to log right now
+    temp_edges = logspace(log10(Linlowtemp), log10(log_break), bins_left + 1);
+    temp_DE = temp_edges(2) - temp_edges(1);
     
-    HighChannels(i,1) = High_Limit(i);
-    HighChannels(i,2) = High_Limit(i+1);
+    if temp_DE < DE_threshold
+        % Prospective log bin is too small; create a linear bin
+        Channels(current_idx, 1) = Linlowtemp;
+        Linlowtemp = Linlowtemp + linear_step;
+        Channels(current_idx, 2) = Linlowtemp;
+        current_idx = current_idx + 1;
+    else
+        % Prospective log bin is large enough; break to start log bins
+        break;
+    end
 end
-%}
-% Combining energy channels into one variable
-%Channels = [ExLowChannels;LowChannels;MedChannels;HighChannels;MaxChannels]
-Channels = [ExLowChannels;LowChannels]
-NumChannels = length(Channels)
 
-% Combining enery resolution of each channel
-for i = 1:length(Channels)
-   Resolution(i,1) = 100*(-Channels(i,1)+Channels(i,2))/((Channels(i,1)+Channels(i,2))/2);
+%% 3. Record Core Log Channels
+% Generate the continuous, perfectly log-spaced array for the remaining bins
+bins_left = diffLow_total - current_idx + 1;
+LogLowEdges = logspace(log10(Linlowtemp), log10(log_break), bins_left + 1);
+
+for j = 1:bins_left
+    Channels(current_idx, 1) = LogLowEdges(j);
+    Channels(current_idx, 2) = LogLowEdges(j+1);
+    current_idx = current_idx + 1;
 end
-Resolution
 
-%% Write to Text File
+%% 4. Generate High Energy Channels
+LogHighEdges = logspace(log10(log_break), log10(Max_Limit), diffHigh_total + 1);
 
-fileID = fopen('channel_select\proton_channels_v1.txt','w');
-for i = 1:size(Channels,1)
-fprintf(fileID,'%6.3f,%6.3f \n',Channels(i,:));
+for j = 1:diffHigh_total
+    Channels(current_idx, 1) = LogHighEdges(j);
+    Channels(current_idx, 2) = LogHighEdges(j+1);
+    current_idx = current_idx + 1;
+end
+
+% Append the final integral bin
+Channels(current_idx, 1) = Max_Limit;
+Channels(current_idx, 2) = 1000;
+
+%% 5. Calculate Energy Resolution
+% Calculate resolution for all except the integral bin
+Resolution = zeros(NumChannels - 1, 1);
+for i = 1:(NumChannels - 1)
+   Resolution(i, 1) = 100 * (Channels(i,2) - Channels(i,1)) / ((Channels(i,1) + Channels(i,2)) / 2);
+end
+
+disp('Energy Resolutions (%):')
+disp(Resolution)
+
+%% 6. Write to Text File
+% Dynamically name the output file
+filename = sprintf('channel_select\\%s_channels_v6.txt', particle_type);
+fileID = fopen(filename, 'w');
+if fileID == -1
+    error('Could not open file. Ensure the ''channel_select'' directory exists.');
+end
+
+for i = 1:size(Channels, 1)
+    fprintf(fileID, '%6.3f,%6.3f \n', Channels(i,1), Channels(i,2));
 end
 fclose(fileID);
+fprintf('Data successfully written to %s\n', filename);

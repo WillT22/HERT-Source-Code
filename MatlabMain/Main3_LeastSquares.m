@@ -29,10 +29,11 @@ energy_channels = readmatrix('E:\HERT_Drive\Matlab Main\Result\channel_select\el
 
 % BOT/Inverse %
 %flux = 1/0.01 * exp(log(energy_midpoints.^-0.69))+ 1/0.001 .* exp(-(log(energy_midpoints)-log(2.365)).^2./(2*0.14));
-flux = 1/0.001 * exp(log(energy_midpoints.^-1.2))+ 1/0.001 .* exp(-(log(energy_midpoints)-log(4)).^2./(2*0.08));
+%flux = 1/0.001 * exp(log(energy_midpoints.^-1.2))+ 1/0.001 .* exp(-(log(energy_midpoints)-log(4)).^2./(2*0.08));
 
 % Power Law % alpha can be between 2 and 6
-%flux = 10^5 .* energy_midpoints.^-2;
+flux = 10^3 .* energy_midpoints.^-2;
+% use j0=10^2 and alpha=3.14 or j0=10^1 and alpha=4.73 from Hong's paper
 
 % Gaussian %
 %flux = 1/0.000001 .* exp(-(log(energy_midpoints)-log(2)).^2./(2*0.004));
@@ -94,6 +95,7 @@ hold off
 %}
 
 %% Least Squares Function for Energy Channels (Selesnick/Khoo) %%
+if length(hits_whole_EC)>2
 % Initialize variables
     flux_lsqr = 0;
     jsig = 0;
@@ -113,7 +115,7 @@ hold off
     sigma_m = 2000; % Exp = 2000   BOT = 2000,   POW = ? Use same as exp for alpha=2-4
 
     % Initialize smoothness parameter
-    delta = 4; % Exp = 50  BOT = 4,   POW = ?
+    delta = 50; % Exp = 50  BOT = 4,   POW = ?
 
     % Create C_m covariance matrix, covariance of model/guess
     Cm = sigma_m.^2 .* exp(-((energy_midpoints' - energy_midpoints).^2) ./ (2 * delta.^2));
@@ -174,6 +176,9 @@ if convergence == true
     fprintf("Iteration Number: %.0d \n",iteration)
     %ind_act_error_avg(d,sf_i) = actual_error_avg(iteration);
 end
+else
+    error('More than 2 energy channels must have counts!')
+end
 
 %% Plots calculated flux
 f = figure;
@@ -181,7 +186,7 @@ f.Position = [0 0 1200 900];
 hold on
 
 % Plot simulated flux
-plot(energy_midpoints(bound_plot),flux(bound_plot), 'Color', 'black','LineWidth',4);
+plot(energy_midpoints,flux, 'Color', 'black','LineWidth',4);
 
 %plot(energy_midpoints(bounds),M_energy_bin(bounds)./(4*pi^2*r_source^2)./bin_width(bounds),'.', 'Color', 'black','MarkerSize',8);
 
@@ -203,10 +208,10 @@ legend({['Theoretical Flux'],['Bowtie Analysis'],['LSQR'],['Standard Deviation']
 
 textsize = 24;
 set(gca, 'FontSize', textsize)
-xlim([0 7])
-%ylim([10^0 10^5])
+xlim([0.1 10])
+ylim([10^0 10^6])
 xticks((0:1:8))
-%set(gca, 'XScale', 'log')
+set(gca, 'XScale', 'log')
 set(gca, 'YScale', 'log')
 ylabel('Flux  (# cm^{-2} sr^{-1} s^{-1} MeV^{-1})','FontSize',textsize)
 xlabel('Energy (MeV)','FontSize',textsize)

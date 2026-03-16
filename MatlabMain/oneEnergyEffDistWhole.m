@@ -1,4 +1,4 @@
-function [hit_deposited_energy, hit_energy_channels, run_number, beam_number, energy_beam, non_energy_beam, back_energy_beam] = oneEnergyEffDistWhole(file_name, inputfolder, energy_channels, detector_threshold, back_threshold)
+function [hit_deposited_energy, hit_energy_channels, hit_detectors, run_number, beam_number, energy_beam, non_energy_beam, back_energy_beam] = oneEnergyEffDistWhole(file_name, inputfolder, energy_channels, detector_threshold, back_threshold)
 % Author: Yinbo Chen
 % Date: 6/15/2021
 % Modified by: Skyler Krantz, Will Teague
@@ -43,9 +43,12 @@ count_reject_logic = Detector_Energy(:,1) < detector_threshold;         % find w
 count_reject_indices = find(count_reject_logic);                        % find indices of rejected hits
 non_energy_beam = [non_energy_beam,energy_beam(count_reject_indices)];  % update non_energy_beam with rejected hits
 
+% Count number of hits on each detector
+hit_detectors = sum(Detector_Energy(~count_reject_logic,:) > 0, 1);  % Count hits per detector
+
 % Counts back hits
 back_energy_beam = [];
-back_hits_logic = Detector_Energy(:,end)> back_threshold;               % find which hits are rejected
+back_hits_logic = Detector_Energy(:,end) > back_threshold;              % find which hits are rejected
 back_hits_indices = find(back_hits_logic);                              % find indices of rejected hits
 back_energy_beam = [back_energy_beam,energy_beam(back_hits_indices)];   % update non_energy_beam with rejected hits
 
@@ -53,7 +56,7 @@ energy_beam = energy_beam(~count_reject_logic & ~back_hits_logic);              
 Detector_Energy = Detector_Energy(~count_reject_logic & ~back_hits_logic,:);                  % update Detector_Energy with non-rejected hits
 
 back_hits = nnz(back_hits_logic);
-count_reject = nnz(count_reject_logic) + nnz(back_hits_logic);
+count_reject = nnz(count_reject_logic | back_hits_logic);
     
 % Calculate the sum of energy deposited over all detectors for each particle
 hit_deposited_energy = sum(Detector_Energy,2); 

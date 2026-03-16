@@ -3,7 +3,7 @@
 % Updated: Nov. 13th, 2023
 % Post Processing for GEANT4
 
-function HERTPostProcessWhole(file_name, inputfolder, outputfolder)
+function Einc = HERTPostProcessWhole(file_name, inputfolder, outputfolder)
 % HERTPostProcess Removes simulations with no energy deposited
 cd(inputfolder);
 
@@ -26,11 +26,6 @@ Detector_Energy = cell2mat(data(2:end));
 
 n = size(Detector_Energy,1); % Number of particles in file
 
-% Checks that n is equal to the beam number. If not, an error is thrown.
-if n ~= beam_number
-    error('ERROR IN THE DATA FILE!');
-end
-
 %% Starts Post Process Loop
 cd(outputfolder)
 NewFileName = append('PostProcess', file_name);
@@ -38,6 +33,11 @@ fid = fopen(NewFileName, 'wt');
 
 fprintf('Starting Run %d \n', run_number)
     
+% Checks that n is equal to the beam number. If not, an error is thrown.
+if n ~= beam_number
+    error('Not the right number of particles in data file!');
+end
+
 EnergySum = sum(Detector_Energy,2);
 
 % Use logical indexing and single assignments
