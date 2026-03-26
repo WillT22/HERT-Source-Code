@@ -1,10 +1,13 @@
+#%% Import necessary libraries
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.optimize import curve_fit
 import glob
 import os
 import matplotlib.cm as cm
+from matplotlib.lines import Line2D
 
+#%%
 # --- MISSION PARAMETERS ---
 mission_duration_years = 15  
 mission_duration_seconds = mission_duration_years * 365.25 * 24 * 3600
@@ -259,18 +262,15 @@ plt.show()
         
 
 #%% Determine the energy width to reach 100 counts
-# Set up energy bin system for protons like in matlab
-bins = 1000
-energy_min = 0.01
-energy_max = 1000
-# Calculate logarithmic bin edges
-energy_edges = np.logspace(np.log10(energy_min), np.log10(energy_max), bins + 1)
-energy_midpoints = (energy_edges[:-1] + energy_edges[1:]) / 2
-
 # create flux spectra for each CI using the fitted parameters
-file_path = "total_geo_proton_newtest4_nobackveto.txt"
 # Read the comma-separated file directly into a NumPy array
-total_geo = np.loadtxt(file_path, delimiter=',')
+total_geo = np.loadtxt(r"D:\HERT_Drive\Matlab Main\Result\Proton_FS\proton_FS_14000_v5_range_totalGF.txt")
+energy_midpoints_geo = total_geo[:, 0]  # Assuming the first column contains energy midpoints
+total_geo_values = total_geo[:, 1]  # Assuming the second column contains the total
+
+total_geo_pen = np.loadtxt(r"D:\HERT_Drive\Matlab Main\Result\Proton_FS\proton_FS_14000_v5_pen_totalGF.txt")
+energy_midpoints_geo_pen = total_geo_pen[:, 0]  # Assuming the first column contains energy midpoints
+total_geo_values_pen = total_geo_pen[:, 1]  # Assuming the second column contains the total
 
 generated_spectra = {}
 count_rate = {}
@@ -283,23 +283,23 @@ for conf_interval, fit_data in compiled_fits.items():
     
     # 3. Apply the Weibull function to the midpoints array
     # Equation: Phi(E) = k * E^(b-1) * exp(-(E/E_0)^b)
-    flux_spectrum = k * (energy_midpoints**(b - 1)) * np.exp(-(energy_midpoints / E_0)**b)
+    flux_spectrum = k * (energy_midpoints_geo**(b - 1)) * np.exp(-(energy_midpoints_geo / E_0)**b)
     
     # Store the result for later manipulation
     generated_spectra[conf_interval] = flux_spectrum
 
     # Calculate count rate for each confidence interval
-    count_rate[conf_interval] = flux_spectrum * total_geo[:] * (energy_edges[1:] - energy_edges[:-1])  # Flux * Geometric Factor * Energy Bin Width
+    count_rate[conf_interval] = flux_spectrum * (total_geo_values[:] + total_geo_values_pen[:])  # Flux * Geometric Factor
 
 # Plot count rates for each confidence interval
 for conf_interval, rates in count_rate.items():
-    plt.plot(energy_midpoints, rates, label=f'{conf_interval}% CI')
+    plt.plot(energy_midpoints_geo, rates, label=f'{conf_interval}% CI')
 plt.xscale('log')
 plt.yscale('log')
-plt.xlim(10, 70)
+plt.xlim(10, 1000)
 plt.ylim(1e-4, 1e1)
 plt.xlabel('Energy (MeV)')
-plt.ylabel('Count Rate (counts/s)')
+plt.ylabel('Count Rate (counts/s/MeV)')
 plt.title('Count Rate vs Energy for Each Confidence Interval')
 plt.legend()
 plt.grid(True, which="both", ls="--", alpha=0.5)
@@ -359,5 +359,219 @@ plt.ylabel('Energy Width (MeV)')
 plt.title('Energy Width to Reach Target Count Rate vs. Confidence Interval')
 plt.grid(True, which="both", ls="--", alpha=0.5)
 plt.tight_layout()
+plt.show()
+
+# %% Plot Delta E vs Energy for each CI and determine the energy width to reach 0.2 cm^2 sr
+target_count_rate = 6/60 # counts per second
+target_G = 0.1 # cm^2 sr
+
+generated_spectra = {}
+delta_E = {}
+for conf_interval_str, fit_data in compiled_fits.items():
+    conf_interval = int(conf_interval_str)
+
+    k = fit_data['weibull_params']['k']
+    E_0 = fit_data['weibull_params']['E_0']
+    b = fit_data['weibull_params']['b']
+    
+    # Apply the Weibull function to the midpoints array
+    # Equation: Phi(E) = k * E^(b-1) * exp(-(E/E_0)^b)
+    flux_spectrum = k * (energy_midpoints**(b - 1)) * np.exp(-(energy_midpoints / E_0)**b)
+    
+    # Store the result for later manipulation
+    generated_spectra[conf_interval_str] = flux_spectrum
+
+    delta_E[conf_interval_str] = target_count_rate / target_G / flux_spectrum
+
+plt.figure(figsize=(10, 6))
+for conf_interval_str in delta_E.keys():
+    plt.scatter(energy_edges[:-1], delta_E[conf_interval_str], label=f'{conf_interval_str}% CI')
+plt.xscale('log')
+plt.yscale('log')
+plt.xlim(10, 200)
+plt.ylim(1e-2, 1e4)
+plt.xlabel('Energy (MeV)')
+plt.ylabel('Energy Width (MeV)')
+plt.title('Energy Width to Reach 0.2 cm$^2$ sr')
+plt.text(15, 1e3, f'Target Count Rate: {target_count_rate*60:.0f} counts/min\nTarget G: {target_G:.2f} cm$^2$ sr', fontsize=12, bbox=dict(facecolor='white', alpha=0.8))
+plt.legend()
+plt.grid(True, which="both", ls="--", alpha=0.5)
+plt.show()
+
+
+#%% Plot modified geometric factor by multiplying geometric factor by flux for each channel to visualize the contribution of each channel to the count rate
+loaded_geo = np.loadtxt(r"D:\HERT_Drive\Matlab Main\Result\Proton_FS\proton_FS_14000_v5_range_GFbyEC.txt")
+energy_midpoints_geo = loaded_geo[:, 0]  # Assuming the first column contains energy midpoints
+loaded_geo_values = loaded_geo[:, 1:]  # Assuming the rest of the columns contain geometric factor values for each channel
+
+loaded_geo_pen = np.loadtxt(r"D:\HERT_Drive\Matlab Main\Result\Proton_FS\proton_FS_14000_v5_pen_GFbyEC.txt")
+energy_midpoints_geo_pen = loaded_geo_pen[:, 0]  # Assuming the first column contains energy midpoints
+loaded_geo_pen_values = loaded_geo_pen[:, 1:]  # Assuming the rest of the columns contain geometric factor values for each channel
+
+# Load in energy channels
+energy_channels = np.loadtxt(r"D:\HERT_Drive\Matlab Main\Result\channel_select\proton_channels_v5.txt")
+
+select_flux_CI = '25'
+
+# 1. Increased figure height from 6 to 8 to better match the tall legend
+plt.figure(figsize=(12, 8)) 
+
+num_channels = loaded_geo_values.shape[1]
+cmap_range = plt.get_cmap('plasma')
+cmap_pen = plt.get_cmap('winter')
+color_denom = max(1, num_channels - 1)
+
+# 2. Initialize separate lists and add spaces to visually center the headers
+col1_handles = [Line2D([], [], linestyle='none')]
+col1_labels = ['   Range']  # Added spaces to center over the short line
+
+col2_handles = [Line2D([], [], linestyle='none')]
+col2_labels = ['Channel']
+
+col3_handles = [Line2D([], [], linestyle='none')]
+col3_labels = [' Penetrating'] # Added a space to balance the longer word
+
+for idx in range(num_channels):
+    color_val_range = cmap_range(idx / color_denom)
+    color_val_pen = cmap_pen(idx / color_denom)
+
+    # Calculate Data
+    geo_factor_temp = loaded_geo_values[:, idx]
+    modified_geo = geo_factor_temp * generated_spectra[select_flux_CI]
+    
+    geo_factor_temp_pen = loaded_geo_pen_values[:, idx]
+    modified_geo_pen = geo_factor_temp_pen * generated_spectra[select_flux_CI]
+    
+    # Plot Data
+    line_r, = plt.plot(energy_midpoints_geo, modified_geo, 
+                       linestyle='-', color=color_val_range)
+    
+    line_p, = plt.plot(energy_midpoints_geo_pen, modified_geo_pen, 
+                       linestyle='-', color=color_val_pen)
+
+    # Append to lists
+    col1_handles.append(line_r)
+    col1_labels.append('')
+    
+    col2_handles.append(Line2D([], [], linestyle='none'))
+    col2_labels.append(f'  Ch {idx+1}') # Added spaces to center 'Ch 1' under 'Channel'
+    
+    col3_handles.append(line_p)
+    col3_labels.append('')
+
+# Combine the columns sequentially
+custom_handles = col1_handles + col2_handles + col3_handles
+custom_labels = col1_labels + col2_labels + col3_labels
+
+plt.xscale('log')
+plt.yscale('log')
+plt.xlim(10, 1000)
+plt.ylim(1e-4, 1e1)
+
+plt.xlabel('Energy (MeV)', fontsize=14)
+plt.ylabel('Modified Geometric Factor\n(counts/s/MeV)', fontsize=14) 
+plt.title(f'Modified Geometric Factor by Multiplying with Flux ({select_flux_CI}% CI)', fontsize=16, pad=15)
+
+# 3. Render the perfectly aligned Legend
+plt.legend(custom_handles, custom_labels, 
+           ncol=3, 
+           loc='center left', 
+           bbox_to_anchor=(1.02, 0.5), 
+           fontsize=11, 
+           columnspacing=3.0,   # Increased space between columns for better separation
+           handletextpad=-3.0,   # CRITICAL: Pulls the text left to start exactly where the lines start
+           frameon=True)
+
+plt.grid(True, which="both", ls="--", alpha=0.5)
+plt.tight_layout() 
+plt.show()
+
+# %% Find count rate from multiplying flux by geometric factor and summing for each channel
+loaded_geo = np.loadtxt(r"D:\HERT_Drive\Matlab Main\Result\Proton_FS\proton_FS_14000_v5_range_GFbyEC.txt")
+energy_midpoints_geo = loaded_geo[:, 0]  # Assuming the first column contains energy midpoints
+loaded_geo_values = loaded_geo[:, 1:]  # Assuming the rest of the columns contain geometric factor values for each channel
+
+loaded_geo_pen = np.loadtxt(r"D:\HERT_Drive\Matlab Main\Result\Proton_FS\proton_FS_14000_v5_pen_GFbyEC.txt")
+energy_midpoints_geo_pen = loaded_geo_pen[:, 0]  # Assuming the first column contains energy midpoints
+loaded_geo_pen_values = loaded_geo_pen[:, 1:]  # Assuming the rest of the columns contain geometric factor values for each channel
+
+select_flux_CI = '25'  # Select the confidence interval to use for flux values (e.g., '25' for 25% CI)
+channel_count_rates = []
+for idx in range(loaded_geo_values.shape[1]):
+    # Get the geometric factor for this channel
+    geo_factor_temp = loaded_geo_values[:,idx]
+    
+    # Calculate the count rate for this channel
+    count_rate = np.sum(generated_spectra[select_flux_CI] * geo_factor_temp)
+    channel_count_rates.append(count_rate)
+
+channel_count_rates_pen = []
+for idx in range(loaded_geo_pen_values.shape[1]):
+    # Get the geometric factor for this channel
+    geo_factor_temp = loaded_geo_pen_values[:,idx]
+    
+    # Calculate the count rate for this channel
+    count_rate_pen = np.sum(generated_spectra[select_flux_CI] * geo_factor_temp)
+    channel_count_rates_pen.append(count_rate_pen)
+
+# Plot the count rates for each channel
+plt.figure(figsize=(7, 8))
+plt.bar(np.linspace(1, len(channel_count_rates), len(channel_count_rates)), channel_count_rates, alpha=0.5, label='Range GF')
+plt.bar(np.linspace(1, len(channel_count_rates_pen), len(channel_count_rates_pen)), channel_count_rates_pen, alpha=0.5, label='Penetrating GF')
+# Print confidence interval on plot
+plt.text(0.98, 0.98, f'Confidence Interval: {select_flux_CI}%', transform=plt.gca().transAxes, verticalalignment='top', horizontalalignment='right', fontsize=12, bbox=dict(facecolor='white', alpha=0.8))
+plt.xlabel('Channel Index', fontsize=14)
+plt.ylabel('Count Rate (counts/s)', fontsize=14)
+plt.title('Count Rates for Each Energy Channel', fontsize=16)
+plt.legend()
+plt.show()  
+
+# Plot counts after time periods
+# Define time periods
+time_periods = [1, 10, 60, 600, 3600]  # in seconds
+time_in_minutes = [t/60 for t in time_periods]
+
+# Generate an array of Channel IDs (1, 2, 3...) to act as the new X-axis
+channel_ids = list(range(1, len(channel_count_rates) + 1))
+
+plt.figure(figsize=(10, 8)) # Slightly wider figure to accommodate the larger legend
+
+# Loop through each time period to create distinct curves for both types
+for t_sec, t_min in zip(time_periods, time_in_minutes):
+    
+    # Calculate the counts across all channels for this specific time duration
+    counts_for_this_time = [rate * t_sec for rate in channel_count_rates]
+    counts_for_this_time_pen = [rate * t_sec for rate in channel_count_rates_pen]
+    
+    # Format the legend label logically 
+    if t_sec < 60:
+        base_label = f'Time: {t_sec} sec'
+    else:
+        base_label = f'Time: {t_min:.0f} min'    
+    
+    # Plot Range data (Solid line, circle marker)
+    # The comma unpacks the list so we can extract the specific color Matplotlib chose
+    line, = plt.plot(channel_ids, counts_for_this_time, marker='o', linestyle='-', label=f'{base_label} (Range)')
+    
+    # Plot Penetrating data (Dashed line, 'x' marker)
+    # Re-apply the extracted color so the same time period shares the same color
+    plt.plot(channel_ids, counts_for_this_time_pen, marker='x', linestyle='--', color=line.get_color(), label=f'{base_label} (Pen)')
+
+plt.yscale('log')
+plt.xlabel('Channel Index', fontsize=14)
+plt.ylabel('Counts', fontsize=14)
+plt.yticks(fontsize=12)
+plt.ylim(1e-4, 1e4)  # Adjust y-axis limits to better visualize the range of counts across time periods
+plt.grid(True, which="both", ls="--", alpha=0.5)
+plt.title('Counts Across Energy Channels for Specific Time Durations', fontsize=16, pad=10)
+
+# Print confidence interval on plot
+plt.text(0.98, 0.98, f'Confidence Interval: {select_flux_CI}%', transform=plt.gca().transAxes, 
+         verticalalignment='top', horizontalalignment='right', fontsize=12, bbox=dict(facecolor='white', alpha=0.8))
+
+# Organize legend (Moved outside the plot area to prevent overlapping with 10 lines of data)
+plt.legend(title='Duration & Type', loc='center left', bbox_to_anchor=(1.05, 0.5), fontsize=12, title_fontsize=14)
+plt.tight_layout()
+
 plt.show()
 # %%
