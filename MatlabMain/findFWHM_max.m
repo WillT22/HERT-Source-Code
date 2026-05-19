@@ -1,0 +1,72 @@
+function [FWHM, E_max] = findFWHM_max(x, fx, parttype)
+%findFWHM_max: Finds the FWHM and E_max of the absolute maximum peak
+%
+%	[FWHM, E_max] = findFWHM_max(x, fx, parttype);
+
+if max(abs(fx)) == 1e-31
+    FWHM = 0;
+    E_max = NaN;
+    return;
+end
+
+% 1. Find the Absolute Maximum instantly using MATLAB's built-in function
+[m, n] = max(fx);
+
+% ---------------------------------------------------------
+% 2. Capture the corresponding energy maximum
+if parttype == 1
+    % PROTONS: Average the max energy with neighbors if their fx is within 0.03 of m
+    E_vals = x(n);
+    
+    % Check left neighbor
+    if n > 1 && (m - fx(n-1)) <= 0.03
+        E_vals = [E_vals, x(n-1)];
+    end
+    
+    % Check right neighbor
+    if n < length(fx) && (m - fx(n+1)) <= 0.03
+        E_vals = [E_vals, x(n+1)];
+    end
+    
+    % Calculate the average energy of the qualifying plateau points
+    E_max = mean(E_vals);
+else
+    % ELECTRONS: Use the exact peak
+    E_max = x(n);
+end
+% ---------------------------------------------------------
+
+% 3. Find the left bound by walking backward from the peak
+nl = n;
+while nl > 1 && fx(nl-1) >= m/2
+    nl = nl - 1;
+end
+
+% 4. Find the right bound by walking forward from the peak
+nr = n;
+while nr < length(fx) && fx(nr+1) >= m/2
+    nr = nr + 1;
+end
+
+% 5. Perform Linear Interpolation
+if nl == nr
+    FWHM = 0;
+else
+    % Left interpolate
+    if fx(nl) ~= fx(nl-1)
+        xl = (x(nl)-x(nl - 1))*(m/2-fx(nl - 1))/(fx(nl)-fx(nl - 1)) + x(nl - 1);
+    else
+        xl = x(nl);
+    end
+    
+    % Right interpolate
+    if nr == length(fx) || fx(nr) == fx(nr + 1) || isnan(fx(nr + 1))
+        xr = x(nr);
+    else 
+        xr = (x(nr + 1)-x(nr))*(m/2-fx(nr))/(fx(nr + 1)-fx(nr)) + x(nr);
+    end
+    
+    FWHM = xr - xl;
+end
+
+end

@@ -1,82 +1,86 @@
-function [hit_deposited_energy, hit_energy_channels, hit_detectors, run_number, beam_number, energy_beam, non_energy_beam, back_energy_beam] = oneEnergyEffDistWhole(file_name, inputfolder, energy_channels, detector_threshold, back_threshold)
+function [hit_deposited_energy, hit_energy_channels, hit_detectors, energy_beam, run_number, beam_number, ...
+    back_deposited_energy, back_energy_channels, back_detectors, back_energy_beam, non_energy_beam]...
+    = oneEnergyEffDistWhole(filename, inputfolder, energy_channels, detector_threshold, back_threshold)
 % Author: Yinbo Chen
 % Date: 6/15/2021
 % Modified by: Skyler Krantz, Will Teague
 % Date: Nov. 13, 2023
 
 % Find the first sequence of digits and convert it to a number
-beam_number = str2double(regexp(file_name, '\d+', 'match', 'once'));
-run_number = str2double(regexp(file_name, 'Run(\d+)', 'tokens', 'once'));
+beam_number = str2double(regexp(filename, '\d+', 'match', 'once'));
+run_number = str2double(regexp(filename, 'Run(\d+)', 'tokens', 'once'));
 
-% Change to the input folder
 cd(inputfolder);
-
-% Opens the file to be processed
-fide = fopen(file_name, 'r');
-% Sorts each line in the .txt file into a cell array
+fide = fopen(filename, 'r');
 NumEnergyDeposit = textscan(fide, 'Sims with Energy Deposited: %f', 'Delimiter','');
-deposit_data = textscan(fide, '%f %f %f %f %f %f %f %f %f %f', 'Delimiter','','HeaderLines',1);  % Skip header
+deposit_data = textscan(fide, '%f %f %f %f %f %f %f %f %f %f', 'Delimiter','','HeaderLines',1); 
 NumNoEnergy = textscan(fide, 'Sims with No Energy Deposited: %f', 'Delimiter','');
-Einc_data = textscan(fide, '%f', 'Delimiter','','HeaderLines',1);  % Skip header
-% Closes the file
+Einc_data = textscan(fide, '%f', 'Delimiter','','HeaderLines',1);  
 fclose(fide);
 
-% Extract relevant information from the data
 NumEnergyDeposit = NumEnergyDeposit{1, 1};
 energy_beam = deposit_data{1}';
 Detector_Energy = cell2mat(deposit_data(2:end));
 NumNoEnergy = NumNoEnergy{1, 1};
 non_energy_beam = Einc_data{1}';
 
-% Check if the sum of energy deposits and no-energy counts match the beam number
 if NumNoEnergy + NumEnergyDeposit ~= beam_number
     error('ERROR IN THE DATA FILE!');
 end
-
 fprintf('Starting Run %d \n', run_number)
 
-% Zero out values below detector threshold for the whole configuration
+% 1. Evaluate Logic Vectors BEFORE Zeroing Data
+count_reject_logic = Detector_Energy(:,1) < detector_threshold;         
+back_hits_logic = Detector_Energy(:,end) > back_threshold;              
+
+% 2. Apply Global Threshold
 Detector_Energy(Detector_Energy < detector_threshold) = 0;
 
-% Counts rejected hits
-count_reject_logic = Detector_Energy(:,1) < detector_threshold;         % find which hits are rejected
-count_reject_indices = find(count_reject_logic);                        % find indices of rejected hits
-non_energy_beam = [non_energy_beam,energy_beam(count_reject_indices)];  % update non_energy_beam with rejected hits
+% 3. Process Rejected Hits
+count_reject_indices = find(count_reject_logic);                        
+non_energy_beam = [non_energy_beam, energy_beam(count_reject_indices)];  
+count_reject = nnz(count_reject_logic);
 
-% Count number of hits on each detector
-hit_detectors = sum(Detector_Energy(~count_reject_logic,:) > 0, 1);  % Count hits per detector
+% 4. Process Back Hits
+% Define a single, strict mask for valid back hits
+valid_back_hits_logic = back_hits_logic & ~count_reject_logic;
+% Apply the exact same mask to all calculations
+back_hits_indices = find(valid_back_hits_logic);                              
+back_hits = nnz(valid_back_hits_logic);
+back_energy_beam = energy_beam(valid_back_hits_logic);   
+back_deposited_energy = sum(Detector_Energy(valid_back_hits_logic,:), 2);     
+back_detectors = sum(Detector_Energy(valid_back_hits_logic,:) > 0, 1);
 
-% Counts back hits
-back_energy_beam = [];
-back_hits_logic = Detector_Energy(:,end) > back_threshold;              % find which hits are rejected
-back_hits_indices = find(back_hits_logic);                              % find indices of rejected hits
-back_energy_beam = [back_energy_beam,energy_beam(back_hits_indices)];   % update non_energy_beam with rejected hits
+% 5. Process Good Hits (Exclude both rejected and back hits)
+good_hits_logic = ~count_reject_logic & ~back_hits_logic;
+energy_beam = energy_beam(good_hits_logic);                            
+deposited_energy = Detector_Energy(good_hits_logic,:);                  
+hit_detectors = sum(deposited_energy > 0, 1);             
+hit_deposited_energy = sum(deposited_energy, 2); 
 
-energy_beam = energy_beam(~count_reject_logic & ~back_hits_logic);                            % remove energy values from energy beam
-Detector_Energy = Detector_Energy(~count_reject_logic & ~back_hits_logic,:);                  % update Detector_Energy with non-rejected hits
-
-back_hits = nnz(back_hits_logic);
-count_reject = nnz(count_reject_logic | back_hits_logic);
-    
-% Calculate the sum of energy deposited over all detectors for each particle
-hit_deposited_energy = sum(Detector_Energy,2); 
-
-hit_energy_channels = zeros(1,length(energy_beam));
-% Update singleMatrix for each energy channel
-for ec = 1:size(energy_channels,1)                                                     % For each energy channel
-    for i = 1:size(Detector_Energy,1)                                                       % For each particle
-        if hit_deposited_energy(i) >= energy_channels(ec, 1) && hit_deposited_energy(i) < energy_channels(ec, 2)      % Sort total deposited energies into an energy channel
-            hit_energy_channels(i) = ec; %replace with variable sized matrix that takes all good hits
+% 6. Assign Energy Channels for Good Hits
+hit_energy_channels = zeros(1, length(energy_beam));
+for ec = 1:size(energy_channels,1)                                                     
+    for i = 1:size(deposited_energy,1)                                                       
+        if hit_deposited_energy(i) >= energy_channels(ec, 1) && hit_deposited_energy(i) < energy_channels(ec, 2)      
+            hit_energy_channels(i) = ec; 
         end
     end
 end
 
-% Display summary information after running through all simulations
+% 7. Assign Energy Channels for Back Hits
+back_energy_channels = zeros(1, length(back_energy_beam));
+for ec = 1:size(energy_channels,1)                                                     
+    for i = 1:size(back_deposited_energy,1)                                                       
+        if back_deposited_energy(i) >= energy_channels(ec, 1) && back_deposited_energy(i) < energy_channels(ec, 2)      
+            back_energy_channels(i) = ec; 
+        end
+    end
+end
+
 fprintf('Number of back hits= %i\n', back_hits);
 fprintf('Number of rejected hits = %i\n', count_reject);
 fprintf('Number of counted hits = %i\n', length(hit_energy_channels));
 
-% Change back to the original directory
 cd ..
-
 end

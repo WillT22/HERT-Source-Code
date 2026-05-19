@@ -1,5 +1,5 @@
 % Requires data from Main1
-min_dep_energy = 35;
+min_dep_energy = 0.1;
 problem_particles = particles(M_hit_dep>M_energy_beam-0.01 & M_energy_beam<40,:);
 
 % Choosing select / random runs only
@@ -18,7 +18,7 @@ elseif isempty(selected_runs) && ~isempty(random_runs)
 end
 %
 %cd 'D:\HERT_Drive\MATLAB Main\Result'; % Main Result Directory
-cd 'D:\HERT_Drive\Matlab Main\Result\Proton_FS\raw_data\'
+cd '\\arc.auburn.edu\lab\hert\Will Results\Proton_FS\raw_data'
 
 for i = 1:length(problem_particles(:,2))
     run_number = problem_particles(i,2);
@@ -61,7 +61,7 @@ end
 %
 cd ../../
 clear fileID
-fileID = fopen('proton_fullpen.csv','w');
+fileID = fopen('proton_backpen.csv','w');
 for r = 1:size(problem_particles,1)
     fprintf(fileID,['%10.6f, %10.0f, %10.0f, %10.6f, %10.6f, %10.6f, %10.6f,' ...
         ' %10.6f, %10.6f, %10.6f, %10.6f, %10.6f,\n'],problem_particles(r,:));
@@ -70,6 +70,7 @@ fclose(fileID);
 %
 
 %% Plot Edep v Einc
+%{
 % Prepare data for plotting
 M_energy_beam_reduced = M_energy_beam(M_energy_beam < 100);
 M_hit_dep_reduced = M_hit_dep(M_energy_beam < 100);
@@ -107,3 +108,75 @@ set(gca, 'YTick', [0,10,20,30,40,50,60,70,80]);
 set(gca, 'FontSize', 16)
 
 disp('');
+%}
+
+%%
+% --- Target Parameters ---
+target_Einc = 18.8241;
+min_dep_energy = 0.1;
+tolerance = 1e-4; % Crucial for floating-point comparison
+
+% Navigate to raw data directory
+% cd 'D:\HERT_Drive\MATLAB Main\Result'; % Main Result Directory
+cd '\\arc.auburn.edu\lab\hert\Will Results\Proton_FS\raw_data'
+
+% Get list of all matching text files in the directory
+file_list = dir('HERT_CADoutput_proton_1000000_Run9*.txt');
+fprintf('Combing through %d files for E_inc = %.4f...\n', length(file_list), target_Einc);
+
+% Initialize array to store results: 
+% [Run Number, Particle Row, Total Deposited Energy, D1_energy, D2_energy...]
+found_cases = []; 
+
+total_files = length(file_list);
+for i = 1:total_files
+    filename = file_list(i).name;
+    fprintf('Scanning file %d of %d: %s\n', i, total_files, filename);
+    
+    % Extract run number directly from the filename string
+    run_number = sscanf(filename, 'HERT_CADoutput_proton_1000000_Run%d.txt');
+    
+    fid = fopen(filename, 'r');
+    if fid == -1
+        warning('Could not open file: %s', filename);
+        continue;
+    end
+    
+    % Read and process file
+    data = textscan(fid, '%f %f %f %f %f %f %f %f %f %f', 'Delimiter', '', 'HeaderLines', 1);
+    fclose(fid);
+    
+    Einc = data{1};
+    Detector_Energy = cell2mat(data(2:end));
+    total_dep = sum(Detector_Energy, 2);
+    
+    % Find rows matching the target incident energy AND minimum deposited energy
+    % abs() is used to prevent floating-point mismatch errors
+    matching_rows = find(abs(Einc - target_Einc) < tolerance & total_dep > min_dep_energy);
+    
+    if ~isempty(matching_rows)
+        for m = 1:length(matching_rows)
+            idx = matching_rows(m);
+            fprintf('>>> MATCH FOUND! Run: %d | Row: %d | Total Dep: %.4f MeV\n', ...
+                run_number, idx, total_dep(idx));
+            
+            % Store the result for extraction/printing
+            found_cases = [found_cases; run_number, idx, total_dep(idx), Detector_Energy(idx, :)];
+        end
+    end
+end
+
+cd ../../
+
+% Output results to a specific target file
+if ~isempty(found_cases)
+    fileID = fopen('target_particle_18_8241.csv','w');
+    fprintf(fileID, 'Run_Num, Row_Idx, Total_Dep, D1, D2, D3, D4, D5, D6, D7, D8, D9\n');
+    for r = 1:size(found_cases, 1)
+        fprintf(fileID, '%d, %d, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f\n', found_cases(r,:));
+    end
+    fclose(fileID);
+    fprintf('Target particles saved to target_particle_18_8241.csv\n');
+else
+    fprintf('No particles matching E_inc = %.4f with Dep > %d MeV were found.\n', target_Einc, min_dep_energy);
+end

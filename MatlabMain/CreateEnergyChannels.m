@@ -1,7 +1,7 @@
 clc
 clear all
 cd 'D:\HERT_Drive\MATLAB Main\Result'
-particle_type = 'proton'; % Change to 'proton' to run the proton case
+particle_type = 'proton'; % Change to 'electron' to run the electron case
 
 %% Parameters
 if strcmp(particle_type, 'electron')
@@ -15,9 +15,9 @@ if strcmp(particle_type, 'electron')
     
 elseif strcmp(particle_type, 'proton')
     ExLow_Limit = 0.1;
-    DE_threshold = 0.6;
-    linear_step = 1.0;
-    log_break = 53; 
+    DE_threshold = 0.9;
+    linear_step = 0.9;
+    % log_break is removed; continuous log interpolation targets Max_Limit
     Max_Limit = 65;
     diffLow_total = 25;
     diffHigh_total = 5;
@@ -30,52 +30,81 @@ end
 % Total channels includes low, high, and 1 integral bin at the end
 NumChannels = diffLow_total + diffHigh_total + 1;
 Channels = zeros(NumChannels, 2);
-
-%% 2. Generate Linear Channels
-Linlowtemp = ExLow_Limit;
 current_idx = 1;
+Linlowtemp = ExLow_Limit;
 
-while true
-    % Calculate remaining bins for the low-energy section
+%% 2-4. Generate Channels (Branched Logic)
+if strcmp(particle_type, 'electron')
+    % Bound the loop by the total low-energy bins allowed
+    while current_idx <= diffLow_total
+        bins_left = diffLow_total - current_idx + 1;
+        temp_edges = logspace(log10(Linlowtemp), log10(log_break), bins_left + 1);
+        temp_DE = temp_edges(2) - temp_edges(1);
+        
+        if temp_DE < DE_threshold
+            Channels(current_idx, 1) = Linlowtemp;
+            Linlowtemp = Linlowtemp + linear_step;
+            Channels(current_idx, 2) = Linlowtemp;
+            current_idx = current_idx + 1;
+        else
+            break;
+        end
+    end
+
+    % Record Core Log Channels
     bins_left = diffLow_total - current_idx + 1;
-    
-    % Check prospective log bin width if we switched to log right now
-    temp_edges = logspace(log10(Linlowtemp), log10(log_break), bins_left + 1);
-    temp_DE = temp_edges(2) - temp_edges(1);
-    
-    if temp_DE < DE_threshold
-        % Prospective log bin is too small; create a linear bin
-        Channels(current_idx, 1) = Linlowtemp;
-        Linlowtemp = Linlowtemp + linear_step;
-        Channels(current_idx, 2) = Linlowtemp;
+    if bins_left > 0
+        LogLowEdges = logspace(log10(Linlowtemp), log10(log_break), bins_left + 1);
+        for j = 1:bins_left
+            Channels(current_idx, 1) = LogLowEdges(j);
+            Channels(current_idx, 2) = LogLowEdges(j+1);
+            current_idx = current_idx + 1;
+        end
+    end
+
+    % Generate High Energy Channels
+    LogHighEdges = logspace(log10(log_break), log10(Max_Limit), diffHigh_total + 1);
+    for j = 1:diffHigh_total
+        Channels(current_idx, 1) = LogHighEdges(j);
+        Channels(current_idx, 2) = LogHighEdges(j+1);
         current_idx = current_idx + 1;
-    else
-        % Prospective log bin is large enough; break to start log bins
-        break;
+    end
+
+elseif strcmp(particle_type, 'proton')
+    total_diff_bins = diffLow_total + diffHigh_total;
+    
+    % Bound the loop by the total differential bins allowed
+    while current_idx <= total_diff_bins
+        bins_left = total_diff_bins - current_idx + 1;
+        
+        % Check prospective log bin width targeting Max_Limit directly
+        temp_edges = logspace(log10(Linlowtemp), log10(Max_Limit), bins_left + 1);
+        temp_DE = temp_edges(2) - temp_edges(1);
+        
+        if temp_DE < DE_threshold
+            Channels(current_idx, 1) = Linlowtemp;
+            Linlowtemp = Linlowtemp + linear_step;
+            Channels(current_idx, 2) = Linlowtemp;
+            current_idx = current_idx + 1;
+        else
+            break; % Ready to switch to continuous log spacing
+        end
+    end
+    
+    % Record Single Continuous Log Array
+    bins_left = total_diff_bins - current_idx + 1;
+    if bins_left > 0
+        LogEdges = logspace(log10(Linlowtemp), log10(Max_Limit), bins_left + 1);
+        
+        for j = 1:bins_left
+            Channels(current_idx, 1) = LogEdges(j);
+            Channels(current_idx, 2) = LogEdges(j+1);
+            current_idx = current_idx + 1;
+        end
     end
 end
 
-%% 3. Record Core Log Channels
-% Generate the continuous, perfectly log-spaced array for the remaining bins
-bins_left = diffLow_total - current_idx + 1;
-LogLowEdges = logspace(log10(Linlowtemp), log10(log_break), bins_left + 1);
-
-for j = 1:bins_left
-    Channels(current_idx, 1) = LogLowEdges(j);
-    Channels(current_idx, 2) = LogLowEdges(j+1);
-    current_idx = current_idx + 1;
-end
-
-%% 4. Generate High Energy Channels
-LogHighEdges = logspace(log10(log_break), log10(Max_Limit), diffHigh_total + 1);
-
-for j = 1:diffHigh_total
-    Channels(current_idx, 1) = LogHighEdges(j);
-    Channels(current_idx, 2) = LogHighEdges(j+1);
-    current_idx = current_idx + 1;
-end
-
-% Append the final integral bin
+% Append the final integral bin (Shared Logic)
 Channels(current_idx, 1) = Max_Limit;
 Channels(current_idx, 2) = 1000;
 
