@@ -55,9 +55,9 @@ loaded_geo_pen_values = loaded_geo_pen[:, 1:]  # Assuming the rest of the column
 energy_channels = np.loadtxt(r"D:\HERT_Drive\Matlab Main\Result\channel_select\electron_channels_v2.txt",delimiter=',')
 
 generated_spectra = {}
-generated_spectra['25'] = 10**interp_25th(np.log10(energy_midpoints_geo_range))
-generated_spectra['50'] = 10**interp_50th(np.log10(energy_midpoints_geo_range))
-generated_spectra['95'] = 10**interp_95th(np.log10(energy_midpoints_geo_range))
+generated_spectra['25'] = (10**interp_25th(np.log10(energy_midpoints_geo_range)))/(4*np.pi)  # Convert to flux units /cm^2/sr/s/MeV
+generated_spectra['50'] = (10**interp_50th(np.log10(energy_midpoints_geo_range)))/(4*np.pi)
+generated_spectra['95'] = (10**interp_95th(np.log10(energy_midpoints_geo_range)))/(4*np.pi)
 
 select_flux_CI = '50'
 num_channels = loaded_geo_range_values.shape[1]
@@ -234,9 +234,9 @@ loaded_geo_values = loaded_geo[:, 1:]  # Assuming the rest of the columns contai
 energy_channels = np.loadtxt(r"D:\HERT_Drive\Matlab Main\Result\channel_select\electron_channels_v2.txt",delimiter=',')
 
 generated_spectra = {}
-generated_spectra['25'] = 10**interp_25th(np.log10(energy_midpoints_geo))
-generated_spectra['50'] = 10**interp_50th(np.log10(energy_midpoints_geo))
-generated_spectra['95'] = 10**interp_95th(np.log10(energy_midpoints_geo))
+generated_spectra['25'] = (10**interp_25th(np.log10(energy_midpoints_geo)))/(4*np.pi)
+generated_spectra['50'] = (10**interp_50th(np.log10(energy_midpoints_geo)))/(4*np.pi)
+generated_spectra['95'] = (10**interp_95th(np.log10(energy_midpoints_geo)))/(4*np.pi)
 
 select_flux_CI = '50'
 num_channels = loaded_geo_values.shape[1]
@@ -317,9 +317,10 @@ for file_path in file_list:
                 if len(parts) == 2:
                     energies.append(float(parts[0]))
                     fluxes.append(float(parts[1]))
+    fluxes = np.array(fluxes)/(4*np.pi)  # Convert to flux units /cm^2/sr/s/MeV
     
     # Convert lists to numpy arrays and store in the dictionary
-    omere_spectra[percentile] = (np.array(energies), np.array(fluxes))
+    omere_spectra[percentile] = (np.array(energies), fluxes)  # Convert to flux units /cm^2/sr/s/MeV
 
 # Plot the OMERE spectra
 plt.figure(figsize=(8, 6))
@@ -328,7 +329,7 @@ for percentile, (energies, fluxes) in omere_spectra.items():
 plt.xscale('log')
 plt.yscale('log')
 plt.xlabel('Energy (MeV)', fontsize=12)
-plt.ylabel('Flux ($cm^{-2}s^{-1}MeV^{-1}$)', fontsize=12)
+plt.ylabel('Flux ($cm^{-2}sr^{-1}s^{-1}MeV^{-1}$)', fontsize=12)
 plt.title('OMERE AE9 Flux Spectra', fontsize=14)
 plt.legend()
 plt.grid(True, which="both", ls="--", alpha=0.5)
@@ -345,7 +346,7 @@ for percentile, (energies, fluxes) in omere_spectra.items():
 plt.xscale('log')
 plt.yscale('log')
 plt.xlabel('Energy (MeV)', fontsize=12)
-plt.ylabel('Flux ($cm^{-2}s^{-1}MeV^{-1}$)', fontsize=12)
+plt.ylabel('Flux ($cm^{-2}sr^{-1}s^{-1}MeV^{-1}$)', fontsize=12)
 plt.title('Comparison of AE9 Flux Spectra', fontsize=14)
 plt.legend()
 plt.grid(True, which="both", ls="--", alpha=0.5)
@@ -386,10 +387,10 @@ plt.xticks(fontsize=12)
 plt.yscale('log')
 plt.yticks(fontsize=12)
 plt.xlim(0.1, 10)
-plt.ylim(1e-4, 10**6.1)
+plt.ylim(1e-4, 10**4)
 plt.xlabel('Energy (MeV)', fontsize=14)
 plt.ylabel('Modified Geometric Factor\n(counts/s/MeV)', fontsize=14) 
-plt.title(f'Modified Geometric Factor by Multiplying with Flux ({select_flux_CI}% CI)', fontsize=16, pad=15)
+plt.title(f'Modified Geometric Factor by Multiplying with Flux ({select_flux_CI}% Percentile)', fontsize=16, pad=15)
 plt.legend(title='   Energy (MeV)   ', loc='center left', bbox_to_anchor=(1.02, 0.5), 
            fontsize=11, title_fontsize=12, frameon=True)
 plt.grid(True, which="both", ls="--", alpha=0.5)
@@ -423,10 +424,10 @@ plt.xticks(fontsize=12)
 plt.yscale('log')
 plt.yticks(fontsize=12)
 plt.xlim(0.1, 10)
-plt.ylim(1e-4, 10**6.1)
+plt.ylim(1e-4, 10**4)
 plt.xlabel('Energy (MeV)', fontsize=14)
 plt.ylabel('Modified Geometric Factor\n(counts/s/MeV)', fontsize=14) 
-plt.title(f'Modified Geometric Factor by Multiplying with Flux ({select_flux_CI}% CI)', fontsize=16, pad=15)
+plt.title(f'Modified Geometric Factor by Multiplying with Flux ({select_flux_CI}% Percentile)', fontsize=16, pad=15)
 plt.legend(title='   Energy (MeV)   ', loc='center left', bbox_to_anchor=(1.02, 0.5), 
            fontsize=11, title_fontsize=12, frameon=True)
 plt.grid(True, which="both", ls="--", alpha=0.5)
@@ -499,11 +500,11 @@ plt.xticks(fontsize=12)
 plt.yscale('log')
 plt.yticks(fontsize=12)
 plt.xlim(0.1, 10)
-plt.ylim(1e-4, 10**6.1)
+plt.ylim(1e-4, 10**4)
 
 plt.xlabel('Energy (MeV)', fontsize=14)
 plt.ylabel('Modified Geometric Factor\n(counts/s/MeV)', fontsize=14) 
-plt.title(f'Modified Geometric Factor by Multiplying with Flux ({select_flux_CI}% CI)', fontsize=16, pad=15)
+plt.title(f'Modified Geometric Factor by Multiplying with Flux ({select_flux_CI}% Percentile)', fontsize=16, pad=15)
 
 # 3. Render the perfectly aligned Legend
 plt.legend(custom_handles, custom_labels, 
@@ -527,7 +528,6 @@ loaded_geo_values = loaded_geo[:, 1:]  # Assuming the rest of the columns contai
 # Load in energy channels
 energy_channels = np.loadtxt(r"D:\HERT_Drive\Matlab Main\Result\channel_select\electron_channels_v2.txt",delimiter=',')
 
-select_flux_CI = '75'
 num_channels = loaded_geo_values.shape[1]
 color_denom = max(1, num_channels - 1)
 
@@ -560,12 +560,13 @@ plt.xticks(fontsize=12)
 plt.yscale('log')
 plt.yticks(fontsize=12)
 plt.xlim(0.1, 10)
-plt.ylim(1e-4, 10**6.1)
+plt.ylim(1e-4, 10**4)
 plt.xlabel('Energy (MeV)', fontsize=14)
 plt.ylabel('Modified Geometric Factor\n(counts/s/MeV)', fontsize=14) 
-plt.title(f'Modified Geometric Factor by Multiplying with Flux ({select_flux_CI}% CI)', fontsize=16, pad=15)
+plt.title(f'Modified Geometric Factor by Multiplying with Flux ({select_flux_CI}% Percentile)', fontsize=16, pad=15)
 plt.legend(title='   Energy (MeV)   ', loc='center left', bbox_to_anchor=(1.02, 0.5), 
            fontsize=11, title_fontsize=12, frameon=True)
 plt.grid(True, which="both", ls="--", alpha=0.5)
 plt.tight_layout() 
 plt.show()
+# %%

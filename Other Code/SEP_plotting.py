@@ -84,7 +84,7 @@ for idx, file_path in enumerate(file_list):
     x = np.array(all_x)
     y = np.array(all_y)
     
-    e_filter = (x > 10) & (x <70)
+    e_filter = (x > 52.29) & (x < 1000)
     x_filtered = x[e_filter]
     y_filtered = y[e_filter]
     
@@ -104,14 +104,46 @@ for idx, file_path in enumerate(file_list):
     x_fit = np.logspace(np.log10(np.min(x_filtered)), np.log10(np.max(x_filtered)), 100)
     y_fit_weibull = k_opt * (x_fit**(b_opt - 1)) * np.exp(-(x_fit / E_0_opt)**b_opt)
 
-    # 4. Fit Exponential
-    slope, intercept = np.polyfit(x_filtered, ln_y, 1)
+# 4. Fit Exponential
+    # Add cov=True to get the covariance matrix (V)
+    p, V = np.polyfit(x_filtered, ln_y, 1, cov=True)
+    slope = p[0]
+    intercept = p[1]
+    
     a = -1.0 / slope
     A = np.exp(intercept)
     y_fit_exp = A * np.exp(-x_fit / a)
 
+    # Calculate 95% CI for the Exponential E_0
+    # 1. Degrees of freedom = number of data points - number of fit parameters (2)
+    dof = len(x_filtered) - 2
+    
+    # 2. Critical t-value for 95% CI (two-tailed means alpha/2 = 0.025, so we use 0.975)
+    from scipy.stats import t
+    t_val = t.ppf(0.975, dof)
+    
+    # 3. Standard error of the slope is the square root of the variance (diagonal element)
+    se_slope = np.sqrt(V[0, 0])
+    
+    # 4. Margin of error for the slope
+    moe_slope = t_val * se_slope
+    
+    # 5. Confidence interval bounds for the slope
+    slope_lower = slope - moe_slope
+    slope_upper = slope + moe_slope
+    
+    # 6. Propagate slope bounds to E_0 bounds
+    # Because a = -1/slope, we calculate both and sort them to ensure correct [lower, upper] ordering
+    a_bound_1 = -1.0 / slope_lower
+    a_bound_2 = -1.0 / slope_upper
+    
+    a_ci_lower = min(a_bound_1, a_bound_2)
+    a_ci_upper = max(a_bound_1, a_bound_2)
+
     # Print mathematical outputs to console
-    print(f"Exponential E_0 (a): {a:.4f} MeV | Weibull E_0: {E_0_opt:.4f} MeV")
+    print(f"Exponential E_0 (a): {a:.4f} MeV")
+    print(f"  --> 95% CI for Exp E_0: [{a_ci_lower:.4f}, {a_ci_upper:.4f}] MeV")
+    print(f"Weibull E_0: {E_0_opt:.4f} MeV")
     print(f"Weibull Equation: Avg Flux = {k_opt:.4e} * E^{b_opt-1:.4f} * exp(-(E / {E_0_opt:.4f})^{b_opt:.4f})")
 
     # ==========================================
@@ -404,82 +436,177 @@ loaded_geo = np.loadtxt(r"D:\HERT_Drive\Matlab Main\Result\Proton_FS\proton_FS_1
 energy_midpoints_geo = loaded_geo[:, 0]  # Assuming the first column contains energy midpoints
 loaded_geo_values = loaded_geo[:, 1:]  # Assuming the rest of the columns contain geometric factor values for each channel
 
-loaded_geo_pen = np.loadtxt(r"D:\HERT_Drive\Matlab Main\Result\Proton_FS\proton_FS_14000_v5_pen_GFbyEC.txt")
-energy_midpoints_geo_pen = loaded_geo_pen[:, 0]  # Assuming the first column contains energy midpoints
-loaded_geo_pen_values = loaded_geo_pen[:, 1:]  # Assuming the rest of the columns contain geometric factor values for each channel
+# FIX 1: Add delimiter, transpose the matrix to match (400x24), and share the midpoints array
+loaded_geo_pen = np.loadtxt(r"D:\HERT_Drive\Matlab Main\Result\Proton_FS\proton_FS_14000_v6_pen_GFbyEC.txt", delimiter=',')
+loaded_geo_pen_values = loaded_geo_pen[:, 1:].T # Transpose the 24x400 GF data
+energy_midpoints_geo_pen = energy_midpoints_geo # Safely reuse the exact same 400 energy bins
 
 # Load in energy channels
-energy_channels = np.loadtxt(r"D:\HERT_Drive\Matlab Main\Result\channel_select\proton_channels_v5.txt")
+energy_channels = np.loadtxt(r"D:\HERT_Drive\Matlab Main\Result\channel_select\proton_channels_v5.txt",delimiter=',')
 
-select_flux_CI = '25'
+select_flux_CI = '50'
+num_channels_range = loaded_geo_values.shape[1] # 31
+num_channels_pen = loaded_geo_pen_values.shape[1] # 24
+color_denom = max(1, num_channels_range - 1)
 
-# 1. Increased figure height from 6 to 8 to better match the tall legend
-plt.figure(figsize=(12, 8)) 
-
-num_channels = loaded_geo_values.shape[1]
 cmap_range = plt.get_cmap('plasma')
 cmap_pen = plt.get_cmap('winter')
-color_denom = max(1, num_channels - 1)
 
-# 2. Initialize separate lists and add spaces to visually center the headers
-col1_handles = [Line2D([], [], linestyle='none')]
-col1_labels = ['   Range']  # Added spaces to center over the short line
+# ==========================================
+# PLOT 1: RANGE CHANNELS ONLY
+# ==========================================
+plt.figure(figsize=(14.2, 8)) 
 
-col2_handles = [Line2D([], [], linestyle='none')]
-col2_labels = ['Channel']
-
-col3_handles = [Line2D([], [], linestyle='none')]
-col3_labels = [' Penetrating'] # Added a space to balance the longer word
-
-for idx in range(num_channels):
+for idx in range(num_channels_range):
     color_val_range = cmap_range(idx / color_denom)
-    color_val_pen = cmap_pen(idx / color_denom)
+    
+    # Format the center-aligned label using Figure Spaces
+    e_low = energy_channels[idx, 0]
+    e_high = energy_channels[idx, 1]
+    label_str = f'{e_low:>5.1f} - {e_high:<5.1f}'.replace(' ', '\u2007')
 
-    # Calculate Data
+    # Calculate and Plot Range Data
     geo_factor_temp = loaded_geo_values[:, idx]
     modified_geo = geo_factor_temp * generated_spectra[select_flux_CI]
     
-    geo_factor_temp_pen = loaded_geo_pen_values[:, idx]
+    plt.plot(energy_midpoints_geo, modified_geo, 
+             linestyle='-', color=color_val_range, label=label_str)
+
+# Formatting Plot 1
+plt.xscale('log')
+plt.xticks(fontsize=12)
+plt.yscale('log')
+plt.yticks(fontsize=12)
+plt.xlim(10, 1000)
+plt.ylim(1e-6, 10**0.1)
+plt.xlabel('Energy (MeV)', fontsize=14)
+plt.ylabel('Modified Geometric Factor\n(counts/s/MeV)', fontsize=14) 
+plt.title(f'Modified Geometric Factor by Multiplying with Flux ({select_flux_CI}% CI)', fontsize=16, pad=15)
+plt.legend(title='   Energy (MeV)   ', loc='center left', bbox_to_anchor=(1.02, 0.5), 
+           fontsize=11, title_fontsize=12, frameon=True)
+plt.grid(True, which="both", ls="--", alpha=0.5)
+plt.tight_layout() 
+plt.show()
+
+
+# ==========================================
+# PLOT 2: PENETRATING CHANNELS ONLY
+# ==========================================
+plt.figure(figsize=(14.2, 8)) 
+
+# FIX 2: Decouple loop and map colors/labels back to the original indices
+for back_idx in range(num_channels_pen):
+    # Map the index to grab the correct color and text label
+    if back_idx == 0:
+        idx = 0
+        e_low = energy_channels[0, 0]
+        e_high = energy_channels[7, 1]
+    else:
+        idx = back_idx + 7
+        e_low = energy_channels[idx, 0]
+        e_high = energy_channels[idx, 1]
+        
+    color_val_pen = cmap_pen(idx / color_denom)
+    label_str = f'{e_low:>5.1f} - {e_high:<5.1f}'.replace(' ', '\u2007')
+
+    # Calculate and Plot Penetrating Data
+    geo_factor_temp_pen = loaded_geo_pen_values[:, back_idx]
     modified_geo_pen = geo_factor_temp_pen * generated_spectra[select_flux_CI]
     
-    # Plot Data
-    line_r, = plt.plot(energy_midpoints_geo, modified_geo, 
-                       linestyle='-', color=color_val_range)
-    
-    line_p, = plt.plot(energy_midpoints_geo_pen, modified_geo_pen, 
-                       linestyle='-', color=color_val_pen)
+    plt.plot(energy_midpoints_geo_pen, modified_geo_pen, 
+             linestyle='-', color=color_val_pen, label=label_str)
 
-    # Append to lists
+# Formatting Plot 2
+plt.xscale('log')
+plt.xticks(fontsize=12)
+plt.yscale('log')
+plt.yticks(fontsize=12)
+plt.xlim(10, 1000)
+plt.ylim(1e-6, 10**0.1)
+plt.xlabel('Energy (MeV)', fontsize=14)
+plt.ylabel('Modified Geometric Factor\n(counts/s/MeV)', fontsize=14) 
+plt.title(f'Modified Penetrating GF by Multiplying with Flux ({select_flux_CI}% CI)', fontsize=16, pad=15)
+plt.legend(title='   Energy (MeV)   ', loc='center left', bbox_to_anchor=(1.02, 0.5), 
+           fontsize=11, title_fontsize=12, frameon=True)
+plt.grid(True, which="both", ls="--", alpha=0.5)
+plt.tight_layout() 
+plt.show()
+
+
+# ==========================================
+# PLOT 3: RANGE AND PENETRATING CHANNELS
+# ==========================================
+plt.figure(figsize=(16, 8)) 
+
+col1_handles = [Line2D([], [], linestyle='none')]
+col1_labels = ['    Range   ']  
+
+col2_handles = [Line2D([], [], linestyle='none')]
+col2_labels = ['  Energy (MeV)  ']
+
+col3_handles = [Line2D([], [], linestyle='none')]
+col3_labels = ['  Penetrating'] 
+
+# Loop based on the full 31 channels so the table spacing is perfect
+for idx in range(num_channels_range):
+    color_val_range = cmap_range(idx / color_denom)
+
+    # 1. Plot Range Data
+    geo_factor_temp = loaded_geo_values[:, idx]
+    modified_geo = geo_factor_temp * generated_spectra[select_flux_CI]
+    line_r, = plt.plot(energy_midpoints_geo, modified_geo, linestyle='-', color=color_val_range)
+    
     col1_handles.append(line_r)
     col1_labels.append('')
     
-    col2_handles.append(Line2D([], [], linestyle='none'))
-    col2_labels.append(f'  Ch {idx+1}') # Added spaces to center 'Ch 1' under 'Channel'
+    # 2. Add Center Text
+    e_low = energy_channels[idx, 0]
+    e_high = energy_channels[idx, 1]
+    label_str = f'{e_low:>5.2f} - {e_high:<5.2f}'.replace(' ', '\u2007')
     
-    col3_handles.append(line_p)
+    col2_handles.append(Line2D([], [], linestyle='none'))
+    col2_labels.append(label_str)
+    
+    # 3. Plot Penetrating Data (using mapped index)
+    if idx == 0:
+        back_idx = 0
+    elif idx > 7:
+        back_idx = idx - 7
+    else:
+        back_idx = None # Channels 1-7 don't have their own individual penetrating line
+
+    if back_idx is not None:
+        color_val_pen = cmap_pen(idx / color_denom)
+        geo_factor_temp_pen = loaded_geo_pen_values[:, back_idx]
+        modified_geo_pen = geo_factor_temp_pen * generated_spectra[select_flux_CI]
+        line_p, = plt.plot(energy_midpoints_geo_pen, modified_geo_pen, linestyle='-', color=color_val_pen)
+        col3_handles.append(line_p)
+    else:
+        col3_handles.append(Line2D([], [], linestyle='none'))
+        
     col3_labels.append('')
 
-# Combine the columns sequentially
 custom_handles = col1_handles + col2_handles + col3_handles
 custom_labels = col1_labels + col2_labels + col3_labels
 
 plt.xscale('log')
+plt.xticks(fontsize=12)
 plt.yscale('log')
+plt.yticks(fontsize=12)
 plt.xlim(10, 1000)
-plt.ylim(1e-4, 1e1)
+plt.ylim(1e-6, 10**0.1)
 
 plt.xlabel('Energy (MeV)', fontsize=14)
 plt.ylabel('Modified Geometric Factor\n(counts/s/MeV)', fontsize=14) 
 plt.title(f'Modified Geometric Factor by Multiplying with Flux ({select_flux_CI}% CI)', fontsize=16, pad=15)
 
-# 3. Render the perfectly aligned Legend
 plt.legend(custom_handles, custom_labels, 
            ncol=3, 
            loc='center left', 
            bbox_to_anchor=(1.02, 0.5), 
            fontsize=11, 
-           columnspacing=3.0,   # Increased space between columns for better separation
-           handletextpad=-3.0,   # CRITICAL: Pulls the text left to start exactly where the lines start
+           columnspacing=3.0,   
+           handletextpad=-3.8,  
            frameon=True)
 
 plt.grid(True, which="both", ls="--", alpha=0.5)
@@ -487,38 +614,31 @@ plt.tight_layout()
 plt.show()
 
 # %% Find count rate from multiplying flux by geometric factor and summing for each channel
-loaded_geo = np.loadtxt(r"D:\HERT_Drive\Matlab Main\Result\Proton_FS\proton_FS_14000_v5_range_GFbyEC.txt")
-energy_midpoints_geo = loaded_geo[:, 0]  # Assuming the first column contains energy midpoints
-loaded_geo_values = loaded_geo[:, 1:]  # Assuming the rest of the columns contain geometric factor values for each channel
 
-loaded_geo_pen = np.loadtxt(r"D:\HERT_Drive\Matlab Main\Result\Proton_FS\proton_FS_14000_v5_pen_GFbyEC.txt")
-energy_midpoints_geo_pen = loaded_geo_pen[:, 0]  # Assuming the first column contains energy midpoints
-loaded_geo_pen_values = loaded_geo_pen[:, 1:]  # Assuming the rest of the columns contain geometric factor values for each channel
+# Arrays are already loaded properly in the earlier step, no need to reload them here!
+select_flux_CI = '25'  
 
-select_flux_CI = '25'  # Select the confidence interval to use for flux values (e.g., '25' for 25% CI)
 channel_count_rates = []
-for idx in range(loaded_geo_values.shape[1]):
-    # Get the geometric factor for this channel
+for idx in range(num_channels_range):
     geo_factor_temp = loaded_geo_values[:,idx]
-    
-    # Calculate the count rate for this channel
     count_rate = np.sum(generated_spectra[select_flux_CI] * geo_factor_temp)
     channel_count_rates.append(count_rate)
 
 channel_count_rates_pen = []
-for idx in range(loaded_geo_pen_values.shape[1]):
-    # Get the geometric factor for this channel
-    geo_factor_temp = loaded_geo_pen_values[:,idx]
-    
-    # Calculate the count rate for this channel
+# FIX 3: Iterate based on the correct transposed column index
+for back_idx in range(num_channels_pen):
+    geo_factor_temp = loaded_geo_pen_values[:, back_idx] 
     count_rate_pen = np.sum(generated_spectra[select_flux_CI] * geo_factor_temp)
     channel_count_rates_pen.append(count_rate_pen)
 
 # Plot the count rates for each channel
 plt.figure(figsize=(7, 8))
 plt.bar(np.linspace(1, len(channel_count_rates), len(channel_count_rates)), channel_count_rates, alpha=0.5, label='Range GF')
-plt.bar(np.linspace(1, len(channel_count_rates_pen), len(channel_count_rates_pen)), channel_count_rates_pen, alpha=0.5, label='Penetrating GF')
-# Print confidence interval on plot
+
+# X-axis mapping for penetrating bar chart so they align with their true channel equivalents
+pen_x_axis = [1] + list(range(9, len(channel_count_rates_pen) + 8))
+plt.bar(pen_x_axis, channel_count_rates_pen, alpha=0.5, label='Penetrating GF')
+
 plt.text(0.98, 0.98, f'Confidence Interval: {select_flux_CI}%', transform=plt.gca().transAxes, verticalalignment='top', horizontalalignment='right', fontsize=12, bbox=dict(facecolor='white', alpha=0.8))
 plt.xlabel('Channel Index', fontsize=14)
 plt.ylabel('Count Rate (counts/s)', fontsize=14)
@@ -527,51 +647,35 @@ plt.legend()
 plt.show()  
 
 # Plot counts after time periods
-# Define time periods
 time_periods = [1, 10, 60, 600, 3600]  # in seconds
 time_in_minutes = [t/60 for t in time_periods]
 
-# Generate an array of Channel IDs (1, 2, 3...) to act as the new X-axis
 channel_ids = list(range(1, len(channel_count_rates) + 1))
+channel_pen_ids = pen_x_axis  # Reuse the mapped array calculated above
 
-plt.figure(figsize=(10, 8)) # Slightly wider figure to accommodate the larger legend
+plt.figure(figsize=(10, 8)) 
 
-# Loop through each time period to create distinct curves for both types
 for t_sec, t_min in zip(time_periods, time_in_minutes):
-    
-    # Calculate the counts across all channels for this specific time duration
     counts_for_this_time = [rate * t_sec for rate in channel_count_rates]
     counts_for_this_time_pen = [rate * t_sec for rate in channel_count_rates_pen]
     
-    # Format the legend label logically 
     if t_sec < 60:
         base_label = f'Time: {t_sec} sec'
     else:
         base_label = f'Time: {t_min:.0f} min'    
     
-    # Plot Range data (Solid line, circle marker)
-    # The comma unpacks the list so we can extract the specific color Matplotlib chose
     line, = plt.plot(channel_ids, counts_for_this_time, marker='o', linestyle='-', label=f'{base_label} (Range)')
-    
-    # Plot Penetrating data (Dashed line, 'x' marker)
-    # Re-apply the extracted color so the same time period shares the same color
-    plt.plot(channel_ids, counts_for_this_time_pen, marker='x', linestyle='--', color=line.get_color(), label=f'{base_label} (Pen)')
+    plt.plot(channel_pen_ids, counts_for_this_time_pen, marker='x', linestyle='--', color=line.get_color(), label=f'{base_label} (Pen)')
 
 plt.yscale('log')
 plt.xlabel('Channel Index', fontsize=14)
 plt.ylabel('Counts', fontsize=14)
 plt.yticks(fontsize=12)
-plt.ylim(1e-4, 1e4)  # Adjust y-axis limits to better visualize the range of counts across time periods
+plt.ylim(1e-4, 1e4)  
 plt.grid(True, which="both", ls="--", alpha=0.5)
 plt.title('Counts Across Energy Channels for Specific Time Durations', fontsize=16, pad=10)
-
-# Print confidence interval on plot
 plt.text(0.98, 0.98, f'Confidence Interval: {select_flux_CI}%', transform=plt.gca().transAxes, 
          verticalalignment='top', horizontalalignment='right', fontsize=12, bbox=dict(facecolor='white', alpha=0.8))
-
-# Organize legend (Moved outside the plot area to prevent overlapping with 10 lines of data)
 plt.legend(title='Duration & Type', loc='center left', bbox_to_anchor=(1.05, 0.5), fontsize=12, title_fontsize=14)
 plt.tight_layout()
-
 plt.show()
-# %%
