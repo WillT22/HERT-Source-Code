@@ -6,12 +6,14 @@ library(GGally)
 library(ggthemes)
 library(colorBlindness)
 library(pracma)
+library(cowplot)
+library(magick)
 
 setwd("C:\\Users\\wzt0020\\Box\\HERT_Box\\Particle Classification")
 
 # Set the file path (replace "your_file.txt" with your actual file path)
-electron_file <- "E:\\HERT_Drive\\Matlab Main\\Result\\Electron_FS\\Aggregate Data\\Aggregate Electron_FS Data.txt"
-proton_file   <- "E:\\HERT_Drive\\Matlab Main\\Result\\Proton_FS\\Aggregate Data\\Aggregate Proton_FS Data.txt"
+electron_file <- "D:\\HERT_Drive\\Matlab Main\\Result\\Electron_FS\\Aggregate Data\\Aggregate Electron_FS Data.txt"
+proton_file   <- "D:\\HERT_Drive\\Matlab Main\\Result\\Proton_FS\\Aggregate Data\\Aggregate Proton_FS Data.txt"
 
 # Read the data
 imported_electron_data <- read.table(electron_file, sep="", skip = 1)
@@ -442,11 +444,12 @@ print(ratio_Pproblem_rows*100)
 ### Plot Hyperplane ###
 # Plot Edep v Einc for each detector, color coding particles
 par(mar = c(5, 6, 4, 2) + 0.1)
-plot(test_data$E_Inc, test_data$Detector9, 
+plot(training_data$Detector4, training_data$Detector3, 
      pch = 20,cex = 0.25, # Solid circle for all points
-     #xlim = c(0,20), ylim = c(0,20),
-     xlab = 'Incident Energy (MeV)', ylab = 'E_dep on Detector 9 (MeV)',
-     col = ifelse(test_data$Particle_Type == "Electron", "red","blue"),  # Color based on particle type
+     xlim = c(0,25), ylim = c(0,25),
+     #xlab = 'Incident Energy (MeV)', ylab = 'E_dep on Detector 9 (MeV)',
+     xlab = 'E_dep on Detector 4 (MeV)', ylab = 'E_dep on Detector 3 (MeV)',
+     col = ifelse(training_data$Particle_Type == "Electron", "red","blue"),  # Color based on particle type
      cex.axis = 2.0, # Adjust axis tick label size
      cex.lab = 2.0)  # Adjust axis label size
 
@@ -522,11 +525,13 @@ print(test_data_means_electrons)
 print(test_data_means_protons)
 print(test_data_medians_electrons)
 print(test_data_medians_protons)
+mean_of_medians = (test_data_medians_electrons + test_data_medians_protons)/2
+print(mean_of_medians)
 
 binning_fn <- function(data){
   nbins <- 100
   #finding bin edges
-  edges = logspace(log10(0.1), log10(max(data[,1:8])), nbins+1)
+  edges = logspace(log10(0.1), log10(max(data[,1:8], na.rm = TRUE)), nbins+1)
   
   # Binning electron and proton counts
   ecounts <- lapply(c(1:8), function(x) {
@@ -565,39 +570,73 @@ binning_fn <- function(data){
 }
 
 density_fn_electron <- function(data, mapping, pt, ...) {
-  # Access variable indices based on mapping
-  map_i <- which(names(data) == quo_name(mapping[[1]]))  # Index of x variable
-  map_j <- which(names(data) == quo_name(mapping[[2]]))  # Index of y variable
-  
+  map_i <- which(names(data) == quo_name(mapping[[1]]))  
+  map_j <- which(names(data) == quo_name(mapping[[2]]))  
   max_detect <- max(map_i,map_j)
-  temp_boundary_guess <- tcounts_min_E
   
   ggplot(data = data[data$Particle_Type == "Electron",], mapping = mapping) +
-    stat_bin_2d(aes(fill = after_stat(count/num_test_rows)), breaks = edges, limits=c(0,e_max)) +
-    scale_fill_gradient(low = "yellow", high = "red1") +
-    geom_abline(intercept = -sum(c(linear_hp_coefs[1],temp_boundary_guess[-c(map_j,map_i)]*linear_hp_coefs[-c(1,map_j+1,map_i+1)])) / linear_hp_coefs[map_j + 1],
-                slope = -linear_hp_coefs[map_i + 1] / linear_hp_coefs[map_j + 1], lwd = 2, lty = 1) +
+    # Changed num_test_rows to sum(count)
+    stat_bin_2d(aes(fill = after_stat(count/sum(count))), breaks = edges) +
+    # Added na.value = "white" to ensure empty bins don't render as grey blocks
+    scale_fill_gradient(low = "white", high = "red2", limits = c(0, e_max), na.value = "white") +
     scale_x_continuous(limits = c(0, 16)) +
     scale_y_continuous(limits = c(0, 16)) +
     theme_few()
 }
 
 density_fn_proton <- function(data, mapping, pt, ...) {
-  # Access variable indices based on mapping
-  map_i <- which(names(data) == quo_name(mapping[[1]]))  # Index of x variable
-  map_j <- which(names(data) == quo_name(mapping[[2]]))  # Index of y variable
-  
+  map_i <- which(names(data) == quo_name(mapping[[1]]))  
+  map_j <- which(names(data) == quo_name(mapping[[2]]))  
   max_detect <- max(map_i,map_j)
-  temp_boundary_guess <- tcounts_min_E
   
   ggplot(data = data[data$Particle_Type == "Proton",], mapping = mapping) +
-    stat_bin_2d(aes(fill = after_stat(count/num_test_rows)), breaks = edges, limits=c(0,p_max)) +
-    scale_fill_gradient(low = "#00E2FF", high = "blue1") +
-    geom_abline(intercept = -sum(c(linear_hp_coefs[1],temp_boundary_guess[-c(map_j,map_i)]*linear_hp_coefs[-c(1,map_j+1,map_i+1)])) / linear_hp_coefs[map_j + 1],
-                slope = -linear_hp_coefs[map_i + 1] / linear_hp_coefs[map_j + 1], lwd = 2, lty = 1) +
+    # Changed num_test_rows to sum(count)
+    stat_bin_2d(aes(fill = after_stat(count/sum(count))), breaks = edges) +
+    # Added na.value = "white" 
+    scale_fill_gradient(low = "white", high = "blue2", limits = c(0, p_max), na.value = "white") +
     scale_x_continuous(limits = c(0, 16)) +
     scale_y_continuous(limits = c(0, 16)) +
     theme_few()
+}
+
+density_fn <- function(data, mapping, ...) {
+  # Access variable indices based on mapping
+  i <- which(names(data) == quo_name(mapping[[1]]))  # Index of x variable
+  j <- which(names(data) == quo_name(mapping[[2]]))  # Index of y variable
+  
+  ggplot(data = data, mapping = mapping) +
+    stat_density2d(aes(fill = ..density..), geom = "tile", contour = FALSE, h = c(1,1) ) +
+    scale_fill_gradientn(colours=rev(c(rainbow(100)[1:70],"#00abff"))) +
+    geom_abline(intercept = -linear_hp_coefs[1]/linear_hp_coefs[j+1], 
+                slope = -linear_hp_coefs[i+1]/linear_hp_coefs[j+1], lwd = 1, lty = 1) +
+    scale_x_continuous(expand = c(0, 0)) +
+    scale_y_continuous(limits = c(0, 16))
+}
+
+find_max_2d_density <- function(data, particle_type, edges, cols_to_use) {
+  # Subset data for the specific particle
+  subset_data <- data[data$Particle_Type == particle_type, cols_to_use]
+  max_density <- 0
+  
+  # Loop through all unique pairs of detectors
+  for (i in 1:(length(cols_to_use) - 1)) {
+    for (j in (i + 1):length(cols_to_use)) {
+      # Bin both columns into the 2D grid
+      bin_x <- cut(subset_data[, i], breaks = edges)
+      bin_y <- cut(subset_data[, j], breaks = edges)
+      
+      # Create 2D table and find the max fraction for this specific pair
+      pair_table <- table(bin_x, bin_y)
+      pair_max_frac <- max(pair_table) / sum(pair_table)
+      
+      # Update global max if this pair has a higher concentration
+      if (pair_max_frac > max_density) {
+        max_density <- pair_max_frac
+      }
+    }
+  }
+  # Round up to the next neat decimal for the color scale limit
+  return(ceiling(max_density * 2000) / 2000)
 }
 
 diag_fn <- function(data, mapping, pt, ...) {
@@ -618,59 +657,118 @@ diag_fn <- function(data, mapping, pt, ...) {
   plot_data <- data.frame(midpoints, ecounts_new[,mapping_index], pcounts_new[,mapping_index])
   colnames(plot_data) <- c("midpoints","ecounts", "pcounts")
   
+  current_weight <- sprintf("%.3f", weights[mapping_index+1])
+  
   ggplot(data = plot_data, aes(midpoints)) +
-    geom_line(aes(y = ecounts/sum(ecounts)), colour = 'red1', lwd = 2) +
-    geom_line(aes(y = pcounts/sum(pcounts)), colour = 'blue1', lwd = 2) + 
-    geom_line(aes(y = pcounts/sum(pcounts)+ecounts/sum(ecounts)), colour = 'black', lwd = 2) +
-    geom_vline(xintercept=ecounts_max_E[mapping_index], col='red1', linetype='dashed', lwd = 1) +
-    geom_vline(xintercept=pcounts_max_E[mapping_index], col='blue1', linetype='dashed', lwd = 1) +
-    geom_vline(xintercept=tcounts_min_E[mapping_index], col='black', linetype='dashed', lwd = 1) +
+    geom_line(aes(y = ecounts/sum(ecounts)*100), colour = 'red2', lwd = 2) +
+    geom_line(aes(y = pcounts/sum(pcounts)*100), colour = 'blue2', lwd = 2) + 
+    #geom_line(aes(y = pcounts/sum(pcounts)+ecounts/sum(ecounts)), colour = 'black', lwd = 2) +
+    #geom_vline(xintercept=ecounts_max_E[mapping_index], col='red1', linetype='dashed', lwd = 1) +
+    #geom_vline(xintercept=pcounts_max_E[mapping_index], col='blue1', linetype='dashed', lwd = 1) +
+    #geom_vline(xintercept=tcounts_min_E[mapping_index], col='black', linetype='dashed', lwd = 1) +
     scale_x_continuous(limits = c(0, 16)) +
-    scale_y_continuous(limits = c(0, 0.1), breaks = seq(0, 0.1, by = 0.05)) +
-    theme_few()
+    scale_y_continuous(limits = c(0, 16)) +
+    theme_few() +
+    # Top Line: Y-Axis definition (Italic, Gray)
+    annotate("text", x = Inf, y = Inf, label = "Y-Axis: Particle Density (%)  ", 
+             hjust = 1, vjust = 2, size = 8, fontface = "italic", color = "darkgray") +
+    # Bottom Line: Weight (Bold, Black)
+    annotate("text", x = Inf, y = Inf, label = paste("Weight:", current_weight," "), 
+             hjust = 1, vjust = 4, size = 8, fontface = "bold")
 }
 
-returned_data <- binning_fn(test_data_plot)
-edges <- returned_data[[1]]
-ecounts_new <- returned_data[[2]]
-ecounts_max_index <- apply(ecounts_new, 2, which.max)
-ecounts_max_E <- (edges[ecounts_max_index+1]+edges[ecounts_max_index])/2
-e_max <- ceiling(max(ecounts_new/num_test_rows) * 100) / 100
-#e_max <- max(ecounts_new/num_test_rows)
-pcounts_new <- returned_data[[3]]
-pcounts_max_index <- apply(pcounts_new, 2, which.max)
-pcounts_max_E <- (edges[pcounts_max_index+1]+edges[pcounts_max_index])/2
-p_max <- ceiling(max(pcounts_new/num_test_rows) * 100) / 100
-tcounts <- ecounts_new+pcounts_new
-tcounts_min_index <- apply(tcounts[ecounts_max_index:pcounts_max_index,], 2, which.min)+ecounts_max_index
-tcounts_min_E <- (edges[tcounts_min_index+1]+edges[tcounts_min_index])/2
-#p_max <- max(pcounts_new/num_test_rows)
+#columns = c(1, 2, 8)
+columns = c(1:8)
+matrix_size <- 5 * length(columns)
 
-ggpairs(test_data_plot,
-        columns = c(1:8),
-        #columns = c(1, 2, 6, 8),
-        #columns = c(1, 2),
-        upper = list(continuous = density_fn_proton),
-        diag = list(continuous = diag_fn),
-        lower = list(continuous = density_fn_electron)) +
-  theme(axis.text = element_text(size = 28), 
-        strip.text = element_text(size = 28, color = "black"),
-        panel.spacing=grid::unit(1.2,"lines"))
+# 2. Generate your main ggpairs plot
+my_plot <- ggpairs(test_data_plot,
+                   columns = columns,
+                   #columnLabels = c("Detector 1", "Detector 2","Detector 9"),
+                   columnLabels = c("Detector 1", "Detector 2", "Detector 3", "Detector 4", "Detector 5", "Detector 6", "Detector 7&8", "Detector 9"),
+                   xlab = "Deposited Energy (MeV)",   # Added Global X Label
+                   ylab = "Deposited Energy (MeV)",   # Added Global Y Label
+                   upper = list(continuous = density_fn_proton),
+                   diag = list(continuous = diag_fn),
+                   lower = list(continuous = density_fn_electron)) +
+  theme(axis.text = element_text(size = 40), 
+        axis.title = element_text(size = 45, face = "bold"), # Formatted Global Labels
+        strip.text = element_text(size = 40, color = "black"))
 
+
+# 3. Create dummy plots and extract ONLY the legends
 # Creating color scales
-electron_palette <- colorRampPalette(c("yellow", "red1"))
+electron_palette <- colorRampPalette(c("white", "red2"))
 electron_colors <- electron_palette(100)
 
-proton_palette <- colorRampPalette(c("#00E2FF", "blue1"))
+proton_palette <- colorRampPalette(c("white", "blue2"))
 proton_colors <- proton_palette(100)
 
-v <- ggplot(faithful[1:100,], aes(waiting, eruptions, fill = (seq(e_max, 0, -e_max/99)))) +
-  geom_tile()
-v + scale_fill_gradientn(colours = electron_colors, name = "Electron Density     ", breaks = c(0, 0.02,0.04,0.06, 0.08)) + 
-  theme(legend.key.width  = unit(5, "lines"), legend.position = "bottom",
-        legend.text = element_text(size = 26), legend.title = element_text(size = 26))
-v <- ggplot(faithful[1:100,], aes(waiting, eruptions, fill = (seq(p_max, 0, -p_max/99)))) +
-  geom_tile()
-v + scale_fill_gradientn(colours = proton_colors, name = "Proton Density     ", breaks = c(0, 0.02,0.04,0.06)) + 
-  theme(legend.key.width  = unit(5/(e_max/p_max), "lines"), legend.position = "bottom",
-        legend.text = element_text(size = 26), legend.title = element_text(size = 26))
+# Calculate the new 2D-specific maximums
+e_max_2d <- find_max_2d_density(test_data_plot, "Electron", edges, columns)
+p_max_2d <- find_max_2d_density(test_data_plot, "Proton", edges, columns)
+
+# Electron legend (Vertical)
+plot_elec <- ggplot(data.frame(x=1, y=1, z=c(0, e_max*100)), aes(x, y, fill=z)) +
+  geom_tile() +
+  scale_fill_gradientn(
+    colours = electron_colors, 
+    name = "Electron\nDensity\n(%)\n", # Split title to save horizontal space
+    guide = guide_colorbar(
+      barheight = unit(matrix_size*4, "lines"), # Make it tall
+      barwidth = unit(2, "lines")    # Make it thick
+    )
+  ) +
+  theme(legend.position   = "right",
+        legend.text       = element_text(size = 30), 
+        legend.title      = element_text(size = 30),
+        legend.margin     = margin(1, 2, 2, 1, "cm")) # top, right, bottom, left
+leg_elec <- get_legend(plot_elec)
+
+# Proton legend (Vertical)
+plot_prot <- ggplot(data.frame(x=1, y=1, z=c(0, p_max*100)), aes(x, y, fill=z)) +
+  geom_tile() +
+  scale_fill_gradientn(
+    colours = proton_colors, 
+    name = "Proton\nDensity\n(%)\n", # Split title to save horizontal space
+    guide = guide_colorbar(
+      barheight = unit(matrix_size*4, "lines"), # Make it tall
+      barwidth = unit(2, "lines")    # Make it thick
+    )
+  ) +
+  theme(legend.position   = "right",
+        legend.text       = element_text(size = 30), 
+        legend.title      = element_text(size = 30),
+        legend.margin     = margin(1, 2, 2, 1, "cm")) # top, right, bottom, left
+leg_prot <- get_legend(plot_prot)
+
+# Stitch the two vertical legends next to each other
+combined_legends <- plot_grid(leg_elec, leg_prot, ncol = 2)
+
+# 4. Composite the matrix and the combined legends
+final_plot <- plot_grid(
+  ggmatrix_gtable(my_plot), 
+  NULL, 
+  combined_legends, 
+  ncol = 3,
+  #rel_widths = c(1, 0.02, 0.3)
+  rel_widths = c(1, 0.02, 0.1) 
+)
+
+
+# 5. Export without deforming the squares
+ggsave("square_pairs_plot_with_vertical_legends.png", 
+       plot = final_plot, 
+       width = matrix_size + (matrix_size * 0.30),
+       height = matrix_size, 
+       units = "in", 
+       dpi = 300,
+       limitsize = FALSE)
+
+# 1. Read the massive image you just generated with ggsave
+massive_plot <- image_read("square_pairs_plot_with_vertical_legends.png")
+# 2. Scale it to exactly 1280 pixels wide. 
+resized_plot <- image_scale(massive_plot, "1920x")
+# 3. Save the new, web-friendly version
+image_write(resized_plot, "square_pairs_1920px.png")
+
