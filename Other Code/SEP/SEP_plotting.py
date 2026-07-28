@@ -291,7 +291,26 @@ plt.legend()
 plt.xlim(0, 70)
 plt.tight_layout()
 plt.show()
-        
+
+#%% Export Weibull parameters to a text file for later use
+import csv
+
+# Define the output path (using the same directory structure you already have)
+output_filepath = r"C:\Users\wzt0020\Box\HERT_Box\Energy Resolution\Weibull_Parameters_Export.txt"
+
+# Open the text file and write the data
+with open(output_filepath, 'w', newline='') as csvfile:
+    writer = csv.writer(csvfile)
+    
+    # Write the header row so MATLAB knows what each column is
+    writer.writerow(['CI', 'k', 'E_0', 'b'])
+    
+    # Loop through compiled_fits, sort them numerically by CI, and write to file
+    for ci_str in sorted(compiled_fits.keys(), key=int):
+        params = compiled_fits[ci_str]['weibull_params']
+        writer.writerow([ci_str, params['k'], params['E_0'], params['b']])
+
+print(f"Weibull parameters successfully exported to: {output_filepath}")
 
 #%% Determine the energy width to reach 100 counts
 # create flux spectra for each CI using the fitted parameters
