@@ -16,7 +16,7 @@ import logic_equations, plot_functions
 importlib.reload(logic_equations)
 importlib.reload(plot_functions)
 from logic_equations import evaluate_rept_logic, evaluate_reptile2_logic
-from plot_functions import check_densities, create_and_save_pairgrid, get_bin_edges
+from plot_functions import check_densities, create_and_save_pairgrid, create_and_save_pairgrid_reduced
 
 #%% Optional: Load in workspace
 import joblib
@@ -481,7 +481,7 @@ import logic_equations, plot_functions
 importlib.reload(logic_equations)
 importlib.reload(plot_functions)
 from logic_equations import evaluate_rept_logic, evaluate_reptile2_logic
-from plot_functions import check_densities, create_and_save_pairgrid, get_bin_edges
+from plot_functions import check_densities, create_and_save_pairgrid, create_and_save_pairgrid_reduced
 
 print("\n--- Initiating Visualization Pipeline ---")
 # Define exactly what columns go into the PairGrid matrix
@@ -492,10 +492,14 @@ test_data_plot = test_data[columns_to_keep].copy()
 # Features for tracking weights/indices
 features_only = ["Detector1", "Detector2", "Detector3", "Detector4", 
                  "Detector5", "Detector6", "Detector7_8_sum", "Detector9"]
-
 # Call the external function. (Requires the 'weights' variable from your Linear SVM block)
 create_and_save_pairgrid(test_data_plot, weights, features_only, 
-                         output="square_pairs_plot_with_vertical_legends.png")
+                         output="square_pairs_plot_with_horizontal_legends.png")
+
+features_only_reduced = ["Detector1", "Detector2", "Detector9"]
+create_and_save_pairgrid_reduced(test_data_plot, weights, features_only_reduced,
+                         output="square_pairs_plot_reduced.png")
+
                          
 
 #%% Save workspace
