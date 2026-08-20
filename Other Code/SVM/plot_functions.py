@@ -150,16 +150,10 @@ def plot_diag_1d(x, **kwargs):
 
     # --- 3. DYNAMIC LABELS ---
     ax2.tick_params(axis='y', which='both', left=True, labelleft=True)
-    # Only show Y labels on the first column (D1) to avoid grid clutter
-    if col_name == features[0]:
-        # Formatted for publication accuracy
-        ax2.set_ylabel("PDF (MeV$^{-1}$)", fontsize=24, style='italic', color='gray')
-
-    # col_idx = features.index(col_name)
-    # weight = weights[col_idx + 1]
-
-    # ax.text(0.95, 0.85, f"Weight: {weight:.3f}", transform=ax.transAxes,
-    #         ha='right', va='top', fontsize=32, fontweight='bold')
+    
+    # Place the PDF label INSIDE the plot area (top-right corner) to save margin space
+    ax2.text(0.95, 1.25, "PDF (MeV$^{-1}$)", transform=ax2.transAxes,
+             ha='right', va='top', fontsize=24, style='italic', color='gray')
 
 def check_densities(df, col_name, edges):
     """Calculates and returns the density arrays for a specific detector."""
@@ -256,8 +250,8 @@ def create_and_save_pairgrid(test_data_plot, weights, features_only, output="squ
                 spine.set_edgecolor('black')
             ax.set_box_aspect(1) 
 
-    g.fig.supxlabel("Deposited Energy (MeV)", fontsize=40, fontweight='bold', y=0)
-    g.fig.supylabel("Deposited Energy (MeV)", fontsize=40, fontweight='bold', x=-0.02)
+    g.fig.supxlabel("Deposited Energy (MeV)", fontsize=40, fontweight='bold', y=-0.01)
+    g.fig.supylabel("Deposited Energy (MeV)", fontsize=40, fontweight='bold', x=-0.01)
 
     major_ticks = [0.1, 1, 10, 100]
     major_tick_labels = ["0.1", "1", "10", "100"]
@@ -267,9 +261,7 @@ def create_and_save_pairgrid(test_data_plot, weights, features_only, output="squ
         ax_left = g.axes[i, 0]
         ax_left.yaxis.label.set_size(40)
         ax_left.yaxis.label.set_weight('bold')
-        # Force exact vertical alignment. -0.4 pushes the label far enough left 
-        # to clear the D1 twin axis, and locks all other labels to the exact same line.
-        ax_left.yaxis.set_label_coords(-0.85, 0.5) 
+        ax_left.yaxis.set_label_coords(-0.45, 0.45) 
         
         # 2. Bottom Row (X-axis labels: D1, D2, D3...)
         ax_bottom = g.axes[-1, i]
@@ -310,7 +302,7 @@ def create_and_save_pairgrid(test_data_plot, weights, features_only, output="squ
                 ax.yaxis.set_minor_formatter(ticker.NullFormatter())
 
                 # Toggle text visibility based on column position (left column only)
-                if j == 0:
+                if j == 0 or j == i+1:
                     ax.tick_params(axis='y', which='both', left=True, labelleft=True)
                 else:
                     ax.tick_params(axis='y', which='both', left=True, labelleft=False)
@@ -318,35 +310,45 @@ def create_and_save_pairgrid(test_data_plot, weights, features_only, output="squ
                 # Diagonal: Hide axis ticks and labels
                 ax.tick_params(axis='y', which='both', left=False, labelleft=False)
 
-    # --- Stitch Vertical Colorbar Legends ---
-    g.fig.subplots_adjust(right=0.88, wspace=0.6)
+# --- Stitch Horizontal Colorbar Legends ---
+    # Remove the right margin adjustment; rely on savefig's bbox_inches="tight" 
+    # to capture the axes below the plot.
+    g.fig.subplots_adjust(wspace=0.5)
 
-    # 1. ELECTRON COLORBAR
-    cbar_ax_elec = g.fig.add_axes([0.9, 0.1, 0.02, 0.35])
-    # Switch to the built-in sequential colormap
+    # 1. ELECTRON COLORBAR (Bottom Left)
+    # [left, bottom, width, height]
+    cbar_ax_elec = g.fig.add_axes([0.1, -0.05, 0.35, 0.03])
     cmap_elec = plt.cm.Reds 
     norm_elec = mcolors.LogNorm(vmin=min(e_min, p_min), vmax=max(e_max, p_max))
-    cbar_elec = g.fig.colorbar(plt.cm.ScalarMappable(norm=norm_elec, cmap=cmap_elec), cax=cbar_ax_elec)
     
-    cbar_elec.set_label("Electron\nFraction\n", rotation=0, labelpad=-40, y=1.15, fontweight='bold', fontsize=40)
+    cbar_elec = g.fig.colorbar(
+        plt.cm.ScalarMappable(norm=norm_elec, cmap=cmap_elec), 
+        cax=cbar_ax_elec, 
+        orientation='horizontal'
+    )
+    
+    # Text will automatically center below or above the horizontal bar
+    cbar_elec.set_label("Electron Fraction", labelpad=10, fontweight='bold', fontsize=40)
     cbar_elec.ax.tick_params(labelsize=32)
     
-    # Force clean exponent tick labels (10^-1, 10^-2, etc.)
     cbar_elec.locator = ticker.LogLocator(base=10.0, numticks=5)
     cbar_elec.formatter = ticker.LogFormatterMathtext()
     cbar_elec.update_ticks()
 
-    # 2. PROTON COLORBAR
-    cbar_ax_prot = g.fig.add_axes([0.9, 0.55, 0.02, 0.35])
-    # Switch to the built-in sequential colormap
+    # 2. PROTON COLORBAR (Bottom Right)
+    cbar_ax_prot = g.fig.add_axes([0.55, -0.05, 0.35, 0.03])
     cmap_prot = plt.cm.Blues 
     norm_prot = mcolors.LogNorm(vmin=min(e_min, p_min), vmax=max(e_max, p_max))
-    cbar_prot = g.fig.colorbar(plt.cm.ScalarMappable(norm=norm_prot, cmap=cmap_prot), cax=cbar_ax_prot)
     
-    cbar_prot.set_label("Proton\nFraction\n", rotation=0, labelpad=-40, y=1.15, fontweight='bold', fontsize=40)
+    cbar_prot = g.fig.colorbar(
+        plt.cm.ScalarMappable(norm=norm_prot, cmap=cmap_prot), 
+        cax=cbar_ax_prot, 
+        orientation='horizontal'
+    )
+    
+    cbar_prot.set_label("Proton Fraction", labelpad=10, fontweight='bold', fontsize=40)
     cbar_prot.ax.tick_params(labelsize=32)
     
-    # Force clean exponent tick labels (10^-1, 10^-2, etc.)
     cbar_prot.locator = ticker.LogLocator(base=10.0, numticks=5)
     cbar_prot.formatter = ticker.LogFormatterMathtext()
     cbar_prot.update_ticks()

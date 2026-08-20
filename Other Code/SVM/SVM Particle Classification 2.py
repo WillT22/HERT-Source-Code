@@ -475,6 +475,14 @@ g.map_diag(sns.histplot, multiple="stack")
 plt.show()
 
 #%% Create and Save PairGrid with Density Plots
+current_script_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, current_script_dir)
+import logic_equations, plot_functions
+importlib.reload(logic_equations)
+importlib.reload(plot_functions)
+from logic_equations import evaluate_rept_logic, evaluate_reptile2_logic
+from plot_functions import check_densities, create_and_save_pairgrid, get_bin_edges
+
 print("\n--- Initiating Visualization Pipeline ---")
 # Define exactly what columns go into the PairGrid matrix
 columns_to_keep = ["Detector1", "Detector2", "Detector3", "Detector4", 
@@ -484,33 +492,6 @@ test_data_plot = test_data[columns_to_keep].copy()
 # Features for tracking weights/indices
 features_only = ["Detector1", "Detector2", "Detector3", "Detector4", 
                  "Detector5", "Detector6", "Detector7_8_sum", "Detector9"]
-
-# ## Check Densities for Detector1 and Detector2
-# # Generate the edges array using your main dataset
-# edges = get_bin_edges(test_data_plot, features_only)
-# # Now run the diagnostic function using the edges you just calculated
-# d1_array = check_densities(test_data_plot, 'Detector1', edges)
-# d9_array = check_densities(test_data_plot, 'Detector9', edges)
-
-# def print_particle_max_densities(density_df, detector_name):
-#     """Prints the maximum density and corresponding row for electrons and protons."""
-#     print(f"\n--- Max Density: {detector_name} ---")
-    
-#     # Electron max
-#     e_idx = density_df['Electron_Pct'].idxmax()
-#     print("Electron Peak:")
-#     print(density_df.loc[e_idx].to_string())
-#     print(f"Max Electron Pct: {density_df['Electron_Pct'].max():.4f}%\n")
-    
-#     # Proton max
-#     p_idx = density_df['Proton_Pct'].idxmax()
-#     print("Proton Peak:")
-#     print(density_df.loc[p_idx].to_string())
-#     print(f"Max Proton Pct: {density_df['Proton_Pct'].max():.4f}%")
-
-# # --- Usage ---
-# print_particle_max_densities(d1_array, "Detector 1")
-# print_particle_max_densities(d9_array, "Detector 9")
 
 # Call the external function. (Requires the 'weights' variable from your Linear SVM block)
 create_and_save_pairgrid(test_data_plot, weights, features_only, 
