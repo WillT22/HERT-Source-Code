@@ -15,8 +15,9 @@ addpath 'D:\HERT_Drive\MATLAB Main'
 % Initialization of User Manipulated Variables 
 detector_threshold = 0.1; % Detector Threshold (MeV)
 numDetect = 9;
-textsize = 20;
-titlesize = 28;
+textsize = 28;
+titlesize = 32;
+show_legend = false;
 
 %% Calculate GEANT4 Results
 % Read files from ./Result folder and store into a 1*C array
@@ -54,7 +55,7 @@ r3 = 1.0;   % cm radius of the first detector
 G3_whole_min = findG3whole(L_12, L_23, L_13, r1, r2, r3);
 
 % Menu to select particle type on which max geometric factor depends
-parttype_choice = menu('Particle Type', 'Electron', 'Proton');
+parttype_choice = menu('Particle Type', 'Electron', 'Proton', 'Helium');
 switch parttype_choice
     case 1
         parttype = 0;
@@ -64,6 +65,8 @@ switch parttype_choice
         r2 = 1.0;   % cm radius of the last collimator tooth (larger than above)
         G3_whole_max = findG3whole(L_12, L_23, L_13, r1, r2, r3);
         back_threshold = 0.1; % Back Detector Threshold (MeV)
+        nucleons = 1;
+
     case 2
         parttype = 1;
         fprintf('Particle Type: Proton \n')
@@ -76,6 +79,14 @@ switch parttype_choice
         L_19 = 0.15 * 7 + 0.108 * 4 + 0.1 * 4; % distance between back of first detector and front of last detector
         G3_pen_theory = 0.5*(pi^2)*((r1^2+r9^2+L_19^2)-(((r1^2+r9^2+L_19^2)^2-4*(r1^2)*(r9^2))^0.5)) * 2;
         back_threshold = 0.1; % Back Detector Threshold (MeV)
+        nucleons = 1;
+        
+    case 3
+        parttype = 2;
+        fprintf('Particle Type: Helium \n')
+        back_threshold = 0.1; % Back Detector Threshold (MeV)
+        nucleons = 4;
+
 end
 
 % r_source
@@ -86,14 +97,18 @@ source_angle = 15; % 15 for spherical cap, 20.825/2 for HERT testing
 %% Select Run Information
 % Menu to select spherical cap or full spherical
 source_label = sprintf('Spherical Cap (%.0f deg)', source_angle);
-simtype_choice = menu('Simulation Type', source_label, 'Full Sphere');
+simtype_choice = menu('Simulation Type', 'Efficiency', source_label, 'Full Sphere');
 switch simtype_choice
     case 1
         sim_type = 0;
         fprintf('Sim Type: %d.\n', simtype_choice)
-        addin = append(addin, ' SC');
+        addin = append(addin, ' Efficiency');
     case 2
         sim_type = 1;
+        fprintf('Sim Type: %d.\n', simtype_choice)
+        addin = append(addin, ' SC');
+    case 3
+        sim_type = 2;
         fprintf('Sim Type: %d.\n', simtype_choice)
         addin = append(addin, ' FS');
 end
@@ -169,9 +184,14 @@ while choice ~= 1 % Choice 1 is to exit the program
                 energy_edges = logspace(log10(energy_min),log10(energy_max),bins+1);
                 energy_edges(end) = energy_max + 0.01;
             elseif parttype == 1
+                bins = 600;
+                energy_min = 10;
+                energy_max = 10000;
+                energy_edges = logspace(log10(energy_min),log10(energy_max),bins+1);
+            elseif parttype == 2
                 bins = 400;
                 energy_min = 10;
-                energy_max = 1000;
+                energy_max = 100000;
                 energy_edges = logspace(log10(energy_min),log10(energy_max),bins+1);
             end
             % finding midpoints
@@ -212,7 +232,7 @@ while choice ~= 1 % Choice 1 is to exit the program
                     % and finalMatrix2
                     [hit_deposited_energy, hit_energy_channels, hit_detectors, energy_beam, run_number, beam_number, ...
                         back_deposited_energy, back_energy_channels, back_detectors, back_energy_beam, non_energy_beam]...
-                        = oneEnergyEffDistWhole(filename{i}, inputfolder, energy_channels, detector_threshold, back_threshold);
+                        = oneEnergyEffDistWhole(filename{i}, inputfolder, energy_channels, nucleons, detector_threshold, back_threshold);
                         
                     % This will be Y in our plot
                     M_hit_dep = [M_hit_dep, hit_deposited_energy'];
@@ -236,16 +256,16 @@ while choice ~= 1 % Choice 1 is to exit the program
                     M_beam_number_back(i) = beam_number;
                     run_interest_back = [run_interest_back, ones(1,length(back_energy_beam))*run_number];
 
-                    % Bin the energy for every particle simulated (hits or no)
-                    [M_energy_bin_temp,~,M_energy_bin_indicies] = histcounts([energy_beam, non_energy_beam],energy_edges);
+                    % Bin the energy for every particle simulated (good hits, back hits, and misses)
+                    [M_energy_bin_temp,~,M_energy_bin_indicies] = histcounts([energy_beam, back_energy_beam, non_energy_beam], energy_edges);
                     M_energy_bin = M_energy_bin + M_energy_bin_temp;
 
                     % Find the indices that would sort M_output_energy
-                    if min_incident_energy > min(energy_beam,[],"all");
-                        min_incident_energy = min(energy_beam,[],"all");
+                    if min_incident_energy > min([energy_beam, back_energy_beam, non_energy_beam],[],"all");
+                        min_incident_energy = min([energy_beam, back_energy_beam, non_energy_beam],[],"all");
                     end
-                    if max_incident_energy < max(energy_beam,[],"all")
-                        max_incident_energy = max(energy_beam,[],"all");
+                    if max_incident_energy < max([energy_beam, back_energy_beam, non_energy_beam],[],"all")
+                        max_incident_energy = max([energy_beam, back_energy_beam, non_energy_beam],[],"all");
                     end
                     
                     clear energy_beam
@@ -259,7 +279,7 @@ while choice ~= 1 % Choice 1 is to exit the program
 %% Obtain Data for Plotting
                 % Goes to Efficiency_Curves Directory in prep to save
                 % Eff Curve Plot
-                cd ../Plots/Efficiency_Curves
+                %cd ../Plots/Efficiency_Curves
 
                 % Count the number of hits in each energy channel
                 hits_whole_EC = histcounts(M_hit_channels,0.5:length(energy_channels)+0.5);
@@ -277,10 +297,16 @@ while choice ~= 1 % Choice 1 is to exit the program
                 end
                 
                 if sim_type == 0
+                elseif sim_type == 1
                     % Scales up simulated particles to the total number of particles
                     M_energy_bin = 2 .* M_energy_bin / (1 - cosd(source_angle));
                     M_back_beam  = 2 .* M_back_beam  / (1 - cosd(source_angle));
-                elseif sim_type == 1
+
+                    M_energy_bin = M_energy_bin ./ (4 * (pi^2) * (r_source^2));
+                    M_back_beam = M_back_beam ./ (4 * (pi^2) * (r_source^2));
+                elseif sim_type == 2
+                    M_energy_bin = M_energy_bin ./ (4 * (pi^2) * (r_source^2));
+                    M_back_beam = M_back_beam ./ (4 * (pi^2) * (r_source^2));
                 else
                     error('Error on Sim Type')
                 end
@@ -304,14 +330,10 @@ while choice ~= 1 % Choice 1 is to exit the program
                         end
                     end
                     % Calculates the geometric factor for each channel
-                    geo_EC(channel,:) = hits_log(channel,:) ./ M_energy_bin * (4 * (pi^2) * (r_source^2));
-                    geo_back_EC(channel,:) = back_log(channel,:) ./ M_energy_bin * (4 * (pi^2) * (r_source^2));
-                end
-                if parttype == 1
-                    geo_back_EC_combined = [sum(geo_back_EC(1:8, :), 1); geo_back_EC(9:end, :)];
-                    energy_channels_combined = [energy_channels(1, 1), energy_channels(8, 2); energy_channels(9:end, :)];
-                end
-                
+                    geo_EC(channel,:) = hits_log(channel,:) ./ M_energy_bin;
+                    geo_back_EC(channel,:) = back_log(channel,:) ./ M_energy_bin;
+                end       
+
                 hits_log_total = sum(hits_log,1);
                 back_log_total = sum(back_log,1);
 
@@ -322,55 +344,13 @@ while choice ~= 1 % Choice 1 is to exit the program
                 save(Var_String)
                 
                 addin = regexprep(addin, '_', ' ');
-                               
-%% Total Hits Comparison
-%{
-                line_width = 2;
-                f2 = figure;
-                f2.Position = [0 0 1920 1080];
-                
-                hold on
-                plot(energy_midpoints, hits_log_total ./ M_energy_bin *100, 'DisplayName', 'Counted Hits', 'LineWidth', line_width)
-                plot(energy_midpoints, back_counts ./ M_energy_bin * 100, 'DisplayName', 'Last Detector Triggered', 'LineWidth', line_width)
-
-                % Put in Penetration Limits
-                if parttype == 1
-                    xline([14.15,52.29,69.09],'--',{'Be Penetration','D9 Triggering', 'W Penetration'}, ...
-                    'LineWidth', 1.5,'FontSize', 16,'LabelOrientation','aligned')
-                end
-
-                legend({'Counted Hits','Last Detector Triggered'},'Location','northeast')
-                grid on
-                set(gca,'FontSize', textsize)
-                titlestr = append(sprintf('Hits %.2f MeV - %.2f MeV ', min_incident_energy, max_incident_energy), ...
-                    addin, sprintf(' %.0f Bins', bins));
-                %title(titlestr, 'FontSize', titlesize)
-                if parttype == 0
-                    set(gca, 'XTick', [0.5,1,1.5,2,3,4,5,6,7,8]);
-                    xlim([0.4,max_incident_energy])
-                    ylim([10^-5, 10^-1])
-                elseif parttype == 1
-                    set(gca, 'XTick', [0,10,20,30,40,50,60,80,100,120,140,160,200,300,400,500,600,800,1000]);
-                    xlim([10,max_incident_energy])
-                    ylim([10^-3, 10^1])
-                end
-                set(gca, 'XScale', 'log')
-                set(gca, 'YScale', 'log')
-                ylabel('Percent of Hits')
-                xlabel('Energy (MeV)')
-                hold off
-                
-                % Saving the figure as a jpg then returning to the main directory
-                effsave = append('Counted Hits', string(datetime("today")), addin, '.png');
-                saveas(f2, effsave)
-%}
 
 %% Total Geometric Factor Comparison
-back_bool = exist('geo_back_EC_combined','var');
+back_bool = exist('geo_back_EC','var');
 
 line_width = 2;
 f1 = figure;
-f1.Position = [0 0 1800 1000];
+f1.Position = [0 0 2800 1000];
 
 hold on
 % Plot Theory Bands
@@ -394,15 +374,34 @@ end
 
 % Put in Penetration Limits
 if parttype == 0
-    xline([0.62, 5.71, 15.91, 30.89], '--', {'Be Penetration','D9 Penetration', 'W Penetration', 'W & Stack Penetration'}, ...
+    set(gca, 'XTick', [0,0.5,1,1.5,2,3,4,5,6,7,8,9,10]);
+    xlim([0.5, max_incident_energy]); ylim([10^-4, 10^0]);
+    xline([0.62, 5.71, 15.83, 37.41], '--', {'Be Penetration','D9 Penetration', 'Ta Penetration', 'Rear Penetration'}, ...
         'LineWidth', 1.5, 'FontSize', 16, 'LabelOrientation', 'aligned');
+    title('Electron')
 elseif parttype == 1
-    xline([14.15,52.29,69.09,99.64],'--',{'Be Penetration','D9 Triggering', 'W Penetration', 'W & Stack Penetration'}, ...
-    'LineWidth', 1.5,'FontSize', 16,'LabelOrientation','aligned')
-
+    %xline([14.15,52.29,107.06],'--',{'D1 Triggering','D9 Triggering', 'Rear Penetration'}, ...
+    %    'LineWidth', 1.5,'FontSize', 16,'LabelOrientation','aligned','LabelVerticalAlignment','bottom')
+    xline([14.15,52.29,68.09,107.06],'--',{'D1 Triggering','D9 Triggering', 'Ta Penetration', 'Rear Penetration'}, ...
+        'LineWidth', 1.5,'FontSize', 16,'LabelOrientation','aligned','LabelVerticalAlignment','bottom')
     % Plot theory band
     yline([G3_pen_theory],'--',{'Proton Penetration Theory'}, ...
     'LineWidth', 1.5,'FontSize', 16,'LabelOrientation','aligned','LabelHorizontalAlignment', 'right', 'LabelVerticalAlignment','bottom')
+    xlabel('Kinetic Energy (MeV)', 'FontSize', textsize)
+    set(gca, 'XTick', [0,10,20,30,40,50,60,80,100,120,150,200,300,400,500,750,1000,1500,2000,3000,5000,7500,10000]);
+    xlim([10,max_incident_energy])
+    ylim([10^-4, 10^2])
+    title('Proton')
+elseif parttype == 2
+    %xline([14.11,52.02,101.9825],'--',{'D1 Triggering','D9 Triggering', 'Rear Penetration'}, ...
+    %    'LineWidth', 1.5,'FontSize', 16,'LabelOrientation','aligned','LabelVerticalAlignment','top')
+    xline([14.11,52.02,68.00,101.9825],'--',{'D1 Triggering','D9 Triggering', 'Ta Penetration', 'Rear Penetration'}, ...
+        'LineWidth', 1.5,'FontSize', 16,'LabelOrientation','aligned','LabelVerticalAlignment','top')
+    xlabel('Kinetic Energy (MeV/nuc)', 'FontSize', textsize)
+    %set(gca, 'XTick', [0,10,20,30,40,50,60,80,100,120,150,200,300,400,500,600,800,1000]);
+    xlim([10,max_incident_energy])
+    ylim([10^-3, 10^2])
+    title('Helium')
 end
 
 legend({'Range','Penetrating'},'Location','northeast')
@@ -410,15 +409,6 @@ grid on
 % Sets y-axis to log scale. Comment out to keep plot linear
 set(gca, 'XScale', 'log')
 set(gca, 'YScale', 'log')
-if parttype == 0
-    set(gca, 'XTick', [0.5,1,1.5,2,3,4,5,6,7,8]);
-    xlim([0.4,max_incident_energy])
-    ylim([10^-3, 10^0])
-elseif parttype == 1
-    set(gca, 'XTick', [0,10,20,30,40,50,60,80,100,120,150,200,300,400,500,600,800,1000]);
-    xlim([10,max_incident_energy])
-    ylim([10^-2, 10^2])
-end
 set(gca, 'FontSize', textsize)
 
 titlestr = append(sprintf('Total GF: %.2f MeV - %.2f MeV ', min_incident_energy, max_incident_energy), ...
@@ -427,13 +417,12 @@ titlestr = append(sprintf('Total GF: %.2f MeV - %.2f MeV ', min_incident_energy,
 %title('Proton Total Geometric Factor', 'FontSize', titlesize-2);
 %ylabel('Instrument Efficiency', 'FontSize', textsize)
 ylabel('Geometric Factor (cm^2 sr)', 'FontSize', textsize)
-xlabel('Incident Energy (MeV)', 'FontSize', textsize)
 
 % Changes legend depending on the Sim_Type
 %{
-if sim_type == 0
+if sim_type == 1
     legend_entries = {'Theoretical Min', 'Theoretical Max', 'GEANT4 Cap'};
-elseif sim_type == 1
+elseif sim_type == 2
     legend_entries = {'Theoretical Min', 'Theoretical Max', 'GEANT4 Sphere'};
 end
 
@@ -445,9 +434,17 @@ hold off
 effsave = append('Total GF_', string(datetime("today")), '_', addin, '.png');
 saveas(f1, effsave)
 
-%% Geometric Factor by Energy Channel
-geo_EC(geo_EC==0) = 1e-31;
-back_bool = exist('geo_back_EC_combined','var');
+%% Combined Geometric Factor by Energy Channel (Publication Ready)
+geo_EC(geo_EC == 0) = 1e-31;
+back_bool = exist('geo_back_EC','var');
+if back_bool
+    geo_back_EC(geo_back_EC == 0) = 1e-31;
+end
+
+% 0. Define Publication Typography & Physical Dimensions
+textsize = 14;              % 14 pt font will render at true 14 pt on paper
+fig_width_in  = 7.0;        % Full journal page width across 2 columns (inches)
+fig_height_in = 3.3;        % ~1/3.5 of an 11-inch page height (inches)
 
 % 1. Vectorized String Generation (Eliminates loops)
 EngLegend_low  = string(compose('%.3f', energy_channels(:, 1)))';
@@ -457,116 +454,195 @@ EngLegend_high(end) = sprintf('%.0f', energy_channels(end, 2));
 % 2. Create Plot Colors
 Effplotcolor = plasma(size(geo_EC, 1)); 
 if back_bool
-    full_winter = winter(size(geo_EC, 1));
-    Effplotcolor_back = full_winter((end - size(geo_back_EC_combined, 1) + 1):end, :);
+    Effplotcolor_back = winter(size(geo_EC, 1));
 end
 
-channel_select = [];
-channel_select = [5,10,15,20,25];
 % 3. Default Channel Selection & Setup Figure
-if isempty(channel_select), channel_select = 1:size(geo_EC, 1); end
+channel_select = [];
+% channel_select = [5, 10, 15, 20, 25, 30, 35, 40];
+label_channels = ~isempty(channel_select); 
+if isempty(channel_select)
+    channel_select = 1:size(geo_EC, 1); 
+end
 
-f3 = figure('Position', [0 0 2800 1080]); hold on;
+% Create figure sized physically in inches for publication
+f_combo = figure('Units', 'inches', ...
+            'Position', [1, 1, fig_width_in, fig_height_in], ...
+            'PaperUnits', 'inches', ...
+            'PaperPosition', [0, 0, fig_width_in, fig_height_in], ...
+            'PaperPositionMode', 'auto'); 
+hold on;
 
-% 4. Consolidated Data Plotting
+% 4. Consolidated Data Plotting (Both Range and Penetrating)
 for i = 1:size(geo_EC, 1)
     is_sel = ismember(i, channel_select);
-    c_prim = [0.7 0.7 0.7 0.7]; if is_sel, c_prim = Effplotcolor(i,:); end
     
-    plot(energy_midpoints, geo_EC(i,:), 'Color', c_prim, 'LineWidth', 2);
+    % --- Plot Range Particles ---
+    c_prim = [0.7 0.7 0.7 0.7]; 
+    if is_sel, c_prim = Effplotcolor(i, :); end
+    plot(energy_midpoints, geo_EC(i, :), 'Color', c_prim, 'LineWidth', 1.5);
     
+    % Label Selected Range Channels with Collision Protection
+    if is_sel && label_channels
+        if parttype == 1 || parttype == 2
+            if i == 20
+                [max_geo, max_idx] = max(geo_EC(i, energy_midpoints < 69.09));
+                peak_energy = energy_midpoints(max_idx); place_x = peak_energy - 3; place_y = max_geo * 1.4;
+            elseif i == 25
+                [max_geo, max_idx] = max(geo_EC(i, :));
+                peak_energy = energy_midpoints(max_idx); place_x = peak_energy + 28; place_y = max_geo * 0.04;
+            else
+                [max_geo, max_idx] = max(geo_EC(i, energy_midpoints < 69.09));
+                peak_energy = energy_midpoints(max_idx); place_x = peak_energy; place_y = max_geo * 1.4;
+            end
+        else
+            [max_geo, max_idx] = max(geo_EC(i, :));
+            peak_energy = energy_midpoints(max_idx); place_x = peak_energy; place_y = max_geo * 1.5;
+        end
+        text(place_x, place_y, num2str(i), 'Color', c_prim, 'FontSize', textsize-4, 'FontWeight', 'bold', ...
+            'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom', ...
+            'BackgroundColor', [1 1 1 0.75], 'Margin', 1, 'EdgeColor', 'none');
+    end
+    
+    % --- Plot Penetrating Particles ---
     if back_bool
-        if i <= 8, b_idx = 1; else, b_idx = i - 7; end
-        c_back = [0.7 0.7 0.7 0.7]; if is_sel, c_back = Effplotcolor_back(b_idx,:); end
-        plot(energy_midpoints, geo_back_EC_combined(b_idx,:), 'Color', c_back, 'LineWidth', 2);
+        c_back = [0.7 0.7 0.7 0.7]; 
+        if is_sel, c_back = Effplotcolor_back(i, :); end
+        plot(energy_midpoints, geo_back_EC(i, :), 'Color', c_back, 'LineWidth', 1.5);
+        
+        % Label Selected Penetrating Channels with Collision Protection
+        if is_sel && label_channels
+            if parttype == 1 || parttype == 2
+                if i == 25
+                    [max_geo, max_idx] = max(geo_back_EC(i, :));
+                    peak_energy = energy_midpoints(max_idx); place_x = peak_energy * 0.98; place_y = max_geo * 0.08;
+                else
+                    [max_geo, max_idx] = max(geo_back_EC(i, :));
+                    peak_energy = energy_midpoints(max_idx); place_x = peak_energy; place_y = max_geo * 1.4;
+                end
+            else
+                [max_geo, max_idx] = max(geo_back_EC(i, :));
+                peak_energy = energy_midpoints(max_idx); place_x = peak_energy; place_y = max_geo * 1.5;
+            end
+            text(place_x, place_y, num2str(i), 'Color', c_back, 'FontSize', textsize-4, 'FontWeight', 'bold', ...
+                'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom', ...
+                'BackgroundColor', [1 1 1 0.75], 'Margin', 1, 'EdgeColor', 'none');
+        end
     end
 end
 
-% 5. Apply Formatting (Condensed)
-set(gca, 'FontSize', textsize, 'XScale', 'log', 'YScale', 'log');
-ylabel('Geometric Factor (cm^2 sr)', 'FontSize', textsize);
-xlabel('Incident Energy (MeV)', 'FontSize', textsize);
-grid on;
+% 5. Apply Formatting
+set(gca, 'FontSize', textsize, 'XScale', 'log', 'YScale', 'log', 'Layer', 'top');
+ylh = ylabel('Geometric Factor (cm^2 sr)', 'FontSize', textsize);
+ylh.Units = 'normalized'; ylh.Position(1) = -0.075;
+grid on; ax = gca; ax.YMinorGrid = 'off';
+xtickangle(0);
+
+% Define line labels and target x-coordinates
+line_labels = {'D1 Trigger','D9 Trigger', 'Front Pen', 'Back Pen'};
 
 if parttype == 0
-    set(gca, 'XTick', [0,0.5,1,1.5,2,3,4,5,6,7,8,9,10]);
-    xlim([0.5, max_incident_energy]); ylim([10^-4, 10^0]);
-    xline([0.62, 5.71, 15.91, 30.89], '--', {'Be Penetration','D9 Penetration', 'W Penetration', 'W & Stack Penetration'}, ...
-        'LineWidth', 1.5, 'FontSize', 16, 'LabelOrientation', 'aligned');
+    set(gca, 'XTick', [0.5, 1, 2, 3, 5, 10]);
+    xlim([0.5, 10]); 
+    ylim([10^-4, 10^0]);
+    xlabel('Kinetic Energy (MeV)', 'FontSize', textsize);
+    line_x = [0.62, 5.12, 15.83, 37.41];
     title('Electron Energy Channels')
 elseif parttype == 1
-    set(gca, 'XTick', [0,10,20,30,40,50,60,80,100,120,140,160,200,300,400,500,600,800,1000]);
-    xlim([10, max_incident_energy]); ylim([10^-4, 10^1.2]);
-    xline([14.15, 52.29, 69.09, 99.64], '--', {'Be Penetration','D9 Triggering', 'W Penetration', 'W & Stack Penetration'}, ...
-        'LineWidth', 1.5, 'FontSize', 16, 'LabelOrientation', 'aligned');
+    set(gca, 'XTick', [10, 20, 30, 50, 100, 200, 300, 500, 1000,2000]);
+    xlim([10, 2000]);
+    %xlim([300, 400]);
+    ylim([10^-4, 10^2]);
+    xlabel('Kinetic Energy (MeV)', 'FontSize', textsize);
+    line_x = [14.15, 52.29, 87.64, 102.59];
     title('Proton Energy Channels')
+elseif parttype == 2
+    xlim([10, 2000]);
+    ylim([10^-3, 10^2]);
+    xlabel('Kinetic Energy (MeV/nuc)', 'FontSize', textsize);
+    line_x = [14.11, 52.02, 71.09, 106.585];
+    title('Helium Energy Channels')
 end
+
+% --- Draw dashed vertical lines WITHOUT built-in labels ---
+xline(line_x, '--', 'LineWidth', 1.5, 'Color', [0.2 0.2 0.2]);
+
+% --- Add custom rotated labels with semi-transparent white backgrounds ---
+yl = ylim;
+for k = 1:length(line_x)
+    text(line_x(k) * 1.01, yl(2), [' ' line_labels{k} ' '], ...
+        'Rotation', 90, ...
+        'FontSize', textsize-2, ...
+        'HorizontalAlignment', 'right', ...
+        'VerticalAlignment', 'top', ...
+        'BackgroundColor', [1 1 1 0.5], ...
+        'Margin', 1.6, ...
+        'EdgeColor', 'none');
+end
+set(gca, 'YTick', 10.^(-10:1:10));
 hold off;
 
-% --- BEGIN CUSTOM RIGHT-SIDE DUAL LEGEND ---
-% 1. Securely grab the main plot and force it to shrink to 70% width
-ax_main = gca;
-set(ax_main, 'Position', [0.05, 0.11, 0.75, 0.81]); 
-
-% 2. Create the legend axes in the newly opened space on the right
-% Starts at 0.78, leaving an 5% physical gap between the plot and the legend
-ax_leg = axes('Position', [0.76, 0.11, 0.21, 0.81], 'Visible', 'off');
-hold(ax_leg, 'on'); xlim(ax_leg, [0, 1]); ylim(ax_leg, [0, 1]);
-
-N_leg = length(channel_select);
-dy = min(0.03, 0.91 / max(1, N_leg - 1)); 
-y_rows = 0.93 - (0:(N_leg-1)) * dy;
-
-% Adjusted horizontal spacing to fit the newly sized legend box
-x_text = 0.50;        % The absolute center of the legend
-box_offset = 0.22;
-
-x_range = x_text - box_offset; 
-x_pen   = x_text + box_offset;
-
-% Draw Headers
-text(x_range, 0.98, 'Range', 'HorizontalAlignment', 'center', 'FontWeight', 'bold', 'FontSize', textsize-10);
-text(x_text, 0.98, 'Energy (MeV)', 'HorizontalAlignment', 'center', 'FontWeight', 'bold', 'FontSize', textsize-10);
-if back_bool
-    text(x_pen, 0.98, 'Penetrating', 'HorizontalAlignment', 'center', 'FontWeight', 'bold', 'FontSize', textsize-10); 
-end
-
-y_combined = []; 
-for i = 1:N_leg
-    idx = channel_select(i); 
+% 6. Custom Legend Positioning (Adjusted for physical publication proportions)
+if show_legend == true
+    % Force main plot to shrink to ~65% width to make room for legend
+    ax_main = gca;
+    set(ax_main, 'Position', [0.08, 0.18, 0.60, 0.73]); 
     
-    if idx <= size(geo_EC, 1)
-        plot(x_range, y_rows(i), 'sk', 'MarkerSize', 14, 'MarkerFaceColor', Effplotcolor(idx,:));
-        
-        fs = textsize - 4;
-        tl = text(x_text - 0.04, y_rows(i), EngLegend_low(idx), 'HorizontalAlignment', 'right', 'FontSize', fs);
-        tm = text(x_text, y_rows(i), '-', 'HorizontalAlignment', 'center', 'FontSize', fs);
-        tr = text(x_text + 0.04, y_rows(i), EngLegend_high(idx), 'HorizontalAlignment', 'left', 'FontSize', fs);
-            
-        % Dynamic font shrinker to protect boundaries
-        while (tl.Extent(1) < (x_range + 0.08) || (tr.Extent(1) + tr.Extent(3)) > (x_pen - 0.08)) && fs > 6
-            fs = fs - 0.5; set([tl, tm, tr], 'FontSize', fs); drawnow limitrate;
-        end
-    end
+    % Create the legend axes in the newly opened space on the right
+    ax_leg = axes('Position', [0.69, 0.18, 0.30, 0.73], 'Visible', 'off');
+    hold(ax_leg, 'on'); 
+    xlim(ax_leg, [0, 1]); ylim(ax_leg, [0, 1]);
     
+    N_leg = length(channel_select);
+    dy = min(0.08, 0.85 / max(1, N_leg - 1)); 
+    y_rows = 0.90 - (0:(N_leg-1)) * dy;
+    
+    x_text = 0.50;         % Absolute center of the legend
+    box_offset = 0.35;     % Pushes the squares to the far edges
+    x_range = x_text - box_offset; 
+    x_pen   = x_text + box_offset; 
+    
+    % Headers
+    text(x_range, 0.98, 'Range', 'HorizontalAlignment', 'center', 'FontWeight', 'bold', 'FontSize', textsize-4);
+    text(x_text, 0.98, 'Energy (MeV)', 'HorizontalAlignment', 'center', 'FontWeight', 'bold', 'FontSize', textsize-4);
     if back_bool
-        if idx <= 8
-            y_combined(end+1) = y_rows(i);
-        else
-            plot(x_pen, y_rows(i), 'sk', 'MarkerSize', 14, 'MarkerFaceColor', Effplotcolor_back(idx-7,:));
+        text(x_pen, 0.98, 'Penetrating', 'HorizontalAlignment', 'center', 'FontWeight', 'bold', 'FontSize', textsize-4);
+    end
+    
+    for i = 1:N_leg
+        idx = channel_select(i); 
+        if idx <= size(geo_EC, 1)
+            plot(x_range, y_rows(i), 'sk', 'MarkerSize', 10, 'MarkerFaceColor', Effplotcolor(idx, :));
+            
+            fs = textsize - 4; % Readable legend text size
+            offset = 0.05;     % Pull text tight to hyphen
+            
+            text(x_text - offset, y_rows(i), EngLegend_low(idx), 'HorizontalAlignment', 'right', 'FontSize', fs);
+            text(x_text, y_rows(i), '-', 'HorizontalAlignment', 'center', 'FontSize', fs);
+            text(x_text + offset, y_rows(i), EngLegend_high(idx), 'HorizontalAlignment', 'left', 'FontSize', fs);
+        end
+        
+        if back_bool
+            plot(x_pen, y_rows(i), 'sk', 'MarkerSize', 10, 'MarkerFaceColor', Effplotcolor_back(idx, :));
         end
     end
+else
+    % Standardized single-plot layout when legend is hidden
+    set(gca, 'Units', 'normalized', 'Position', [0.10, 0.18, 0.86, 0.73]);
 end
 
-if back_bool && ~isempty(y_combined)
-    plot(x_pen, mean(y_combined), 'sk', 'MarkerSize', 14, 'MarkerFaceColor', Effplotcolor_back(1,:));
-end
-% --- END CUSTOM RIGHT-SIDE DUAL LEGEND ---
-
-saveas(f3, append('Combined_Geometric_Factor_Whole_by_EC_', string(datetime("today")), addin, '.png'));
+% 7. High-Resolution Output
+plot_name = append('Combined_Geometric_Factor_by_EC_hadrotest', string(datetime("today")));
+print(gcf, [char(plot_name), '.png'], '-dpng', '-r300');
+exportgraphics(gcf, [char(plot_name), '.pdf'], 'ContentType', 'vector');
 
 %% Geometric Factor by Energy Channel (range particles)
-geo_EC(geo_EC==0) = 1e-31;
+geo_EC(geo_EC == 0) = 1e-31;
+
+% 0. Define Publication Typography & Physical Dimensions
+textsize = 14;              % 14 pt font will render at true 14 pt on paper
+fig_width_in  = 7.0;        % Full journal page width across 2 columns (inches)
+fig_height_in = 3.3;        % ~1/3.5 of an 11-inch page height (inches)
 
 % 1. Vectorized String Generation (Eliminates loops)
 EngLegend_low  = compose('%.3f', energy_channels(:, 1))';
@@ -576,208 +652,358 @@ EngLegend_high = compose('%.3f', energy_channels(:, 2))';
 Effplotcolor = plasma(size(geo_EC, 1)); 
 
 % 3. Default Channel Selection & Setup Figure
-if ~exist('channel_select','var'), channel_select = 1:size(geo_EC, 1); end
+%channel_select = [];
+channel_select = [5, 10, 15, 20, 25, 30, 35, 40];
+label_channels = ~isempty(channel_select); 
 
-f4 = figure('Position', [0 0 2800 1080]); hold on;
+if isempty(channel_select)
+    channel_select = 1:size(geo_EC, 1); 
+end
+
+% Create figure sized physically in inches for publication
+f4 = figure('Units', 'inches', ...
+            'Position', [1, 1, fig_width_in, fig_height_in], ...
+            'PaperUnits', 'inches', ...
+            'PaperPosition', [0, 0, fig_width_in, fig_height_in], ...
+            'PaperPositionMode', 'auto'); 
+hold on;
 
 % 4. Consolidated Data Plotting
 for i = 1:size(geo_EC, 1)
     is_sel = ismember(i, channel_select);
-    c_prim = [0.7 0.7 0.7 0.7]; if is_sel, c_prim = Effplotcolor(i,:); end
+    c_prim = [0.7 0.7 0.7 0.7]; 
     
-    plot(energy_midpoints, geo_EC(i,:), 'Color', c_prim, 'LineWidth', 2);
+    if is_sel 
+        c_prim = Effplotcolor(i, :); 
+    end
+    
+    % Plot the line
+    plot(energy_midpoints, geo_EC(i, :), 'Color', c_prim, 'LineWidth', 1.5);
+    
+    % --- Label Selected Channels with Collision Protection ---
+    if is_sel && label_channels
+        if parttype == 1 || parttype == 2
+            if i == 20
+                [max_geo, max_idx] = max(geo_EC(i, energy_midpoints < 69.09));
+                peak_energy = energy_midpoints(max_idx);
+                place_x = peak_energy - 3;
+                place_y = max_geo * 1.4;
+            elseif i == 25
+                [max_geo, max_idx] = max(geo_EC(i, :));
+                peak_energy = energy_midpoints(max_idx);
+                place_x = peak_energy + 28;
+                place_y = max_geo * 0.04;
+            else
+                [max_geo, max_idx] = max(geo_EC(i, energy_midpoints < 69.09));
+                peak_energy = energy_midpoints(max_idx);
+                place_x = peak_energy;
+                place_y = max_geo * 1.4;
+            end
+        else
+            [max_geo, max_idx] = max(geo_EC(i, :));
+            peak_energy = energy_midpoints(max_idx);
+            place_x = peak_energy;
+            place_y = max_geo * 1.5;
+        end
+        
+        % BackgroundColor box prevents overlapping curves from masking labels
+        text(place_x, place_y, num2str(i), ...
+            'Color', c_prim, ...
+            'FontSize', textsize, ...
+            'FontWeight', 'bold', ...
+            'HorizontalAlignment', 'center', ...
+            'VerticalAlignment', 'bottom', ...
+            'BackgroundColor', [1 1 1 0.75], ...
+            'Margin', 1, ...
+            'EdgeColor', 'none');
+    end
+    %xline(E_max(i), '--', 'LineWidth', 1.5, 'Color', c_prim);
 end
 
-% 5. Apply Formatting (Condensed)
-set(gca, 'FontSize', textsize, 'XScale', 'log', 'YScale', 'log');
-ylabel('Geometric Factor (cm^2 sr)', 'FontSize', textsize);
-xlabel('Incident Energy (MeV)', 'FontSize', textsize);
-grid on;
+% 5. Apply Formatting
+set(gca, 'FontSize', textsize, 'XScale', 'log', 'YScale', 'log', 'Layer', 'top');
+ylh = ylabel('Geometric Factor (cm^2 sr)', 'FontSize', textsize);
+ylh.Units = 'normalized'; ylh.Position(1) = -0.075;
+grid on; ax = gca; ax.YMinorGrid = 'off';
+
+% Define line labels and target x-coordinates
+line_labels = {'D1 Trigger','D9 Trigger', 'Front Pen', 'Back Pen'};
 
 if parttype == 0
-    set(gca, 'XTick', [0,0.5,1,1.5,2,3,4,5,6,7,8,9,10]);
-    xlim([0.5, 10]); ylim([10^-4, 10^0]);
-    xline([0.62, 5.71, 15.91, 30.89], '--', {'Be Penetration','D9 Penetration', 'W Penetration', 'W & Stack Penetration'}, ...
-        'LineWidth', 1.5, 'FontSize', 16, 'LabelOrientation', 'aligned');
+    set(gca, 'XTick', [0, 0.5, 1, 1.5, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    xlim([0.5, 3]); 
+    ylim([10^-4, 10^0]);
+    xlabel('Kinetic Energy (MeV)', 'FontSize', textsize);
+    line_x = [0.62, 5.12, 15.83, 37.41];
+    title('Electron Energy Channels')
+
 elseif parttype == 1
-    set(gca, 'XTick', [0,10,20,30,40,50,60,80,100,120,140,160,200,300,400,500,600,800,1000]);
-    xlim([10, max_incident_energy]); ylim([10^-4, 10^1.2]);
-    xline([14.15, 52.29, 69.09, 99.64], '--', {'Be Penetration','D9 Triggering', 'W Penetration', 'W & Stack Penetration'}, ...
-        'LineWidth', 1.5, 'FontSize', 16, 'LabelOrientation', 'aligned');
+    set(gca, 'XTick', [10, 20, 30, 50, 100, 200, 300, 500, 1000]);
+    xlim([10, 1000]);
+    ylim([10^-4, 10^2]);
+    xlabel('Kinetic Energy (MeV)', 'FontSize', textsize);
+    line_x = [14.15,52.29,68.09,102.59];
+    title('Range Proton Energy Channels')
+
+elseif parttype == 2
+    xlim([10, 2000]);
+    ylim([10^-3, 10^2]);
+    xlabel('Kinetic Energy (MeV/nuc)', 'FontSize', textsize);
+    line_x = [14.11, 52.02, 71.09, 106.585];
+    title('Range Helium Energy Channels')
 end
+xtickangle(0);
+
+% --- 1. Draw dashed vertical lines WITHOUT built-in labels ---
+xline(line_x, '--', 'LineWidth', 1.5, 'Color', [0.2 0.2 0.2]);
+
+% --- 2. Add custom rotated labels with semi-transparent white backgrounds ---
+yl = ylim;
+for k = 1:length(line_x)
+    % Adding trailing spaces ('  ') provides clean padding below the top plot border
+    text(line_x(k) * 1.01, yl(2), [' ' line_labels{k} ' '], ...
+        'Rotation', 90, ...
+        'FontSize', textsize-2, ...
+        'HorizontalAlignment', 'right', ...
+        'VerticalAlignment', 'top', ...
+        'BackgroundColor', [1 1 1 0.5], ...
+        'Margin', 1.5, ...
+        'EdgeColor', 'none');
+end
+set(gca, 'YTick', 10.^(-10:1:10));
 hold off;
 
-% --- BEGIN CUSTOM RIGHT-SIDE SINGLE LEGEND ---
-% 1. Securely grab the main plot and force it to shrink
-ax_main = gca;
-set(ax_main, 'Position', [0.05, 0.11, 0.75, 0.81]); 
-
-% 2. Create the legend axes
-ax_leg = axes('Position', [0.8, 0.11, 0.21, 0.81], 'Visible', 'off');
-hold(ax_leg, 'on'); xlim(ax_leg, [0, 1]); ylim(ax_leg, [0, 1]);
-
-N_leg = length(channel_select);
-dy = min(0.03, 0.91 / max(1, N_leg - 1)); 
-y_rows = 0.93 - (0:(N_leg-1)) * dy;
-
-% Adjusted horizontal spacing for a 2-column layout
-x_text = 0.5;
-box_offset = 0.30;
-x_rng = x_text - box_offset; 
-
-% Draw Headers
-text(x_rng, 0.98, 'Range', 'HorizontalAlignment', 'center', 'FontWeight', 'bold', 'FontSize', textsize-6);
-text(x_text, 0.98, 'Energy (MeV)', 'HorizontalAlignment', 'center', 'FontWeight', 'bold', 'FontSize', textsize-6);
-
-for i = 1:N_leg
-    idx = channel_select(i); 
+% 6. Custom Legend Positioning (Adjusted for publication proportions)
+if show_legend == true
+    ax_main = gca;
+    set(ax_main, 'Position', [0.10, 0.18, 0.65, 0.78]); 
     
-    plot(x_rng, y_rows(i), 'sk', 'MarkerSize', 14, 'MarkerFaceColor', Effplotcolor(idx,:));
+    ax_leg = axes('Position', [0.77, 0.18, 0.22, 0.78], 'Visible', 'off');
+    hold(ax_leg, 'on'); 
+    xlim(ax_leg, [0, 1]); 
+    ylim(ax_leg, [0, 1]);
     
-    fs = textsize - 12;
-    tl = text(x_text - 0.04, y_rows(i), EngLegend_low(idx), 'HorizontalAlignment', 'right', 'FontSize', fs);
-    tm = text(x_text, y_rows(i), '-', 'HorizontalAlignment', 'center', 'FontSize', fs);
-    tr = text(x_text + 0.04, y_rows(i), EngLegend_high(idx), 'HorizontalAlignment', 'left', 'FontSize', fs);
+    N_leg = length(channel_select);
+    dy = min(0.08, 0.85 / max(1, N_leg - 1)); 
+    y_rows = 0.90 - (0:(N_leg-1)) * dy;
+    
+    x_text = 0.55;
+    box_offset = 0.35;
+    x_rng = x_text - box_offset; 
+    
+    text(x_rng, 0.98, 'Range', 'HorizontalAlignment', 'center', 'FontWeight', 'bold', 'FontSize', textsize);
+    text(x_text, 0.98, 'Energy (MeV)', 'HorizontalAlignment', 'center', 'FontWeight', 'bold', 'FontSize', textsize);
+    
+    for i = 1:N_leg
+        idx = channel_select(i); 
+        plot(x_rng, y_rows(i), 'sk', 'MarkerSize', 10, 'MarkerFaceColor', Effplotcolor(idx, :));
         
-    % Dynamic font shrinker to protect boundaries
-    left_limit = x_rng + 0.07;
-    right_limit = 0.95; % No right box, so limit is just the edge of the legend space
-    
-    while (tl.Extent(1) < left_limit || (tr.Extent(1) + tr.Extent(3)) > right_limit) && fs > 6
-        fs = fs - 0.5; set([tl, tm, tr], 'FontSize', fs); drawnow limitrate;
+        fs = textsize - 3; % Fixed: 11 pt readable legend text
+        tl = text(x_text - 0.04, y_rows(i), EngLegend_low(idx), 'HorizontalAlignment', 'right', 'FontSize', fs);
+        tm = text(x_text, y_rows(i), '-', 'HorizontalAlignment', 'center', 'FontSize', fs);
+        tr = text(x_text + 0.04, y_rows(i), EngLegend_high(idx), 'HorizontalAlignment', 'left', 'FontSize', fs);
     end
+else
+    % Standardized single-plot layout when legend is hidden
+    set(gca, 'Units', 'normalized', 'Position', [0.10, 0.18, 0.86, 0.78]);
 end
-% --- END CUSTOM RIGHT-SIDE SINGLE LEGEND ---
 
-% Save the figure
-effsave_rng = append('Range_Geometric_Factor_Whole_by_EC_', string(datetime("today")), addin, '.png');
-saveas(f4, effsave_rng);
+% 7. High-Resolution Output
+%plot_name = 'electron_FS_31000_v2_publishable';
+%plot_name = 'proton_FS_17000_v6_rng_publishable';
+plot_name = 'proton_FS_hadrotest_range_18-Aug-2026';
+
+% Using bracket concatenation to join the strings
+print(gcf, [plot_name, '.png'], '-dpng', '-r300');
+exportgraphics(gcf, [plot_name, '.pdf'], 'ContentType', 'vector');
 
 %% Geometric Factor by Energy Channel (penetrating particles)
 if parttype == 1
-    geo_back_EC_combined(geo_back_EC_combined==0) = 1e-31;
+    geo_back_EC(geo_back_EC == 0) = 1e-31;
+    
+    % 0. Define Publication Typography & Physical Dimensions
+    textsize = 14;              % 14 pt font will render at true 14 pt on paper
+    fig_width_in  = 7.0;        % Full journal page width across 2 columns (inches)
+    fig_height_in = 3.3;        % ~1/3.5 of an 11-inch page height (inches)
     
     % 1. Vectorized String Generation (Eliminates loops)
-    % Uses the COMBINED energy channels matrix directly
-    EngLegend_back_low  = compose('%.3f', energy_channels_combined(:, 1))';
-    EngLegend_back_high = compose('%.3f', energy_channels_combined(:, 2))';
+    EngLegend_back_low  = compose('%.3f', energy_channels(:, 1))';
+    EngLegend_back_high = compose('%.3f', energy_channels(:, 2))';
     
     % 2. Create Plot Colors (Shifted to match the combined channels)
-    full_winter = winter(size(energy_channels, 1)); 
-    Effplotcolor_back = full_winter((end - size(geo_back_EC_combined, 1) + 1):end, :);
+    Effplotcolor_back = winter(size(energy_channels, 1)); 
     
-    % 3. Map Original Channel Selections to the Combined Matrix Indices
-    if exist('channel_select','var')
-        back_select = [];
-        for c = channel_select
-            if c <= 8
-                back_select(end+1) = 1;
+    % 3. Default Channel Selection & Setup Figure
+    back_select = [5, 10, 15, 20, 25, 30, 35, 40];
+    label_channels = ~isempty(back_select); 
+    
+    if isempty(back_select)
+        back_select = 1:size(geo_back_EC, 1); 
+    end
+    
+    % Create figure sized physically in inches for publication
+    f5 = figure('Units', 'inches', ...
+                'Position', [1, 1, fig_width_in, fig_height_in], ...
+                'PaperUnits', 'inches', ...
+                'PaperPosition', [0, 0, fig_width_in, fig_height_in], ...
+                'PaperPositionMode', 'auto'); 
+    hold on;
+    
+% 4. Consolidated Data Plotting
+for i = 1:size(geo_back_EC, 1)
+    is_sel = ismember(i, back_select);
+    c_prim = [0.7 0.7 0.7 0.7]; 
+    
+    if is_sel 
+        c_prim = Effplotcolor_back(i, :); 
+    end
+    
+    % Plot the line
+    plot(energy_midpoints, geo_back_EC(i, :), 'Color', c_prim, 'LineWidth', 1.5);
+    
+    % --- Label Selected Channels with Collision Protection ---
+    if is_sel && label_channels
+        if parttype == 1 || parttype == 2
+            if i == 25
+                [max_geo, max_idx] = max(geo_back_EC(i, :));
+                peak_energy = energy_midpoints(max_idx);
+                place_x = peak_energy * 0.98;
+                place_y = max_geo * 0.08;
             else
-                back_select(end+1) = c - 7;
+                [max_geo, max_idx] = max(geo_back_EC(i, :));
+                peak_energy = energy_midpoints(max_idx);
+                place_x = peak_energy;
+                place_y = max_geo * 1.4;
             end
+        else
+            [max_geo, max_idx] = max(geo_back_EC(i, :));
+            peak_energy = energy_midpoints(max_idx);
+            place_x = peak_energy;
+            place_y = max_geo * 1.5;
         end
-        back_select = unique(back_select);
-    else
-        back_select = 1:size(geo_back_EC_combined, 1);
-    end
-    
-    % Setup Figure
-    f5 = figure('Position', [0 0 2800 1080]); hold on;
-    
-    % 4. Consolidated Data Plotting using 1-to-1 mapped indices
-    for back_idx = 1:size(geo_back_EC_combined, 1)
-        is_sel = ismember(back_idx, back_select);
-        c_back = [0.7 0.7 0.7 0.7]; if is_sel, c_back = Effplotcolor_back(back_idx, :); end
         
-        plot(energy_midpoints, geo_back_EC_combined(back_idx,:), 'Color', c_back, 'LineWidth', 2);
+        % BackgroundColor box prevents overlapping curves from masking labels
+        text(place_x, place_y, num2str(i), ...
+            'Color', c_prim, ...
+            'FontSize', textsize, ...
+            'FontWeight', 'bold', ...
+            'HorizontalAlignment', 'center', ...
+            'VerticalAlignment', 'bottom', ...
+            'BackgroundColor', [1 1 1 0.75], ...
+            'Margin', 1, ...
+            'EdgeColor', 'none');
     end
+end
     
-    % 5. Apply Formatting (Condensed)
-    set(gca, 'FontSize', textsize, 'XScale', 'log', 'YScale', 'log');
-    ylabel('Geometric Factor (cm^2 sr)', 'FontSize', textsize);
-    xlabel('Incident Energy (MeV)', 'FontSize', textsize);
-    grid on;
+    
+    % 5. Apply Formatting
+    set(gca, 'FontSize', textsize, 'XScale', 'log', 'YScale', 'log', 'Layer', 'top');
+    ylh = ylabel('Geometric Factor (cm^2 sr)', 'FontSize', textsize);
+    ylh.Units = 'normalized'; ylh.Position(1) = -0.075;
+    grid on; ax = gca; ax.YMinorGrid = 'off';
+    
+    % Define line labels and target x-coordinates
+    line_labels = {'D1 Trigger','D9 Trigger', 'Front Pen', 'Back Pen'};
     
     if parttype == 0
-        set(gca, 'XTick', [0,0.5,1,1.5,2,3,4,5,6,7,8,9,10]);
-        xlim([0.5, max_incident_energy]); ylim([10^-4, 10^0]);
-        xline([0.62, 5.71, 15.91, 30.89], '--', {'Be Penetration','D9 Penetration', 'W Penetration', 'W & Stack Penetration'}, ...
-            'LineWidth', 1.5, 'FontSize', 16, 'LabelOrientation', 'aligned');
+        set(gca, 'XTick', [0, 0.5, 1, 1.5, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+        xlim([0.5, max_incident_energy]); 
+        ylim([10^-4, 10^0]);
+        xlabel('Kinetic Energy (MeV)', 'FontSize', textsize);
+        line_x = [0.62, 5.12, 15.83, 37.41];
+        title('Electron Energy Channels')
+    
     elseif parttype == 1
-        set(gca, 'XTick', [0,10,20,30,40,50,60,80,100,120,140,160,200,300,400,500,600,800,1000]);
-        xlim([10, max_incident_energy]); ylim([10^-4, 10^1.2]);
-        xline([14.15, 52.29, 69.09, 99.64], '--', {'Be Penetration','D9 Triggering', 'W Penetration', 'W & Stack Penetration'}, ...
-            'LineWidth', 1.5, 'FontSize', 16, 'LabelOrientation', 'aligned');
+        set(gca, 'XTick', [10, 20, 30, 50, 100, 200, 300, 500, 1000]);
+        xlim([40, 2000]);
+        ylim([10^-4, 10^2]);
+        xlabel('Kinetic Energy (MeV)', 'FontSize', textsize);
+        line_x = [14.15,52.29,68.09,102.59];
+        title('Penetrating Proton Energy Channels')
+    
+    elseif parttype == 2
+        xlim([10, 2000]);
+        ylim([10^-3, 10^2]);
+        xlabel('Kinetic Energy (MeV/nuc)', 'FontSize', textsize);
+        line_x = [14.11, 52.02, 71.09, 106.585];
+        title('Penetrating Helium Energy Channels')
     end
+    xtickangle(0);
+        
+    % --- 1. Draw dashed vertical lines WITHOUT built-in labels ---
+    xline(line_x, '--', 'LineWidth', 1.5, 'Color', [0.2 0.2 0.2]);
+    
+    % --- 2. Add custom rotated labels with semi-transparent white backgrounds ---
+    yl = ylim;
+    for k = 1:length(line_x)
+        % Adding trailing spaces ('  ') provides clean padding below the top plot border
+        text(line_x(k) * 0.99, yl(2), [' ' line_labels{k} ' '], ...
+            'Rotation', 90, ...
+            'FontSize', textsize-2, ...
+            'HorizontalAlignment', 'right', ...
+            'VerticalAlignment', 'bottom', ...
+            'BackgroundColor', [1 1 1 0.5], ...
+            'Margin', 1.5, ...
+            'EdgeColor', 'none');
+    end
+    set(gca, 'YTick', 10.^(-10:1:10));
     hold off;
     
-    % --- BEGIN CUSTOM RIGHT-SIDE SINGLE LEGEND ---
-    % 1. Securely grab the main plot and force it to shrink
-    ax_main = gca;
-    set(ax_main, 'Position', [0.05, 0.11, 0.70, 0.81]); 
-    
-    % 2. Create the legend axes
-    ax_leg = axes('Position', [0.78, 0.11, 0.21, 0.81], 'Visible', 'off');
-    hold(ax_leg, 'on'); xlim(ax_leg, [0, 1]); ylim(ax_leg, [0, 1]);
-    
-    N_leg = length(back_select);
-    dy = min(0.03, 0.91 / max(1, N_leg - 1)); 
-    y_rows = 0.93 - (0:(N_leg-1)) * dy;
-    
-    % Adjusted horizontal spacing for a 2-column layout
-    x_text = 0.35;        % Shifted left to balance the missing Range column
-    box_offset = 0.30;    % Distance between the Energy text and Penetrating box
-    x_pen = x_text + box_offset; 
-    
-    % Draw Headers
-    text(x_text, 0.98, 'Energy (MeV)', 'HorizontalAlignment', 'center', 'FontWeight', 'bold', 'FontSize', textsize-6);
-    text(x_pen, 0.98, 'Penetrating', 'HorizontalAlignment', 'center', 'FontWeight', 'bold', 'FontSize', textsize-6);
-    
-    for i = 1:N_leg
-        idx = back_select(i); 
+    % 6. Custom Legend Positioning (Adjusted for publication proportions)
+    if show_legend == true
+        ax_main = gca;
+        set(ax_main, 'Position', [0.10, 0.18, 0.65, 0.78]); 
         
-        plot(x_pen, y_rows(i), 'sk', 'MarkerSize', 14, 'MarkerFaceColor', Effplotcolor_back(idx,:));
+        ax_leg = axes('Position', [0.77, 0.18, 0.22, 0.78], 'Visible', 'off');
+        hold(ax_leg, 'on'); 
+        xlim(ax_leg, [0, 1]); 
+        ylim(ax_leg, [0, 1]);
         
-        fs = textsize - 12;
-        tl = text(x_text - 0.04, y_rows(i), EngLegend_back_low(idx), 'HorizontalAlignment', 'right', 'FontSize', fs);
-        tm = text(x_text, y_rows(i), '-', 'HorizontalAlignment', 'center', 'FontSize', fs);
-        tr = text(x_text + 0.04, y_rows(i), EngLegend_back_high(idx), 'HorizontalAlignment', 'left', 'FontSize', fs);
+        N_leg = length(back_select);
+        dy = min(0.08, 0.85 / max(1, N_leg - 1)); 
+        y_rows = 0.90 - (0:(N_leg-1)) * dy;
+        
+        x_text = 0.55;
+        box_offset = 0.35;
+        x_rng = x_text - box_offset; 
+        
+        text(x_rng, 0.98, 'Penetrating', 'HorizontalAlignment', 'center', 'FontWeight', 'bold', 'FontSize', textsize);
+        text(x_text, 0.98, 'Energy (MeV)', 'HorizontalAlignment', 'center', 'FontWeight', 'bold', 'FontSize', textsize);
+        
+        for i = 1:N_leg
+            idx = back_select(i); 
+            plot(x_rng, y_rows(i), 'sk', 'MarkerSize', 10, 'MarkerFaceColor', Effplotcolor_back(idx, :));
             
-        % Dynamic font shrinker to protect boundaries
-        left_limit = 0.05; % Protect text from falling off the left edge of the legend space
-        right_limit = x_pen - 0.07;
-        
-        while (tl.Extent(1) < left_limit || (tr.Extent(1) + tr.Extent(3)) > right_limit) && fs > 6
-            fs = fs - 0.5; set([tl, tm, tr], 'FontSize', fs); drawnow limitrate;
+            fs = textsize - 3; % Fixed: 11 pt readable legend text
+            tl = text(x_text - 0.04, y_rows(i), EngLegend_back_low(idx), 'HorizontalAlignment', 'right', 'FontSize', fs);
+            tm = text(x_text, y_rows(i), '-', 'HorizontalAlignment', 'center', 'FontSize', fs);
+            tr = text(x_text + 0.04, y_rows(i), EngLegend_back_high(idx), 'HorizontalAlignment', 'left', 'FontSize', fs);
         end
+    else
+        % Standardized single-plot layout when legend is hidden
+        set(gca, 'Units', 'normalized', 'Position', [0.10, 0.18, 0.86, 0.78]);
     end
-    % --- END CUSTOM RIGHT-SIDE SINGLE LEGEND ---
     
-    % Save the figure
-    effsave_back = append('Penetrating_Geometric_Factor_Whole_by_EC_', string(datetime("today")), addin, '.png');
-    saveas(f5, effsave_back);
+    % 7. High-Resolution Output
+    plot_name = 'proton_FS_hadrotest_pen_18-Aug-2026';
+    
+    % Using bracket concatenation to join the strings
+    print(gcf, [plot_name, '.png'], '-dpng', '-r300');
+    exportgraphics(gcf, [plot_name, '.pdf'], 'ContentType', 'vector');
 end
 
 %% Save Total Geometric Factor and Geofactor by EC
 %
 % Save total geometric factor for range particles
-filename = sprintf('electron_FS_31000_v2_range_totalGF.txt');
+filename = sprintf('electron_FS_31000_v2_totalGF.txt');
 fileID = fopen(filename, 'w');
 for i = 1:length(energy_midpoints)
 fprintf(fileID,'%.6f %.6f\n',energy_midpoints(i),total_geo(i));
 end
 fclose(fileID);
 
-% Save total geometric factor for penetrating particles
-filename = sprintf('electron_FS_31000_v2_pen_totalGF.txt');
-fileID = fopen(filename, 'w');
-for i = 1:length(energy_midpoints)
-fprintf(fileID,'%.6f %.6f\n',energy_midpoints(i),back_total_geo(i));
-end
-fclose(fileID);
-
 % Save geometric factor by energy channel for range particles
-filename = sprintf('electron_FS_31000_v2_range_GFbyEC.txt');
+filename = sprintf('electron_FS_31000_v2_GFbyEC.txt');
 fileID = fopen(filename, 'w');
 % 1. Determine the variable number of rows in geo_EC
 num_geo_rows = size(geo_EC, 1);
@@ -791,20 +1017,30 @@ for i = 1:length(energy_midpoints)
 end
 fclose(fileID);
 
-% Save geometric factor by energy channel for penetrating particles
-filename = sprintf('electron_FS_31000_v2_pen_GFbyEC.txt');
-fileID = fopen(filename, 'w');
-% 1. Determine the variable number of rows in geo_EC
-num_geo_rows = size(geo_back_EC, 1);
-% 2. Dynamically build the format string
-% This creates one '%.6f' for the energy, plus ' %.6f' for every row in geo_EC
-formatSpec = ['%.6f', repmat(' %.6f', 1, num_geo_rows), '\n'];
-% 3. Execute the print loop
-for i = 1:length(energy_midpoints)
-    % geo_EC(:,i)' is transposed to ensure it feeds into fprintf as a row vector
-    fprintf(fileID, formatSpec, energy_midpoints(i), geo_back_EC(:,i)');
+if parttype == 1 || parttype == 2
+    % Save total geometric factor for penetrating particles
+    filename = sprintf('proton_FS_17000_v6comb_pen_totalGF.txt');
+    fileID = fopen(filename, 'w');
+    for i = 1:length(energy_midpoints)
+    fprintf(fileID,'%.6f %.6f\n',energy_midpoints(i),back_total_geo(i));
+    end
+    fclose(fileID);
+    
+    % Save geometric factor by energy channel for penetrating particles
+    filename = sprintf('proton_FS_17000_v6comb_pen_GFbyEC.txt');
+    fileID = fopen(filename, 'w');
+    % 1. Determine the variable number of rows in geo_EC
+    num_geo_rows = size(geo_back_EC, 1);
+    % 2. Dynamically build the format string
+    % This creates one '%.6f' for the energy, plus ' %.6f' for every row in geo_EC
+    formatSpec = ['%.6f', repmat(' %.6f', 1, num_geo_rows), '\n'];
+    % 3. Execute the print loop
+    for i = 1:length(energy_midpoints)
+        % geo_EC(:,i)' is transposed to ensure it feeds into fprintf as a row vector
+        fprintf(fileID, formatSpec, energy_midpoints(i), geo_back_EC(:,i)');
+    end
+    fclose(fileID);
 end
-fclose(fileID);
 %
 
 
@@ -835,7 +1071,7 @@ fclose(fileID);
 
                 [M_energy_bin,energy_edges_temp,M_energy_bin_indicies] = histcounts([M_energy_beam, M_non_energy_beam],energy_edges);
                     
-                if sim_type == 0
+                if sim_type == 1
                     % Scales up simulated particles to the total number of particles
                     M_energy_bin = 2 .* M_energy_bin / (1 - cosd(source_angle));
                     

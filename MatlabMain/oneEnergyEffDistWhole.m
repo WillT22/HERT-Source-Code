@@ -1,6 +1,6 @@
 function [hit_deposited_energy, hit_energy_channels, hit_detectors, energy_beam, run_number, beam_number, ...
     back_deposited_energy, back_energy_channels, back_detectors, back_energy_beam, non_energy_beam]...
-    = oneEnergyEffDistWhole(filename, inputfolder, energy_channels, detector_threshold, back_threshold)
+    = oneEnergyEffDistWhole(filename, inputfolder, energy_channels, nucleons, detector_threshold, back_threshold)
 % Author: Yinbo Chen
 % Date: 6/15/2021
 % Modified by: Skyler Krantz, Will Teague
@@ -19,10 +19,10 @@ Einc_data = textscan(fide, '%f', 'Delimiter','','HeaderLines',1);
 fclose(fide);
 
 NumEnergyDeposit = NumEnergyDeposit{1, 1};
-energy_beam = deposit_data{1}';
-Detector_Energy = cell2mat(deposit_data(2:end));
+energy_beam = deposit_data{1}'./nucleons;
+Detector_Energy = cell2mat(deposit_data(2:end))./nucleons;
 NumNoEnergy = NumNoEnergy{1, 1};
-non_energy_beam = Einc_data{1}';
+non_energy_beam = Einc_data{1}'./nucleons;
 
 if NumNoEnergy + NumEnergyDeposit ~= beam_number
     error('ERROR IN THE DATA FILE!');
