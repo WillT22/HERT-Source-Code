@@ -12,10 +12,10 @@
 /run/initialize
 
 ### Variable Initialization ###
-/control/alias particleType proton	    	# Assign particle type
+/control/alias particleType He	    	# Assign particle type
 #/control/alias energyValue 5			# Assign energyValue (for descrete energy run)
-/control/alias energyMin 300			# Assign energy minimum (0 MeV for electron, 10MeV for proton)
-/control/alias energyMax 400			# Assign energy maximum (8MeV for electron, 80MeV for proton)
+/control/alias energyMin 40			# Assign energy minimum (0 MeV for electron, 10MeV for proton)
+/control/alias energyMax 4000			# Assign energy maximum (8MeV for electron, 80MeV for proton)
 /control/alias particleCount 1000000	    	# Assign particleCount (1000000)
 #/control/alias runNumber 10 			# Assign a run number for randomized runs
 #/control/alias E0 20
@@ -24,11 +24,10 @@
 # Descretized energy file name
 #/random/resetEngineFrom ./Results/seeds/HERT_CADoutput_{particleType}_Ene_{energyValue}_{particleCount}_seed.rndm
 # Randomized energy file name
-/random/resetEngineFrom ../../proton_seeds/HERT_CADoutput_{particleType}_{particleCount}_Run{runNumber}_seed.rndm
+/random/resetEngineFrom ../../{particleType}_seeds/HERT_CADoutput_{particleType}_{particleCount}_Run{runNumber}_seed.rndm
 
 ### GPS Initialization ###
-/gps/particle proton
-
+/gps/particle alpha # e- or proton or alpha
 # Boresight Particle Firing #
 #/gps/direction 0 0 10 mm
 #/gps/position 0 0 -10 mm
@@ -83,9 +82,9 @@
 #/control/alias seedFileName HERT_CADoutput_{particleType}_{particleCount}_{E0}_seed
 
 /control/shell mv EnergyDepositResult.txt {outputFileName}.txt
-/control/shell mv {outputFileName}.txt ../../FS_Results
+/control/shell mv {outputFileName}.txt ../../He_Results
 
 /control/shell mv currentRun.rndm {seedFileName}.rndm
-/control/shell mv {seedFileName}.rndm ../../proton_seeds
+/control/shell mv {seedFileName}.rndm ../../{particleType}_seeds
 
 exit
