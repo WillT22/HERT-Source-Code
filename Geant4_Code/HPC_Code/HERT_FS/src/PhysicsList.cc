@@ -80,3 +80,20 @@ void PhysicsList::SetCuts()
     // Retrieve verbose level
     SetVerboseLevel(temp);  
 }
+
+void PhysicsList::AddPhysicsList(const G4String& name)
+{
+   if (name == "G4standard_exp") {
+    delete emPhysicsList;
+    emPhysicsList = new G4EmStandardPhysics_option2();
+
+  } else if (name == "G4standard_fast") {
+    delete emPhysicsList;
+    emPhysicsList = new G4EmStandardPhysics_option1();
+  }  
+}
+
+void PhysicsList::SetStandardList(G4bool flagHP, G4bool glauber)
+{
+    // Left empty as per your original file, initialization is now handled in the constructor
+}
