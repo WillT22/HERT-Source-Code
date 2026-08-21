@@ -34,34 +34,64 @@ bin_width = diff(energy_edges);
 %energy_channels = readmatrix('C:\Users\William Teague\Box\HERT_Box\Matlab Main\Result\channel_select\electron_channels_v1.txt');
 
 %% Creating Test Fluxes %%
-%
-% Calculating Flux from Main1 %
-%flux = M_energy_bin/(4*pi^2*r_source^2)./bin_width;
+% --- Select Flux Model Here ---
+% Options: 'Main1', 'Linear', 'Exponential', 'BOT1', 'BOT2', 'Power Law', 'Gaussian'
+flux_model = 'Power Law'; 
+rng(42);
+%rng('shuffle');
 
-% Linear %
-%flux = ones(1,bins)*10^3;
+% --- Flux Calculation Tree ---
+switch flux_model  
+    case 'Main1'
+        % Calculating Flux from Main1
+        flux = M_energy_bin ./ (4*pi^2*r_source^2) ./ bin_width;
+        sigma_m = 1500;
+        delta = 50;      
+    case 'Linear'
+        flux = ones(1, bins) * 10^3;
+        sigma_m = 2000;
+        delta = 50;      
+    case 'Exponential'
+        % Vary coefficient from 0.2 to 2
+        coeff = 1; 
+        flux = 10^5 * exp(-(energy_midpoints) / coeff);
+        sigma_m = 2000;
+        delta = 50;    
+    case 'BOT1'
+        % BOT/Inverse Option 1
+        flux = (1/0.01) * exp(log(energy_midpoints.^-0.69)) + ...
+               (1/0.001) .* exp(-(log(energy_midpoints) - log(2.365)).^2 ./ (2*0.14));
+        sigma_m = 2000;
+        delta = 6;         
+    case 'BOT2'
+        % BOT/Inverse Option 2
+        flux = (1/0.001) * exp(log(energy_midpoints.^-1.2)) + ...
+               (1/0.001) .* exp(-(log(energy_midpoints) - log(4)).^2 ./ (2*0.08));
+        sigma_m = 2000;
+        delta = 6;     
+    case 'Power Law'
+        % Power Law: alpha can be between 2 and 6
+        % Note: use j0=10^2 and alpha=3.14 or j0=10^1 and alpha=4.73 from Hong's paper
+        j0 = 10^3;
+        alpha = 4;
+        flux = j0 .* energy_midpoints.^-alpha;
+        sigma_m = 2000;
+        delta = 40;        
+    case 'Gaussian'
+        flux = (1/0.000001) .* exp(-(log(energy_midpoints) - log(2)).^2 ./ (2*0.004));
+        sigma_m = 2000;
+        delta = 50;    
+    otherwise
+        error('Invalid flux model selected. Check your spelling in the flux_model variable.');
+end
 
-% Exponential % Vary coefficient from 0.2 to 2
-%flux = 10^4.6 * exp(-(energy_midpoints)/0.2);
-
-% BOT/Inverse %
-%flux = 1/0.01 * exp(log(energy_midpoints.^-0.69))+ 1/0.001 .* exp(-(log(energy_midpoints)-log(2.365)).^2./(2*0.14));
-%flux = 1/0.001 * exp(log(energy_midpoints.^-1.2))+ 1/0.001 .* exp(-(log(energy_midpoints)-log(4)).^2./(2*0.08));
-
-% Power Law % alpha can be between 2 and 6
-flux = 10^2.5 .* energy_midpoints.^-3.14;
-% use j0=10^2 and alpha=3.14 or j0=10^1 and alpha=4.73 from Hong's paper
-
-% Gaussian %
-%flux = 1/0.000001 .* exp(-(log(energy_midpoints)-log(2)).^2./(2*0.004));
-
-% add noise to flux spectrum
-noise_level = 0.5;
-random_scatter = randn(size(flux));
-flux_noisy = flux .* exp(noise_level .* random_scatter);
-flux = flux_noisy;
-
-hits_whole_EC= sum(geo_EC * (flux' .* bin_width'),2)*dt; 
+hits_whole_EC_init = sum(geo_EC * (flux' .* bin_width'),2)*dt; 
+% add poisson noise to counts
+poisson_err = sqrt(hits_whole_EC_init);
+random_scatter = randn(size(hits_whole_EC_init));
+hits_whole_EC = hits_whole_EC_init + (poisson_err .* random_scatter);
+hits_whole_EC = hits_whole_EC(hits_whole_EC>=1);
+hits_whole_EC = round(hits_whole_EC);
 
 % One Count %
 %hits_whole_EC= ones(size(geo_EC,1),1);
@@ -130,10 +160,9 @@ energy_edges = energy_edges(energy_edges<energy_channels(end,2)+1);
 bounds = energy_midpoints<energy_edges(end);
 energy_midpoints = energy_midpoints(bounds);
 geo_EC = geo_EC(hits_whole_EC>=1,bounds);
-hits_whole_EC = hits_whole_EC(hits_whole_EC>=1);
 bin_width = bin_width(bounds);
 flux = flux(bounds);
-energy_max = max(energy_midpoints)
+energy_max = max(energy_midpoints);
 %bound_plot = energy_midpoints >= 0.5 & energy_midpoints<=7;
 %indices = find(bound_plot);
 
@@ -191,12 +220,6 @@ if length(hits_whole_EC)>2
         Cd(channel,channel) = (sigma_d(channel)/(rate_obs(channel))).^2;
     end
     inv_Cd = inv(Cd); 
-
-    % Initialize variance parameter %
-    sigma_m = 2000; % Exp = 2000   BOT = 2000,   POW = ? Use same as exp for alpha=2-4
-
-    % Initialize smoothness parameter
-    delta = 50; % Exp = 50  BOT = 4,   POW = ?
 
     Cm = sigma_m.^2 .* exp(-((energy_midpoints' - energy_midpoints).^2) ./ (2 * delta.^2));
     
@@ -272,40 +295,106 @@ else
 end
 
 %% Plots calculated flux
-f = figure;
-f.Position = [0 0 1200 900];
-hold on
+% 0. Setup Publication Typography & Physical Dimensions
+textsize = 14;              
+fig_width_in  = 7.0;        
+fig_height_in = 2.8;        
 
-% Plot simulated flux
-plot(energy_midpoints,flux, 'Color', 'black','LineWidth',2);
+f = figure('Units', 'inches', ...
+           'Position', [1, 1, fig_width_in, fig_height_in], ...
+           'PaperUnits', 'inches', ...
+           'PaperPosition', [0, 0, fig_width_in, fig_height_in], ...
+           'PaperPositionMode', 'auto'); 
+ax = axes(f);
+hold(ax, 'on');
 
-%plot(energy_midpoints(bounds),M_energy_bin(bounds)./(4*pi^2*r_source^2)./bin_width(bounds),'.', 'Color', 'black','MarkerSize',8);
+% 1. Plot simulated flux
+p1 = plot(ax, energy_midpoints, flux, 'LineWidth', 2, 'Color', 'black', 'DisplayName', 'Theoretical Flux');
 
-% Plot Bowtie points
-plot(E_eff,j_nom,'o', 'Color', '#0072BD','MarkerSize',10,'LineWidth',2);
+% 2. Plot Bowtie points and error
+ypos = j_nom_err;
+yneg = j_nom_err;
+matched_lb = j_nom_lb(1:length(j_nom));
+lower_bound = j_nom - yneg;
+below_one_idx = lower_bound < matched_lb;
+yneg(below_one_idx) = matched_lb(below_one_idx);
+p2 = errorbar(ax, E_eff(1:N_valid), j_nom, yneg, ypos, 'o', 'Color', '#0072BD', ...
+    'MarkerSize', 5, 'MarkerFaceColor', '#0072BD', 'LineWidth', 1.5, 'CapSize', 10, 'DisplayName', 'Bowtie Analysis');
 
-% Plot LSQR Selesnick Method
-% Plot calculated fit
-plot(energy_midpoints,flux_lsqr, 'Color', 'r', 'LineWidth',2);
-% plot standard deviation from fit
-plot(energy_midpoints,flux_lsqr+jsig,'r--','LineWidth',2);
-plot(energy_midpoints,flux_lsqr-jsig,'r--','LineWidth',2);
+% 3. Plot LSQR Selesnick Method Fit
+p3 = plot(ax, energy_midpoints, flux_lsqr, 'Color', 'r', 'LineWidth', 1.5, 'DisplayName', 'GNLSM Fit');
 
-legend({['Theoretical Flux'],['Bowtie Analysis'],['LSQR'],['Standard Deviation']},...
-                 'Location', 'northeast','FontSize',18);
+% 4. Plot standard deviation from fit (Hidden from legend)
+plot(ax, energy_midpoints, flux_lsqr + jsig, 'r--', 'LineWidth', 1.5, 'HandleVisibility', 'off');
+plot(ax, energy_midpoints, flux_lsqr - jsig, 'r--', 'LineWidth', 1.5, 'HandleVisibility', 'off');
 
-%legend({['Theoretical Flux'],['Incident Particle Measurement'],['Bowtie Analysis'],['LSQR'],['Standard Deviation']},...
-%                 'Location', 'northeast','FontSize',18);
+% Apply Legend
+legend(ax, [p1, p2, p3], 'Location', 'southwest', 'FontSize', textsize - 2);
 
-textsize = 24;
-set(gca, 'FontSize', textsize)
-xlim([energy_min, energy_max])
-%ylim([10^0 10^6])
-%set(gca, 'XScale', 'log')
-set(gca, 'YScale', 'log')
-ylabel('Flux  (# cm^{-2} sr^{-1} s^{-1} MeV^{-1})','FontSize',textsize)
-xlabel('Energy (MeV)','FontSize',textsize)
-hold off
+% --- SHARED FORMATTING ---
+set(ax, 'FontSize', textsize, 'Layer', 'top');
+set(ax, 'XScale', 'log', 'YScale', 'log');
+
+set(ax, 'XTick', [0.5, 1, 1.5, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+grid(ax, 'on'); 
+ax.YMinorGrid = 'off';
+
+ylabel(ax, 'Flux (cm^{-2} sr^{-1} s^{-1} MeV^{-1})', 'FontSize', textsize);
+xlabel(ax, 'Energy (MeV)', 'FontSize', textsize);
+
+% Dynamic Axis Limits
+switch flux_model
+    case 'BOT2'
+        xlim(ax, [0.5, 10]); 
+        ylim(ax, [40, max(flux_lsqr(energy_midpoints > 0.5) + jsig(energy_midpoints > 0.5)) * 2]);
+    case 'Power Law'
+        xlim(ax, [0.5, min(max(energy_midpoints), 10)]); 
+        % 1. Calculate the highest power of 10 needed for the upper limit
+        max_flux = max(flux_lsqr(energy_midpoints > 0.5) + jsig(energy_midpoints > 0.5));
+        max_power = ceil(log10(max_flux));
+        % 2. Set the Y-axis limits
+        ylim(ax, [10^0, 10^max_power]);
+        % 3. Force the Y-ticks to only appear on even powers (10^0, 10^2, 10^4...)
+        set(ax, 'YTick', 10.^(0:2:max_power));
+    otherwise
+        xlim(ax, [0.5, 10]); 
+        ylim(ax, [10^0, max(flux_lsqr(energy_midpoints > 0.5) + jsig(energy_midpoints > 0.5)) * 2]);
+end
+
+hold(ax, 'off');
+
+cd("C:\Users\wzt0020\Box\HERT_Box\Paper\Figures\GNLSM examples");
+
+% Determine File Name based on Selected Model
+switch flux_model
+    case 'Main1'
+        base_filename = 'main1_noise_50_Emax';      
+    case 'Linear'
+        base_filename = 'linear_103_noise_50_Emax';       
+    case 'Exponential'
+        base_filename = 'exp_j0_105_E0_1_noise_50_Emax'; 
+        title('Exponential Electron Flux Spectrum')
+    case 'BOT1'
+        base_filename = 'bot1_noise_50_Emax';
+        title('Bump-on-Tail Electron Flux Spectrum')
+    case 'BOT2'
+        base_filename = 'bot2_noise_50_Emax';
+        title('Bump-on-Tail Electron Flux Spectrum')
+    case 'Power Law'
+        base_filename = 'pow_j0_103_alpha_4_noise_50_Emax_reduced';
+        title('Power Law Electron Flux Spectrum')
+    case 'Gaussian'
+        base_filename = 'gauss_noise_50_Emax';        
+    otherwise
+        base_filename = 'custom_flux_model_export';
+end
+
+% 1. Save the interactive MATLAB figure file (.fig)
+savefig(f, base_filename);
+
+% 2. Export High-Resolution PNG and Vector PDF
+print(f, [base_filename, '.png'], '-dpng', '-r300');
+exportgraphics(f, [base_filename, '.pdf'], 'ContentType', 'vector');
 
 %% Chi Squared Goodness of Fit Test
 %{

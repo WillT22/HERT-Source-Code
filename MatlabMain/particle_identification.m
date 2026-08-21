@@ -1,11 +1,16 @@
 % Requires data from Main1
-min_dep_energy = 0.1;
-problem_particles = particles(M_hit_dep>M_energy_beam-0.01 & M_energy_beam<40,:);
+min_dep_energy = 0;
+max_dep_energy = 5.5;
+min_energy_beam = 35;
+max_energy_beam = 38;
+problem_particles = particles(M_hit_dep>min_dep_energy & M_hit_dep<max_dep_energy...
+                                & M_energy_beam>min_energy_beam &M_energy_beam<max_energy_beam,:);
 
 % Choosing select / random runs only
 selected_runs = [];
 %selected_runs = [2540,4614];
-%random_runs = 10;
+random_runs = [];
+random_runs = 20;
 if ~isempty(selected_runs)
     problem_particles = problem_particles(ismember(problem_particles(:,2), selected_runs),:);
 elseif isempty(selected_runs) && ~isempty(random_runs)
@@ -61,7 +66,7 @@ end
 %
 cd ../../
 clear fileID
-fileID = fopen('proton_backpen.csv','w');
+fileID = fopen('proton_colpen.csv','w');
 for r = 1:size(problem_particles,1)
     fprintf(fileID,['%10.6f, %10.0f, %10.0f, %10.6f, %10.6f, %10.6f, %10.6f,' ...
         ' %10.6f, %10.6f, %10.6f, %10.6f, %10.6f,\n'],problem_particles(r,:));
@@ -111,6 +116,7 @@ disp('');
 %}
 
 %%
+%{
 % --- Target Parameters ---
 target_Einc = 18.8241;
 min_dep_energy = 0.1;
@@ -180,3 +186,4 @@ if ~isempty(found_cases)
 else
     fprintf('No particles matching E_inc = %.4f with Dep > %d MeV were found.\n', target_Einc, min_dep_energy);
 end
+%}

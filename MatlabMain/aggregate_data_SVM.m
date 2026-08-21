@@ -8,7 +8,7 @@ addpath 'D:\HERT_Drive\MATLAB Main'
 cd 'D:\HERT_Drive\MATLAB Main\Result'; % Main Result Directory
 
 % Get Folder Names for User
-topLevelFolder = pwd; % or whatever, such as 'C:\Users\John\Documents\MATLAB\work'
+topLevelFolder = pwd;
 files = dir(topLevelFolder);
 dirFlags = [files.isdir];
 subFolders = files(dirFlags);
@@ -27,7 +27,7 @@ list = dir(inputfiles);
 % Grabs all the names of the files in a vector (nx1 matrix)
 list_fileNames = {list.name};
 
-num_files_to_select = 200;
+num_files_to_select = 1000; % use 1000 for protons, 31000 (all) for electrons (16,000,000 particles)
 total_available_files = length(list_fileNames);
 
 if total_available_files > num_files_to_select
@@ -83,7 +83,7 @@ tot_Edep = sum(NumEnergyDeposit);
 fprintf('Total Energy Depositing Particles %g \n',tot_Edep);
 
 cd 'Aggregate Data'\
-fid = fopen('Aggregate Proton_FS Data.txt', 'wt');
+fid = fopen('Aggregate_Proton_FS_Data_new.txt', 'wt');
 fprintf(fid, '%s \n', header);
 fprintf(fid, '%9.6g           %9.6g %9.6g %9.6g %9.6g %9.6g %9.6g %9.6g %9.6g %9.6g \n', aggregate');
 fclose(fid);

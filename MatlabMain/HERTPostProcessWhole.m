@@ -31,7 +31,7 @@ cd(outputfolder)
 NewFileName = append('PostProcess', file_name);
 fid = fopen(NewFileName, 'wt');
 
-fprintf('Starting Run %d \n', run_number)
+%fprintf('Starting Run %d \n', run_number)
     
 % Checks that n is equal to the beam number. If not, an error is thrown.
 if n ~= beam_number
@@ -65,5 +65,5 @@ fclose(fid);
 % Return to MATLAB Main
 cd(inputfolder);
 cd ..
-fprintf('Run %d Complete \n', run_number);
+%fprintf('Run %d Complete \n', run_number);
 end

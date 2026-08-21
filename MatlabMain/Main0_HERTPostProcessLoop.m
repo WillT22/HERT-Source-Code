@@ -79,17 +79,43 @@ while choice ~= 1
         % Start Run
         case 4
             min_Energy = 0;
-            max_Energy = 1000;
+            max_Energy = 5000;
             energy_edges = min_Energy:0.01:max_Energy;
             energy_average = (energy_edges(1:end-1)+energy_edges(2:end))/2;
             
             Inc_hist = zeros(size(energy_average));
+            
+            % Initialize an empty list to store the names of corrupted files
+            bad_files = {}; 
+            
             for file_index = 1:number_files
                 tic % finds elapsed time of reading each data file
-                % processes each file
-                Einc_out = HERTPostProcessWhole(filename{file_index}, inputfolder,outputfolder);
-                Inc_hist = Inc_hist + histcounts(Einc_out,energy_edges);
-                toc
+                
+                % Use try...catch to prevent the script from crashing on bad files
+                try
+                    % processes each file
+                    Einc_out = HERTPostProcessWhole(filename{file_index}, inputfolder, outputfolder);
+                    Inc_hist = Inc_hist + histcounts(Einc_out, energy_edges);
+                    
+                    % Optional: comment this out if it clutters your command window
+                    fprintf('Processed %d of %d: %s (%.2f s)\n', file_index, number_files, filename{file_index}, toc);
+                    
+                catch ME
+                    % If an error occurs (like the cell2mat dimension mismatch), it jumps here
+                    fprintf('*** ERROR SKIPPING FILE: %s ***\n', filename{file_index});
+                    bad_files{end+1} = filename{file_index}; % Add to our bad file list
+                end
+            end
+            
+            % --- Print a summary of bad files after the loop finishes ---
+            if ~isempty(bad_files)
+                fprintf('\n========================================\n');
+                fprintf('SCAN COMPLETE: Found %.0f corrupted files.\n', length(bad_files));
+                disp('The following files were skipped:');
+                disp(bad_files');
+                fprintf('========================================\n\n');
+            else
+                fprintf('\nAll files processed successfully with no corruption.\n');
             end
             
             f = figure;
@@ -105,8 +131,7 @@ while choice ~= 1
             % Saving the figure as a png then returning to the main directory
             effsave = append('Incident Energy Counts', string(datetime("today")), '.png');
             saveas(f, effsave)
-
-
+            
             % Report all files are loaded and move on
             fprintf('All Files Processed\n')
     end % switch end
