@@ -44,7 +44,7 @@ def plot_density_lower(x, y, **kwargs):
     ax = plt.gca()
     df = kwargs['full_data']
     edges = kwargs['edges']
-    features = kwargs['features']
+    # features = kwargs['features'] # Unused, can be removed
 
     # Subset electrons for this specific x/y pair
     subset = df[df['Particle_Type'] == 'Electron']
@@ -53,12 +53,17 @@ def plot_density_lower(x, y, **kwargs):
 
     H, xedges, yedges = np.histogram2d(x_data, y_data, bins=(edges, edges))
     
-    H_frac = H.T / max(1, H.sum()) 
+    # Normalizes by the total number of electrons in the entire dataset
+    total_electrons = len(subset) 
+    H_frac = H.T / max(1, total_electrons) 
 
     # Mask zeros to render as white
     H_masked = np.ma.masked_where(H_frac == 0, H_frac)
 
-    cmap = plt.cm.Reds
+    orig_cmap = plt.cm.Reds
+    # Extract colors from the 0.1 to 1.0 range
+    truncated_colors = orig_cmap(np.linspace(0.1, 1.0, 256)) 
+    cmap = mcolors.ListedColormap(truncated_colors)
     norm = mcolors.LogNorm(vmin=min(kwargs['e_min'], kwargs['p_min']), vmax=max(kwargs['e_max'], kwargs['p_max']))
 
     ax.pcolormesh(xedges, yedges, H_masked, cmap=cmap, norm=norm)
@@ -68,30 +73,34 @@ def plot_density_upper(x, y, **kwargs):
     ax = plt.gca()
     df = kwargs['full_data']
     edges = kwargs['edges']
-    features = kwargs['features']
+    # features = kwargs['features'] # Unused, can be removed
 
     subset = df[df['Particle_Type'] == 'Proton']
     x_data = subset[x.name]
     y_data = subset[y.name]
 
     H, xedges, yedges = np.histogram2d(x_data, y_data, bins=(edges, edges))
-    H_frac = (H.T / max(1, H.sum()))
+    
+    # Normalizes by the total number of protons in the entire dataset
+    total_protons = len(subset)
+    H_frac = H.T / max(1, total_protons)
 
     H_masked = np.ma.masked_where(H_frac == 0, H_frac)
 
-    cmap = plt.cm.Blues
+    orig_cmap = plt.cm.Blues
+    # Extract colors from the 0.1 to 1.0 range
+    truncated_colors = orig_cmap(np.linspace(0.1, 1.0, 256)) 
+    cmap = mcolors.ListedColormap(truncated_colors)
     norm = mcolors.LogNorm(vmin=min(kwargs['p_min'], kwargs['e_min']), vmax=max(kwargs['p_max'], kwargs['e_max']))
 
     ax.pcolormesh(xedges, yedges, H_masked, cmap=cmap, norm=norm)
 
 
 def plot_diag_1d(x, **kwargs):
-    """Diagonal: Overlaid 1D densities with weights using an independent twin axis"""
     ax = plt.gca()
     df = kwargs['full_data']
     edges = kwargs['edges']
-    weights = kwargs['weights']
-    features = kwargs['features']
+    # features = kwargs['features'] # Unused, can be removed
 
     col_name = x.name
 
@@ -101,8 +110,12 @@ def plot_diag_1d(x, **kwargs):
     e_hist, _ = np.histogram(e_data, bins=edges)
     p_hist, _ = np.histogram(p_data, bins=edges)
 
-    e_ratio = (e_hist / max(1, e_hist.sum()))
-    p_ratio = (p_hist / max(1, p_hist.sum()))
+    # --- CORRECTION: Divide by total particles, not just in-bounds particles ---
+    total_e = len(e_data)
+    total_p = len(p_data)
+    e_ratio = e_hist / max(1, total_e)
+    p_ratio = p_hist / max(1, total_p)
+    # -------------------------------------------------------------------------
 
     # Calculate the width of every individual bin
     bin_widths = np.diff(edges)
@@ -114,20 +127,16 @@ def plot_diag_1d(x, **kwargs):
     midpoints = np.sqrt(edges[:-1] * edges[1:])
 
     # --- 1. BASE AXIS (Log Scale) ---
-    # We maintain the log scale to satisfy Seaborn's row-sharing constraint
     ax.set_xscale('log')
     ax.set_xlim(0.1, 100)
     ax.set_yscale('log')
     ax.set_ylim(0.1, 100)
     
-    # Disable the base Y-axis so it doesn't conflict
     ax.yaxis.set_visible(False)
 
     # --- 2. TWIN AXIS (Linear Scale) ---
-    # Create the independent axis and plot the data here
     ax2 = ax.twinx()
     
-    # Sample the exact colormaps used in the 2D plots (0.8 gives a strong, visible shade)
     density_red = plt.cm.Reds(0.8)
     density_blue = plt.cm.Blues(0.8)
     
@@ -136,51 +145,50 @@ def plot_diag_1d(x, **kwargs):
 
     ax2.set_yscale('linear')
     
-    # Dynamically scale the Y-axis limit with 10% headroom above the peak
     max_density = max(np.max(e_density), np.max(p_density))
     y_max = max_density * 1.1 if max_density > 0 else 1.0 
-    ax2.set_ylim(0, 2.6)
+    ax2.set_ylim(0, y_max)
     
-    # Let Matplotlib automatically generate ~5 clean linear ticks based on the new max
-    ax2.yaxis.set_major_locator(ticker.MaxNLocator(nbins=4))
+    # The 'steps' array restricts the algorithm to 1-decimal friendly intervals
+    ax2.yaxis.set_major_locator(ticker.MaxNLocator(nbins=4, steps=[1, 2, 5, 10]))
     ax2.yaxis.set_minor_locator(ticker.AutoMinorLocator(n=4))
+    
+    # Format labels to a max of 1 decimal place, stripping trailing zeros
+    ax2.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: f"{x:.1f}".rstrip('0').rstrip('.')))
 
-    # Move the twin axis from the right side to the left side
     ax2.yaxis.tick_left()
     ax2.yaxis.set_label_position("left")
 
     # --- 3. DYNAMIC LABELS ---
     ax2.tick_params(axis='y', which='both', left=True, labelleft=True)
     
-    # Place the PDF label INSIDE the plot area (top-right corner) to save margin space
     ax2.text(0.95, 1.25, "PDF (MeV$^{-1}$)", transform=ax2.transAxes,
              ha='right', va='top', fontsize=24, style='italic', color='gray')
 
+
 def check_densities(df, col_name, edges):
     """Calculates and returns the density arrays for a specific detector."""
-    # Isolate particle data
     e_data = df[df['Particle_Type'] == 'Electron'][col_name]
     p_data = df[df['Particle_Type'] == 'Proton'][col_name]
 
-    # Calculate raw counts
     e_hist, _ = np.histogram(e_data, bins=edges)
     p_hist, _ = np.histogram(p_data, bins=edges)
 
-    # Convert to percentages
-    e_ratio = (e_hist / max(1, e_hist.sum()))
-    p_ratio = (p_hist / max(1, p_hist.sum()))
+    # --- CORRECTION: Divide by total particles ---
+    total_e = len(e_data)
+    total_p = len(p_data)
+    e_ratio = e_hist / max(1, total_e)
+    p_ratio = p_hist / max(1, total_p)
+    # ---------------------------------------------
 
-    # Geometric mean for log-spaced bin centers
     midpoints = np.sqrt(edges[:-1] * edges[1:])
 
-    # Combine arrays into a DataFrame
     density_df = pd.DataFrame({
         'Bin_Center_MeV': midpoints,
         'Electron_Ratio': e_ratio,
         'Proton_Ratio': p_ratio
     })
 
-    # Filter out empty bins (where both particles have 0%) to make it easier to read
     active_bins = density_df[(density_df['Electron_Ratio'] > 0) | (density_df['Proton_Ratio'] > 0)]
 
     return active_bins
@@ -189,7 +197,7 @@ def check_densities(df, col_name, edges):
 # Main Generation Function
 # ==========================================
 
-def create_and_save_pairgrid(test_data_plot, weights, features_only, output="square_pairs_plot.png"):
+def create_and_save_pairgrid(test_data_plot, features_only, output="square_pairs_plot.png"):
     label_mapping = {
         "Detector1": "D1", "Detector2": "D2", "Detector3": "D3",
         "Detector4": "D4", "Detector5": "D5", "Detector6": "D6",
@@ -235,7 +243,6 @@ def create_and_save_pairgrid(test_data_plot, weights, features_only, output="squ
         'e_max': e_max,
         'p_min': p_min,
         'p_max': p_max,
-        'weights': weights,
         'features': display_features
     }
 
@@ -319,7 +326,10 @@ def create_and_save_pairgrid(test_data_plot, weights, features_only, output="squ
     # 1. ELECTRON COLORBAR (Bottom Left)
     # [left, bottom, width, height]
     cbar_ax_elec = g.fig.add_axes([0.1, -0.05, 0.35, 0.03])
-    cmap_elec = plt.cm.Reds 
+    orig_cmap = plt.cm.Reds
+    # Extract colors from the 0.1 to 1.0 range
+    truncated_colors = orig_cmap(np.linspace(0.1, 1.0, 256)) 
+    cmap_elec = mcolors.ListedColormap(truncated_colors)
     norm_elec = mcolors.LogNorm(vmin=min(e_min, p_min), vmax=max(e_max, p_max))
     
     cbar_elec = g.fig.colorbar(
@@ -338,7 +348,10 @@ def create_and_save_pairgrid(test_data_plot, weights, features_only, output="squ
 
     # 2. PROTON COLORBAR (Bottom Right)
     cbar_ax_prot = g.fig.add_axes([0.55, -0.05, 0.35, 0.03])
-    cmap_prot = plt.cm.Blues 
+    orig_cmap = plt.cm.Blues
+    # Extract colors from the 0.1 to 1.0 range
+    truncated_colors = orig_cmap(np.linspace(0.1, 1.0, 256)) 
+    cmap_prot = mcolors.ListedColormap(truncated_colors)
     norm_prot = mcolors.LogNorm(vmin=min(e_min, p_min), vmax=max(e_max, p_max))
     
     cbar_prot = g.fig.colorbar(
@@ -358,16 +371,18 @@ def create_and_save_pairgrid(test_data_plot, weights, features_only, output="squ
     g.fig.savefig(output, dpi=300, bbox_inches="tight")
     plt.close(g.fig)
 
+    # --- RESET GLOBAL PLOTTING DEFAULTS ---
+    plt.rcdefaults()
+    sns.reset_defaults()
+
     print("Export complete.")
 
 
 #%% For reduced number of detectors
 def plot_diag_1d_reduced(x, **kwargs):
-    """Diagonal: Overlaid 1D densities with weights using an independent twin axis"""
     ax = plt.gca()
     df = kwargs['full_data']
     edges = kwargs['edges']
-    weights = kwargs['weights']
     features = kwargs['features']
 
     col_name = x.name
@@ -413,14 +428,16 @@ def plot_diag_1d_reduced(x, **kwargs):
 
     ax2.set_yscale('linear')
     
-    # Dynamically scale the Y-axis limit with 10% headroom above the peak
     max_density = max(np.max(e_density), np.max(p_density))
     y_max = max_density * 1.1 if max_density > 0 else 1.0 
-    ax2.set_ylim(0, 2.6)
+    ax2.set_ylim(0, y_max)
     
-    # Let Matplotlib automatically generate ~5 clean linear ticks based on the new max
-    ax2.yaxis.set_major_locator(ticker.MaxNLocator(nbins=4))
+    # The 'steps' array restricts the algorithm to 1-decimal friendly intervals
+    ax2.yaxis.set_major_locator(ticker.MaxNLocator(nbins=4, steps=[1, 2, 5, 10]))
     ax2.yaxis.set_minor_locator(ticker.AutoMinorLocator(n=4))
+    
+    # Format labels to a max of 1 decimal place, stripping trailing zeros
+    ax2.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, pos: f"{x:.1f}".rstrip('0').rstrip('.')))
 
     # Move the twin axis from the right side to the left side
     ax2.yaxis.tick_left()
@@ -437,7 +454,7 @@ def plot_diag_1d_reduced(x, **kwargs):
 # Main Generation Function
 # ==========================================
 
-def create_and_save_pairgrid_reduced(test_data_plot, weights, features_only, output="square_pairs_plot.png"):
+def create_and_save_pairgrid_reduced(test_data_plot, features_only, output="square_pairs_plot.png"):
     label_mapping = {
         "Detector1": "D1", "Detector2": "D2", "Detector3": "D3",
         "Detector4": "D4", "Detector5": "D5", "Detector6": "D6",
@@ -483,7 +500,6 @@ def create_and_save_pairgrid_reduced(test_data_plot, weights, features_only, out
         'e_max': e_max,
         'p_min': p_min,
         'p_max': p_max,
-        'weights': weights,
         'features': display_features
     }
 
@@ -567,7 +583,10 @@ def create_and_save_pairgrid_reduced(test_data_plot, weights, features_only, out
     # 1. ELECTRON COLORBAR (Bottom Left)
     # [left, bottom, width, height]
     cbar_ax_elec = g.fig.add_axes([0.1, -0.05, 0.35, 0.03])
-    cmap_elec = plt.cm.Reds 
+    orig_cmap = plt.cm.Reds
+    # Extract colors from the 0.1 to 1.0 range
+    truncated_colors = orig_cmap(np.linspace(0.1, 1.0, 256)) 
+    cmap_elec = mcolors.ListedColormap(truncated_colors)
     norm_elec = mcolors.LogNorm(vmin=min(e_min, p_min), vmax=max(e_max, p_max))
     
     cbar_elec = g.fig.colorbar(
@@ -586,7 +605,10 @@ def create_and_save_pairgrid_reduced(test_data_plot, weights, features_only, out
 
     # 2. PROTON COLORBAR (Bottom Right)
     cbar_ax_prot = g.fig.add_axes([0.55, -0.05, 0.35, 0.03])
-    cmap_prot = plt.cm.Blues 
+    orig_cmap = plt.cm.Blues
+    # Extract colors from the 0.1 to 1.0 range
+    truncated_colors = orig_cmap(np.linspace(0.1, 1.0, 256)) 
+    cmap_prot = mcolors.ListedColormap(truncated_colors)
     norm_prot = mcolors.LogNorm(vmin=min(e_min, p_min), vmax=max(e_max, p_max))
     
     cbar_prot = g.fig.colorbar(
@@ -605,5 +627,9 @@ def create_and_save_pairgrid_reduced(test_data_plot, weights, features_only, out
     print(f"Saving high-res image to {output}...")
     g.fig.savefig(output, dpi=300, bbox_inches="tight")
     plt.close(g.fig)
+
+    # --- RESET GLOBAL PLOTTING DEFAULTS ---
+    plt.rcdefaults()
+    sns.reset_defaults()
 
     print("Export complete.")

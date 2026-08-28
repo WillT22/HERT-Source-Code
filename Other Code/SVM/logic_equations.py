@@ -40,27 +40,27 @@ def evaluate_reptile2_logic(test_data):
     
     # FIXED: Added .values to all truth references to prevent index misalignment
     predict_rnge = np.where(rng_e[d1_mask], "Electron", "Rejected RNG_E")
-    khoo_rngetab = (pd.crosstab(predict_rnge, truth[d1_mask].values, rownames=['Predict'], normalize='columns') * 100).round(3)
+    khoo_rngetab = (pd.crosstab(predict_rnge, truth[d1_mask].values, rownames=['Predict'], normalize='columns') * 100).round(2)
     print("\nRNG_E Logic (%):\n", khoo_rngetab)
 
     predict_pene = np.where(pen_e[d1_mask], "Electron", "Rejected PEN_E")
-    khoo_penetab = (pd.crosstab(predict_pene, truth[d1_mask].values, rownames=['Predict'], normalize='columns') * 100).round(3)
+    khoo_penetab = (pd.crosstab(predict_pene, truth[d1_mask].values, rownames=['Predict'], normalize='columns') * 100).round(2)
     print("\nPEN_E Logic (%):\n", khoo_penetab)
     
     predict_e = np.where(rng_e | pen_e, "Electron", "Rejected Electron")
-    khoo_etab = (pd.crosstab(predict_e, truth.values, rownames=['Predict'], normalize='columns') * 100).round(3)
+    khoo_etab = (pd.crosstab(predict_e, truth.values, rownames=['Predict'], normalize='columns') * 100).round(2)
     print("\nTotal Electron Logic (%):\n", khoo_etab)
 
     predict_rngp = np.where(rng_p, "Proton", "Rejected RNG_P")
-    khoo_rngptab = (pd.crosstab(predict_rngp, truth.values, rownames=['Predict'], normalize='columns') * 100).round(3)
+    khoo_rngptab = (pd.crosstab(predict_rngp, truth.values, rownames=['Predict'], normalize='columns') * 100).round(2)
     print("\nRNG_P Logic (%):\n", khoo_rngptab)
 
     predict_penp = np.where(pen_p, "Proton", "Rejected PEN_P")
-    khoo_penptab = (pd.crosstab(predict_penp, truth.values, rownames=['Predict'], normalize='columns') * 100).round(3)
+    khoo_penptab = (pd.crosstab(predict_penp, truth.values, rownames=['Predict'], normalize='columns') * 100).round(2)
     print("\nPEN_P Logic (%):\n", khoo_penptab)
     
     predict_p = np.where(rng_p | pen_p, "Proton", "Rejected Proton")
-    khoo_ptab = (pd.crosstab(predict_p, truth.values, rownames=['Predict'], normalize='columns') * 100).round(3)
+    khoo_ptab = (pd.crosstab(predict_p, truth.values, rownames=['Predict'], normalize='columns') * 100).round(2)
     print("\nTotal Proton Logic (%):\n", khoo_ptab)
 
 
@@ -104,7 +104,7 @@ def evaluate_rept_logic(test_data):
 
     # FIXED: Added .values to truth[eval_mask]
     Erow_predict = np.where(ELOGIC[eval_mask].sum(axis=1) > 0, "Electron", "Rejected Electron")
-    REPT_etab = (pd.crosstab(Erow_predict, truth[eval_mask].values, rownames=['Predict'], normalize='columns') * 100).round(3)
+    REPT_etab = (pd.crosstab(Erow_predict, truth[eval_mask].values, rownames=['Predict'], normalize='columns') * 100).round(2)
     print("\nREPT Electron Logic (%):\n", REPT_etab)
 
     # Proton Logic Equations
@@ -125,5 +125,5 @@ def evaluate_rept_logic(test_data):
 
     # FIXED: Added .values to truth[eval_mask]
     Prow_predict = np.where(PLOGIC[eval_mask].sum(axis=1) > 0, "Proton", "Rejected Proton")
-    REPT_ptab = (pd.crosstab(Prow_predict, truth[eval_mask].values, rownames=['Predict'], normalize='columns') * 100).round(3)
+    REPT_ptab = (pd.crosstab(Prow_predict, truth[eval_mask].values, rownames=['Predict'], normalize='columns') * 100).round(2)
     print("\nREPT Proton Logic (%):\n", REPT_ptab)

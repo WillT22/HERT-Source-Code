@@ -7,8 +7,7 @@ import numpy as np
 from sklearn.svm import SVC
 from sklearn.model_selection import GridSearchCV
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-import seaborn as sns
+import time
 
 current_script_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, current_script_dir)
@@ -19,90 +18,209 @@ from logic_equations import evaluate_rept_logic, evaluate_reptile2_logic
 from plot_functions import check_densities, create_and_save_pairgrid, create_and_save_pairgrid_reduced
 
 #%% Optional: Load in workspace
-import joblib
-# Load the dictionary back into memory
-load_path = 'entire_workspace.joblib'
-workspace = joblib.load(load_path)
-# Unpack the dictionary directly into your global environment
-globals().update(workspace)
-print(f"Successfully loaded {len(workspace)} variables into the workspace.")
+load = False
+if load == True:    
+    import joblib
+    # Load the dictionary back into memory
+    load_path = 'entire_workspace.joblib'
+    workspace = joblib.load(load_path)
+    # Unpack the dictionary directly into your global environment
+    globals().update(workspace)
+    print(f"Successfully loaded {len(workspace)} variables into the workspace.")
 
-#%% Load Data
-# Set working directory
+#%% Start Processing
+# Process Data
+# Start Clock
+start_time = time.perf_counter()
+
+# ==========================================
+# CONFIGURATION
+# ==========================================
 os.chdir(r"C:\Users\wzt0020\Box\HERT_Box\Particle Classification")
+PROCESS_DATA = True
 
-# ==========================================
-# TOGGLE DATA PIPELINE MODE
-# ==========================================
-# True: Read raw .txt files, filter, sample, and save to .csv
-# False: Skip processing and load directly from saved .csv files
-PROCESS_DATA = False
-
-# Set the number of rows you want for each data set
-num_training_rows = 400000
-num_validation_rows = 50000
-num_test_rows = 50000
+num_training_rows = 80000
+num_validation_rows = 10000
+num_test_rows = 10000
 num_points = (num_training_rows + num_validation_rows + num_test_rows) * 2
 
+electron_file = r"D:\HERT_Drive\Matlab Main\Result\Electron_FS\Aggregate Data\Aggregate_Electron_FS_Data_new.txt"
+proton_file   = r"D:\HERT_Drive\Matlab Main\Result\Proton_FS\Aggregate Data\Aggregate_Proton_FS_Data_new.txt"
+
+column_names = ["E_Inc", "Detector1", "Detector2", "Detector3",
+                "Detector4", "Detector5", "Detector6",
+                "Detector7", "Detector8", "Detector9"]
+
+# ==========================================
+# HELPER FUNCTIONS
+# ==========================================
+def generate_exponential_counts(e_bins, total_points, E0=0.5):
+    """Generates an exact integer array of particle counts following an exponential spectrum."""
+    e_lower = e_bins[:-1]
+    e_upper = e_bins[1:]
+    
+    raw_probs = np.exp(-e_lower / E0) - np.exp(-e_upper / E0)
+    probs = raw_probs / np.sum(raw_probs)
+    
+    exact_counts = probs * total_points
+    int_counts = np.floor(exact_counts).astype(int)
+    
+    shortfall = int(total_points - np.sum(int_counts))
+    remainders = exact_counts - int_counts
+    
+    largest_remainder_indices = np.argsort(remainders)[::-1]
+    for i in range(shortfall):
+        int_counts[largest_remainder_indices[i]] += 1
+        
+    return int_counts
+
+# Based on Wang & Guo 2024
+def generate_powerlaw_counts(p_bins, total_points, gamma=4.0):
+    """Generates an exact integer array of particle counts following a power-law spectrum (E^-gamma)."""
+    p_lower = p_bins[:-1]
+    p_upper = p_bins[1:]
+    
+    # Integrate E^-gamma across each bin depending on the spectral index
+    if gamma == 1.0:
+        raw_probs = np.log(p_upper / p_lower)
+    else:
+        raw_probs = (p_upper**(1.0 - gamma) - p_lower**(1.0 - gamma)) / (1.0 - gamma)
+        
+    probs = raw_probs / np.sum(raw_probs)
+    
+    exact_counts = probs * total_points
+    int_counts = np.floor(exact_counts).astype(int)
+    
+    shortfall = int(total_points - np.sum(int_counts))
+    remainders = exact_counts - int_counts
+    
+    largest_remainder_indices = np.argsort(remainders)[::-1]
+    for i in range(shortfall):
+        int_counts[largest_remainder_indices[i]] += 1
+        
+    return int_counts
+
+# ==========================================
+# MAIN EXECUTION
+# ==========================================
 if PROCESS_DATA:
     print("Processing raw data...")
-    # Set the file paths
-    electron_file = r"D:\HERT_Drive\Matlab Main\Result\Electron_FS\Aggregate Data\Aggregate_Electron_FS_Data_new.txt"
-    proton_file   = r"D:\HERT_Drive\Matlab Main\Result\Proton_FS\Aggregate Data\Aggregate_Proton_FS_Data_new.txt"
-
-    # Define column names
-    column_names = ["E_Inc", "Detector1", "Detector2", "Detector3",
-                    "Detector4", "Detector5", "Detector6",
-                    "Detector7", "Detector8", "Detector9"]
-
-    # Read the data
+    
+    # 1. Load Data
     imported_electron_data = pd.read_csv(electron_file, delim_whitespace=True, skiprows=1, names=column_names)
     imported_proton_data   = pd.read_csv(proton_file, delim_whitespace=True, skiprows=1, names=column_names)
 
-    # Create a new column named "Particle_Type"
     imported_electron_data['Particle_Type'] = "Electron"
-    imported_proton_data['Particle_Type'] = "Proton"
+    imported_proton_data['Particle_Type']   = "Proton"
 
-    # Apply the condition to the full data sets first
+    # 2. Filter & Clean
+    # Apply baseline threshold
     electron_data_filtered = imported_electron_data[imported_electron_data['Detector1'] >= 0.1].copy()
     proton_data_filtered   = imported_proton_data[imported_proton_data['Detector1'] >= 0.1].copy()
+
+    print(f"Total Electrons after D1 threshold: {len(electron_data_filtered):,}")
+    print(f"Total Protons after D1 threshold:   {len(proton_data_filtered):,}")
+    print("-" * 40) # Adds a clean visual divider in the console
 
     del imported_electron_data
     del imported_proton_data
 
-    # Sum detectors 7 and 8 after the data is filtered
+    # Sum Detectors 7 and 8
     electron_data_filtered['Detector7_8_sum'] = electron_data_filtered['Detector7'] + electron_data_filtered['Detector8']
-    proton_data_filtered['Detector7_8_sum'] = proton_data_filtered['Detector7'] + proton_data_filtered['Detector8']
+    proton_data_filtered['Detector7_8_sum']   = proton_data_filtered['Detector7'] + proton_data_filtered['Detector8']
 
-    # Filter values < 0.1 to 0 for specific columns
+    # Zero out low noise values (< 0.1 MeV) across specific detectors
     cols_to_modify = [col for col in electron_data_filtered.columns if col not in ["E_Inc", "Detector7", "Detector8", "Particle_Type"]]
-
+    
     electron_data_filtered[cols_to_modify] = electron_data_filtered[cols_to_modify].where(electron_data_filtered[cols_to_modify] >= 0.1, 0)
-    proton_data_filtered[cols_to_modify] = proton_data_filtered[cols_to_modify].where(proton_data_filtered[cols_to_modify] >= 0.1, 0)
+    proton_data_filtered[cols_to_modify]   = proton_data_filtered[cols_to_modify].where(proton_data_filtered[cols_to_modify] >= 0.1, 0)
 
-    # Randomly sample row indices from the filtered data
-    num_electron_rows = len(electron_data_filtered)
-    num_proton_rows = len(proton_data_filtered)
+    # 3. ELECTRONS: Define Exponential Sampling Targets
+    e_bins_raw = np.logspace(np.log10(0.1), np.log10(10), 301)
+    e_bins = e_bins_raw[e_bins_raw>0.6]
+    e_target_counts = generate_exponential_counts(e_bins, num_points/2, E0=0.5)
 
-    # ==========================================
-    # Generate Mutually Exclusive Indices
-    # ==========================================
+    # Map & Sample Exponential Spectrum (Electrons)
+    electron_data_filtered['Bin_Index'] = np.digitize(electron_data_filtered['E_Inc'], e_bins) - 1
+    electron_data_filtered['Bin_Index'] = np.clip(electron_data_filtered['Bin_Index'], 0, len(e_target_counts) - 1)
+
+    sampled_electrons_list = []
     
-    # For Electrons: Shuffle all indices, then slice
+    print("Sampling exponential distribution for electrons...")
+    for bin_idx, target_n in enumerate(e_target_counts):
+        if target_n == 0:
+            continue
+            
+        particles_in_bin = electron_data_filtered[electron_data_filtered['Bin_Index'] == bin_idx]
+        
+        try:
+            sampled_bin = particles_in_bin.sample(n=target_n, replace=False, random_state=42)
+        except ValueError:
+            print(f"Warning: Bin {bin_idx} needs {target_n} particles but only has {len(particles_in_bin)}. Falling back to replacement.")
+            sampled_bin = particles_in_bin.sample(n=target_n, replace=True, random_state=42)
+            
+        sampled_electrons_list.append(sampled_bin)
+
+    exponential_electrons = pd.concat(sampled_electrons_list).reset_index(drop=True)
+
+    # 4. PROTONS: Define pwer Law Sampling Targets
+    p_bins_raw = np.logspace(np.log10(10), np.log10(2000), 401)
+    p_bins = p_bins_raw[p_bins_raw>15]
+
+    p_target_counts = generate_powerlaw_counts(p_bins, num_points/2, gamma=4.0)
+
+    # Map & Sample Power Law Spectrum (Protons)
+    proton_data_filtered['Bin_Index'] = np.digitize(proton_data_filtered['E_Inc'], p_bins) - 1
+    proton_data_filtered['Bin_Index'] = np.clip(proton_data_filtered['Bin_Index'], 0, len(p_target_counts) - 1)
+
+    sampled_protons_list = []
+    
+    print("Sampling powerlaw distribution for protons...")
+    for bin_idx, target_n in enumerate(e_target_counts):
+        if target_n == 0:
+            continue
+            
+        particles_in_bin = proton_data_filtered[proton_data_filtered['Bin_Index'] == bin_idx]
+        
+        try:
+            sampled_bin = particles_in_bin.sample(n=target_n, replace=False, random_state=42)
+        except ValueError:
+            print(f"Warning: Bin {bin_idx} needs {target_n} particles but only has {len(particles_in_bin)}. Falling back to replacement.")
+            sampled_bin = particles_in_bin.sample(n=target_n, replace=True, random_state=42)
+            
+        sampled_protons_list.append(sampled_bin)
+
+    powerlaw_protons = pd.concat(sampled_protons_list).reset_index(drop=True)
+
+    # 5. Stratified Split (Train, Validation, Test)
+    num_exponential_rows = len(exponential_electrons)
+    
     np.random.seed(42)
-    all_e_indices = np.random.permutation(num_electron_rows)
-    
+    all_e_indices = np.random.permutation(num_exponential_rows)
+
     e_training_indices   = all_e_indices[:num_training_rows]
     e_validation_indices = all_e_indices[num_training_rows : num_training_rows + num_validation_rows]
     e_test_indices       = all_e_indices[num_training_rows + num_validation_rows : num_training_rows + num_validation_rows + num_test_rows]
 
-    # For Protons: Shuffle all indices, then slice
-    np.random.seed(43)
-    all_p_indices = np.random.permutation(num_proton_rows)
+    e_training_set   = exponential_electrons.iloc[e_training_indices].drop(columns=['Bin_Index'])
+    e_validation_set = exponential_electrons.iloc[e_validation_indices].drop(columns=['Bin_Index'])
+    e_test_set       = exponential_electrons.iloc[e_test_indices].drop(columns=['Bin_Index'])
     
+    print(f"Electron Datasets Created: Train({len(e_training_set)}), Val({len(e_validation_set)}), Test({len(e_test_set)})")
+
+    # For Protons: Shuffle all indices, then slice
+    num_powerlaw_rows = len(powerlaw_protons)
+    
+    np.random.seed(43)
+    all_p_indices = np.random.permutation(num_powerlaw_rows)
+
     p_training_indices   = all_p_indices[:num_training_rows]
     p_validation_indices = all_p_indices[num_training_rows : num_training_rows + num_validation_rows]
     p_test_indices       = all_p_indices[num_training_rows + num_validation_rows : num_training_rows + num_validation_rows + num_test_rows]
+
+    p_training_set   = powerlaw_protons.iloc[p_training_indices].drop(columns=['Bin_Index'])
+    p_validation_set = powerlaw_protons.iloc[p_validation_indices].drop(columns=['Bin_Index'])
+    p_test_set       = powerlaw_protons.iloc[p_test_indices].drop(columns=['Bin_Index'])
 
     # Select the random rows and combine datasets
     training_data = pd.concat([
@@ -146,32 +264,15 @@ training_data['Particle_Type'] = training_data['Particle_Type'].astype(cat_type)
 validation_data['Particle_Type'] = validation_data['Particle_Type'].astype(cat_type)
 test_data['Particle_Type'] = test_data['Particle_Type'].astype(cat_type)
 
-# Identify ideal HERT test data
-HERT_data_electrons = test_data[(test_data['Particle_Type'] == 'Electron') & 
-                                (test_data['E_Inc'] >= 0.6) & 
-                                (test_data['E_Inc'] <= 7.5)]
-
-HERT_data_protons = test_data[(test_data['Particle_Type'] == 'Proton') & 
-                              (test_data['E_Inc'] >= 14) & 
-                              (test_data['E_Inc'] <= 70)]
-
-HERT_data = pd.concat([HERT_data_electrons, HERT_data_protons], ignore_index=True)
-HERT_data = test_data.copy() # Overwriting as specified in original script
-
-# Combine 10% of data
-training_data_sample = training_data.sample(n=int(num_training_rows * 0.1), random_state=1, replace=False)
-
-# Combine 1% of data
-training_data_sample2 = training_data.sample(n=int(num_training_rows * 0.01), random_state=2, replace=False)
-
 #%% Create SVM Model
+# Create SVM
 # ==========================================
 # TOGGLE SVM EXECUTION MODE
 # ==========================================
 # "tune"   : Run GridSearch on validation data to find best C values, then create SVMs
 # "create" : Train the SVMs directly using the predefined optimized costs (C=10)
 # "skip"   : Bypass SVM training entirely
-SVM_MODE = "skip"  # Options: "tune", "create", "skip"
+SVM_MODE = "create"  # Options: "tune", "create", "skip"
 
 if SVM_MODE != "skip":
     print(f"--- Starting SVM Processing (Mode: {SVM_MODE}) ---")
@@ -186,8 +287,8 @@ if SVM_MODE != "skip":
     X_val = validation_data[features]
     y_val = validation_data['Particle_Type']
     
-    X_test = HERT_data[features]
-    y_test = HERT_data['Particle_Type']
+    X_test = test_data[features]
+    y_test = test_data['Particle_Type']
 
     # --- TUNE OPTION ---
     if SVM_MODE == "tune":
@@ -211,6 +312,7 @@ if SVM_MODE != "skip":
         print(f"Best Radial Cost: {tuner_rad.best_params_['C']}")
 
     # --- CREATE OPTION (or proceeding after tuning) ---
+    start_linearSVM_time = time.perf_counter()
     print("\n### Linear SVM ###")
     # In scikit-learn, setting class_weight works identically to class.weights in R
     svm_linear = SVC(kernel='linear', C=10, class_weight={'Electron': 1, 'Proton': 1})
@@ -223,7 +325,7 @@ if SVM_MODE != "skip":
     print("Linear Hyperplane Coefficients:\n", linear_hp_coefs)
     
     # Calculate weights relative to the intercept (matching linear_hp_coefs[[1]] in R)
-    weights = np.abs(linear_hp_coefs / linear_hp_coefs[0])
+    weights = np.abs(linear_hp_coefs / np.sum(linear_hp_coefs[1:]))  # Exclude intercept for normalization
     print("Weights:\n", weights)
     
     # Predict to validate model
@@ -232,21 +334,24 @@ if SVM_MODE != "skip":
     # Print predictions (prop.table equivalent)
     linear_ct = pd.crosstab(index=linear_predictions, columns=y_test, rownames=['Predict'], normalize='columns') * 100
     print("\nLinear SVM Predictions (%):\n", linear_ct)
-
-    # Test the hyperplane manually (filtered for Detector1 > 0.1 as in R script)
-    hert_filtered = HERT_data[HERT_data['Detector1'] > 0.1]
-    X_test_filtered = hert_filtered[features]
     
     # Using sklearn's built-in decision function is safer than manually multiplying,
     # but achieves the exact same math as your manual test block. 
     # > 0 assigns it to the positive class (Protons, based on sklearn's alphabetical class sorting).
-    manual_decisions = svm_linear.decision_function(X_test_filtered)
+    manual_decisions = svm_linear.decision_function(X_test)
     # sklearn sorts classes alphabetically: 0='Electron', 1='Proton'. So < 0 is Electron.
     linear_hp_test = np.where(manual_decisions < 0, "Electron", "Proton")
     
-    hp_ct = pd.crosstab(index=linear_hp_test, columns=hert_filtered['Particle_Type'], rownames=['Predict'], normalize='columns') * 100
+    hp_ct = pd.crosstab(index=linear_hp_test, columns=test_data['Particle_Type'], rownames=['Predict'], normalize='columns') * 100
     print("\nManual Hyperplane Test (%):\n", hp_ct)
 
+    end_linearSVM_time = time.perf_counter()
+    elapsed = end_linearSVM_time - start_linearSVM_time
+    minutes, seconds = divmod(elapsed, 60)
+    print(f"Execution time: {int(minutes)} minutes and {int(seconds)} seconds")
+
+
+    start_polySVM_time = time.perf_counter()
     print("\n### Polynomial SVM ###")
     svm_poly = SVC(kernel='poly', C=10) # default degree is 3, same as R
     svm_poly.fit(X_train, y_train)
@@ -260,6 +365,13 @@ if SVM_MODE != "skip":
     poly_ct = pd.crosstab(index=poly_predictions, columns=y_test, rownames=['Predict'], normalize='columns') * 100
     print("Polynomial SVM Predictions (%):\n", poly_ct)
 
+    end_polySVM_time = time.perf_counter()
+    elapsed = end_polySVM_time - start_polySVM_time
+    minutes, seconds = divmod(elapsed, 60)
+    print(f"Execution time: {int(minutes)} minutes and {int(seconds)} seconds")
+
+
+    start_radialSVM_time = time.perf_counter()
     print("\n### Radial SVM ###")
     svm_radial = SVC(kernel='rbf', C=10, class_weight={'Electron': 1, 'Proton': 1})
     svm_radial.fit(X_train, y_train)
@@ -272,10 +384,15 @@ if SVM_MODE != "skip":
     radial_ct = pd.crosstab(index=radial_predictions, columns=y_test, rownames=['Predict'], normalize='columns') * 100
     print("Radial SVM Predictions (%):\n", radial_ct)
 
+    end_radialSVM_time = time.perf_counter()
+    elapsed = end_radialSVM_time - start_radialSVM_time
+    minutes, seconds = divmod(elapsed, 60)
+    print(f"Execution time: {int(minutes)} minutes and {int(seconds)} seconds")
+
     print("\n### Simplified Linear SVM ###")
-    features_si = ["Detector1", "Detector2"]
-    X_train_si = training_data_sample2[features_si]
-    y_train_si = training_data_sample2['Particle_Type']
+    features_si = ["Detector1", "Detector2", "Detector9"]
+    X_train_si = training_data[features_si]
+    y_train_si = training_data['Particle_Type']
     
     svm_linearsi = SVC(kernel='linear', C=10)
     svm_linearsi.fit(X_train_si, y_train_si)
@@ -288,10 +405,10 @@ if SVM_MODE != "skip":
     print("\nSimplified Linear Predictions (%):\n", linearsi_ct)
 
     # Manual test for simplified hyperplane
-    si_manual_decisions = svm_linearsi.decision_function(hert_filtered[features_si])
+    si_manual_decisions = svm_linearsi.decision_function(test_data[features_si])
     linearsi_hp_test = np.where(si_manual_decisions < 0, "Electron", "Proton")
     
-    hp_si_ct = pd.crosstab(index=linearsi_hp_test, columns=hert_filtered['Particle_Type'], rownames=['Predict'], normalize='columns') * 100
+    hp_si_ct = pd.crosstab(index=linearsi_hp_test, columns=test_data['Particle_Type'], rownames=['Predict'], normalize='columns') * 100
     print("\nManual Simplified Hyperplane Test (%):\n", hp_si_ct)
 
 else:
@@ -303,84 +420,15 @@ evaluate_rept_logic(test_data)
 evaluate_reptile2_logic(test_data)
 
 
-#%% Explore Means and Medians
-# ==========================================
-# Conditional Means and Medians Matrices
-# ==========================================
-
-columns_to_keep = ["Detector1", "Detector2", "Detector3", "Detector4", 
-                   "Detector5", "Detector6", "Detector7_8_sum", "Detector9", "Particle_Type"]
-test_data_plot = test_data[columns_to_keep].copy()
-
-# Extract just the detector names for the grid
-features_only = columns_to_keep[:-1]
-
-output_col_names = features_only
-n_cols = len(output_col_names)
-
-# Initialize empty DataFrames with 0.0
-test_data_means_electrons = pd.DataFrame(0.0, index=output_col_names, columns=output_col_names)
-test_data_means_protons   = pd.DataFrame(0.0, index=output_col_names, columns=output_col_names)
-test_data_medians_electrons = pd.DataFrame(0.0, index=output_col_names, columns=output_col_names)
-test_data_medians_protons   = pd.DataFrame(0.0, index=output_col_names, columns=output_col_names)
-
-electrons = test_data_plot[test_data_plot['Particle_Type'] == 'Electron']
-protons   = test_data_plot[test_data_plot['Particle_Type'] == 'Proton']
-
-# Loop through each detector column index
-for i in range(n_cols):
-    for j in range(i + 1):  # Runs from 0 to i inclusive
-        col_j = output_col_names[j]
-        
-        # Identify columns physically "higher" in the detector stack
-        higher_cols = output_col_names[i+1:]
-        
-        if len(higher_cols) > 0:
-            # Mask: Current col != 0 AND sum of all higher columns == 0
-            mask_electrons = (electrons[col_j] != 0) & (electrons[higher_cols].sum(axis=1) == 0)
-            mask_protons   = (protons[col_j] != 0) & (protons[higher_cols].sum(axis=1) == 0)
-        else:
-            # If checking the final column, there are no "higher" columns
-            mask_electrons = (electrons[col_j] != 0)
-            mask_protons   = (protons[col_j] != 0)
-            
-        # Calculate Mean
-        test_data_means_electrons.iloc[i, j] = electrons.loc[mask_electrons, col_j].mean()
-        test_data_means_protons.iloc[i, j]   = protons.loc[mask_protons, col_j].mean()
-        
-        # Calculate Median
-        test_data_medians_electrons.iloc[i, j] = electrons.loc[mask_electrons, col_j].median()
-        test_data_medians_protons.iloc[i, j]   = protons.loc[mask_protons, col_j].median()
-
-# Fill any NaN values (caused by trying to find the mean/median of an empty slice) with 0
-test_data_means_electrons.fillna(0, inplace=True)
-test_data_means_protons.fillna(0, inplace=True)
-test_data_medians_electrons.fillna(0, inplace=True)
-test_data_medians_protons.fillna(0, inplace=True)
-
-# Calculate Mean of Medians
-mean_of_medians = (test_data_medians_electrons + test_data_medians_protons) / 2
-
-# Display Results
-print("\n--- Test Data Means (Electrons) ---")
-print(test_data_means_electrons.round(3))
-
-print("\n--- Test Data Means (Protons) ---")
-print(test_data_means_protons.round(3))
-
-print("\n--- Mean of Medians ---")
-print(mean_of_medians.round(3))
-
-
-#%% Simple Plot
+#%% Find Max Energies
 # Find the max energies deposited onto each detector for both particle types
 # Create a list of just the detector columns (if not already defined)
 features_only = ["Detector1", "Detector2", "Detector3", "Detector4", 
                  "Detector5", "Detector6", "Detector7_8_sum", "Detector9"]
 
 # Subset and calculate the max for each particle
-e_max_energies = test_data_plot[test_data_plot['Particle_Type'] == 'Electron'][features_only].max()
-p_max_energies = test_data_plot[test_data_plot['Particle_Type'] == 'Proton'][features_only].max()
+e_max_energies = test_data[test_data['Particle_Type'] == 'Electron'][features_only].max()
+p_max_energies = test_data[test_data['Particle_Type'] == 'Proton'][features_only].max()
 
 # Combine them into a single summary dataframe for a clean printout
 max_energy_summary = pd.DataFrame({
@@ -402,78 +450,6 @@ with open(output_filename, "w") as file:
 
 print(f"\nResults successfully exported to: {os.path.abspath(output_filename)}")
 
-# ==========================================
-# 1. Plot Edep v Einc (Single Scatter)
-# ==========================================
-plt.figure(figsize=(8, 6))
-
-# Map colors based on Particle_Type
-colors = np.where(training_data['Particle_Type'] == 'Electron', 'red', 'blue')
-
-plt.scatter(training_data['Detector4'], training_data['Detector3'], 
-            c=colors, s=1, alpha=0.5)
-
-plt.xlim(0, 25)
-plt.ylim(0, 25)
-plt.xlabel('E_dep on Detector 4 (MeV)', fontsize=14, fontweight='bold')
-plt.ylabel('E_dep on Detector 3 (MeV)', fontsize=14, fontweight='bold')
-plt.tick_params(axis='both', labelsize=12)
-
-# Custom Legend
-red_patch = mpatches.Patch(color='red', label='Electron')
-blue_patch = mpatches.Patch(color='blue', label='Proton')
-plt.legend(handles=[red_patch, blue_patch], loc='upper right', frameon=False, fontsize=12)
-
-plt.tight_layout()
-plt.show()
-
-# ==========================================
-# 2. Pairs Plot with Hyperplanes
-# ==========================================
-def plot_hyperplane_scatter(x, y, **kwargs):
-    """Custom function to plot scatter points and overlay the SVM hyperplane."""
-    ax = plt.gca()
-    
-    # Scatter plot (hue and palette are now automatically inherited via **kwargs)
-    sns.scatterplot(x=x, y=y, s=5, ax=ax, legend=False, linewidth=0, alpha=0.5, **kwargs)
-    
-    ax.set_xlim(0, 20)
-    ax.set_ylim(0, 20)
-    
-    # Identify indices of the current variables to grab the right coefficients
-    i = features_only.index(x.name)
-    j = features_only.index(y.name)
-    
-    # linear_hp_coefs mapping: [Intercept, D1, D2, D3, D4, D5, D6, D7_8_sum, D9]
-    coef_x = linear_hp_coefs[i + 1]
-    coef_y = linear_hp_coefs[j + 1]
-    intercept = linear_hp_coefs[0]
-    
-    # Avoid division by zero if a coefficient is 0
-    if coef_y != 0:
-        slope = -coef_x / coef_y
-        int_y = -intercept / coef_y
-        
-        # Plot the line across the 0-20 limits
-        x_vals = np.array([0, 20])
-        y_vals = int_y + slope * x_vals
-        ax.plot(x_vals, y_vals, color='black', linestyle='--', linewidth=2)
-
-
-print("Generating PairGrid. This may take a moment...")
-
-# 1. DEFINE HUE AND PALETTE GLOBALLY HERE
-g = sns.PairGrid(test_data_plot, vars=features_only, height=2.5, 
-                 hue='Particle_Type', palette={'Electron': 'red', 'Proton': 'blue'})
-
-# 2. Map the custom scatter+line function to the off-diagonal plots
-g.map_offdiag(plot_hyperplane_scatter)
-
-# 3. Map standard histograms to the diagonal (it automatically uses the global hue)
-g.map_diag(sns.histplot, multiple="stack")
-
-plt.show()
-
 #%% Create and Save PairGrid with Density Plots
 current_script_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, current_script_dir)
@@ -487,20 +463,17 @@ print("\n--- Initiating Visualization Pipeline ---")
 # Define exactly what columns go into the PairGrid matrix
 columns_to_keep = ["Detector1", "Detector2", "Detector3", "Detector4", 
                    "Detector5", "Detector6", "Detector7_8_sum", "Detector9", "Particle_Type"]
-test_data_plot = test_data[columns_to_keep].copy()
+test_data = test_data[columns_to_keep].copy()
 
 # Features for tracking weights/indices
 features_only = ["Detector1", "Detector2", "Detector3", "Detector4", 
                  "Detector5", "Detector6", "Detector7_8_sum", "Detector9"]
-# Call the external function. (Requires the 'weights' variable from your Linear SVM block)
-create_and_save_pairgrid(test_data_plot, weights, features_only, 
+create_and_save_pairgrid(test_data, features_only, 
                          output="square_pairs_plot_with_horizontal_legends.png")
 
-features_only_reduced = ["Detector1", "Detector2", "Detector9"]
-create_and_save_pairgrid_reduced(test_data_plot, weights, features_only_reduced,
-                         output="square_pairs_plot_reduced.png")
-
-                         
+features_only_reduced = ["Detector1", "Detector2", "Detector3", "Detector9"]
+create_and_save_pairgrid_reduced(test_data, features_only_reduced,
+                         output="square_pairs_plot_reduced.png")                    
 
 #%% Save workspace
 import joblib
@@ -508,7 +481,7 @@ import types
 import pickle
 import os
 
-save = False  # Set to True to save the workspace, False to skip
+save = True  # Set to True to save the workspace, False to skip
 if save:
     workspace = {}
     
@@ -528,21 +501,148 @@ if save:
                 continue
 
     # Actually save the compiled dictionary
-    save_path = os.path.join(os.getcwd(), 'entire_workspace.joblib')
+    save_path = os.path.join(os.getcwd(), 'entire_workspace_spectrascale.joblib')
     print(f"Compressing {len(workspace)} variables...")
     joblib.dump(workspace, save_path)
     print(f"Workspace successfully saved to: {save_path}")
 else:
     print("Workspace saving skipped.")
 
+end_time = time.perf_counter()
+elapsed = end_time - start_time
+minutes, seconds = divmod(elapsed, 60)
+print(f"Execution time: {int(minutes)} minutes and {int(seconds)} seconds")
+
 #%% Load workspace
-import joblib
+# import joblib
 
-# Load the dictionary back into memory
-load_path = 'entire_workspace.joblib'
-workspace = joblib.load(load_path)
+# # Load the dictionary back into memory
+# load_path = 'entire_workspace.joblib'
+# workspace = joblib.load(load_path)
 
-# Unpack the dictionary directly into your global environment
-globals().update(workspace)
+# # Unpack the dictionary directly into your global environment
+# globals().update(workspace)
 
-print(f"Successfully loaded {len(workspace)} variables into the workspace.")
+# print(f"Successfully loaded {len(workspace)} variables into the workspace.")
+
+
+#%% Exploratory: Find the data that are inaccurately classified by the Linear SVM model
+# Extract missclassified particle data
+misclassified_mask = linear_predictions != y_test
+misclassified_data = X_test[misclassified_mask].copy()
+misclassified_data.insert(0, 'E_Inc', test_data.loc[misclassified_mask, 'E_Inc'])
+misclassified_data['Particle_Type'] = y_test[misclassified_mask]
+misclassified_data['Predicted_Label'] = linear_predictions[misclassified_mask]
+
+features_mc_plot = ["Detector1", "Detector2", "Detector3", "Detector4", 
+                    "Detector5", "Detector6", "Detector7_8_sum", "Detector9"]
+
+# ---------------------------------------------------------
+# Missclassification Pair Plot
+# ---------------------------------------------------------
+create_and_save_pairgrid(
+    test_data=misclassified_data, 
+    features_only=features, 
+    output="misclassified_particles_8x8_grid.png"
+)
+
+# =============================================================================
+# 1. ELECTRONS (Misclassified as Protons)
+# =============================================================================
+electrons_as_protons = misclassified_data[misclassified_data['Particle_Type'] == 'Electron']
+total_electrons = test_data[test_data['Particle_Type'] == 'Electron']
+
+max_edep_e = electrons_as_protons[features_mc_plot].max().max()
+d_bins_e = np.linspace(0, max_edep_e, 101)
+
+e_totals_df = pd.read_csv('D:/HERT_Drive/Matlab Main/Result/Electron_FS/PostProcess_Histograms/Electron_Incident_Energy_Histogram.txt', sep='\t')
+total_per_MeV_e = e_totals_df['Counts_per_MeV'].values
+total_per_MeV_e = total_per_MeV_e[e_bins_raw>0.6]
+e_bins = np.logspace(np.log10(0.1), np.log10(10), 301)
+e_ticks = [0.5, 1, 2, 3, 4, 5, 6, 7, 8, 10]
+
+fig_e, axes_e = plt.subplots(3, 3, figsize=(20, 18))
+fig_e.suptitle('Distribution of Misclassified Electrons', fontsize=40, fontweight='bold', y=0.97)
+
+for i, feature in enumerate(features_mc_plot + ['E_Inc']):
+    ax = axes_e.flat[i]
+    
+    if feature != 'E_Inc':
+        mc_counts, _ = np.histogram(electrons_as_protons[feature], bins=d_bins_e)
+        prob = (mc_counts / np.sum(mc_counts)) * 100
+        
+        ax.hist(d_bins_e[:-1], bins=d_bins_e, weights=prob, color='red', alpha=0.7)
+        ax.set_xscale('linear')
+        ax.set_xlim(0, max_edep_e)
+        ax.set_xlabel('Deposited Energy (MeV)', fontsize=24)
+        
+    else:
+        mc_counts, _ = np.histogram(electrons_as_protons['E_Inc'], bins=e_bins)
+        tot_counts_e = total_per_MeV_e * np.diff(e_bins_raw)
+        
+        corrected_mc = np.divide(mc_counts, tot_counts_e, out=np.zeros_like(mc_counts, dtype=float), where=tot_counts_e!=0)
+        prob = (corrected_mc / np.sum(corrected_mc)) * 100
+        
+        ax.hist(e_bins[:-1], bins=e_bins, weights=prob, color='darkred', alpha=0.9)
+        ax.set_xscale('log')
+        ax.set_xlim(0.5, 10)
+        ax.set_xticks(e_ticks, labels=[str(v) for v in e_ticks])
+        ax.set_xlabel('Incident Energy (MeV)', fontsize=24)
+        
+    ax.set_title(feature, fontsize=28, fontweight='bold')
+    ax.set_ylabel('% of Total Errors', fontsize=24)
+    ax.tick_params(axis='both', which='major', labelsize=20)
+    ax.grid(True, which='major', linestyle='--', alpha=0.7)
+
+plt.tight_layout(rect=[0, 0, 1, 0.95])
+plt.show()
+
+# =============================================================================
+# 2. PROTONS (Misclassified as Electrons)
+# =============================================================================
+protons_as_electrons = misclassified_data[misclassified_data['Particle_Type'] == 'Proton']
+total_protons = test_data[test_data['Particle_Type'] == 'Proton']
+
+max_edep_p = protons_as_electrons[features_mc_plot].max().max()
+d_bins_p = np.linspace(0, max_edep_p, 101)
+
+p_totals_df = pd.read_csv('D:/HERT_Drive/Matlab Main/Result/Proton_FS/PostProcess_Histograms/Proton_Incident_Energy_Histogram.txt', sep='\t')
+total_per_MeV_p = p_totals_df['Counts_per_MeV'].values
+p_bins = np.logspace(np.log10(10), np.log10(2000), 401)
+p_ticks = [10, 100, 1000, 2000]
+
+fig_p, axes_p = plt.subplots(3, 3, figsize=(20, 18))
+fig_p.suptitle('Distribution of Misclassified Protons', fontsize=40, fontweight='bold', y=0.97)
+
+for i, feature in enumerate(features_mc_plot + ['E_Inc']):
+    ax = axes_p.flat[i]
+    
+    if feature != 'E_Inc':
+        mc_counts, _ = np.histogram(protons_as_electrons[feature], bins=d_bins_p)
+        prob = (mc_counts / np.sum(mc_counts)) * 100
+        
+        ax.hist(d_bins_p[:-1], bins=d_bins_p, weights=prob, color='blue', alpha=0.7)
+        ax.set_xscale('linear')
+        ax.set_xlim(0, max_edep_p)
+        ax.set_xlabel('Deposited Energy (MeV)', fontsize=24)
+        
+    else:
+        mc_counts, _ = np.histogram(protons_as_electrons['E_Inc'], bins=p_bins)
+        tot_counts_p = total_per_MeV_p * np.diff(p_bins)
+        
+        corrected_mc = np.divide(mc_counts, tot_counts_p, out=np.zeros_like(mc_counts, dtype=float), where=tot_counts_p!=0)
+        prob = (corrected_mc / np.sum(corrected_mc)) * 100
+        
+        ax.hist(p_bins[:-1], bins=p_bins, weights=prob, color='darkblue', alpha=0.9)
+        ax.set_xscale('log')
+        ax.set_xlim(10, 10000)
+        ax.set_xticks(p_ticks, labels=[str(v) for v in p_ticks])
+        ax.set_xlabel('Incident Energy (MeV)', fontsize=24)
+        
+    ax.set_title(feature, fontsize=28, fontweight='bold')
+    ax.set_ylabel('% of Total Errors', fontsize=24)
+    ax.tick_params(axis='both', which='major', labelsize=20)
+    ax.grid(True, which='both', linestyle='--', alpha=0.7)
+
+plt.tight_layout(rect=[0, 0, 1, 0.95])
+plt.show()
