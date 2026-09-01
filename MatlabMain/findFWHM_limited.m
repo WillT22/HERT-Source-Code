@@ -75,10 +75,11 @@ if nl == nr
     FWHM = 0;
 else
     % Left interpolate
-    if fx(nl) ~= fx(nl-1)
-        xl = (x(nl)-x(nl - 1))*(m/2-fx(nl - 1))/(fx(nl)-fx(nl - 1)) + x(nl - 1);
-    else
+    % SAFEGUARD: Check if nl is 1 to prevent fx(0) index errors
+    if nl == 1 || fx(nl) == fx(nl-1)
         xl = x(nl);
+    else
+        xl = (x(nl)-x(nl - 1))*(m/2-fx(nl - 1))/(fx(nl)-fx(nl - 1)) + x(nl - 1);
     end
     
     % Right interpolate

@@ -44,7 +44,7 @@ rng(42);
 switch flux_model  
     case 'Main1'
         % Calculating Flux from Main1
-        flux = M_energy_bin ./ (4*pi^2*r_source^2) ./ bin_width;
+        flux = M_energy_bin ./ (4*pi^2*r_source^2) ./ bin_width_red;
         sigma_m = 1500;
         delta = 50;      
     case 'Linear'
@@ -85,13 +85,14 @@ switch flux_model
         error('Invalid flux model selected. Check your spelling in the flux_model variable.');
 end
 
-hits_whole_EC_init = sum(geo_EC * (flux' .* bin_width'),2)*dt; 
+hits_whole_EC = sum(geo_EC * (flux' .* bin_width'),2)*dt; 
 % add poisson noise to counts
-poisson_err = sqrt(hits_whole_EC_init);
-random_scatter = randn(size(hits_whole_EC_init));
-hits_whole_EC = hits_whole_EC_init + (poisson_err .* random_scatter);
-hits_whole_EC = hits_whole_EC(hits_whole_EC>=1);
-hits_whole_EC = round(hits_whole_EC);
+poisson_err = sqrt(hits_whole_EC);
+random_scatter = randn(size(hits_whole_EC));
+hits_whole_EC_mod = hits_whole_EC + (poisson_err .* random_scatter);
+idx_valid = hits_whole_EC_mod>=1;
+hits_whole_EC_red = hits_whole_EC_mod(idx_valid);
+hits_whole_EC_red = round(hits_whole_EC_red);
 
 % One Count %
 %hits_whole_EC= ones(size(geo_EC,1),1);
@@ -155,22 +156,22 @@ hits_whole_EC= sum(geo_EC * (flux' .* bin_width'),2)*dt;
 %}
 
 %% Reducing equations to remove zero hit counts
-energy_channels = energy_channels(hits_whole_EC>=1,:);
-energy_edges = energy_edges(energy_edges<energy_channels(end,2)+1);
+energy_channels_red = energy_channels(hits_whole_EC_red>=1,:);
+energy_edges = energy_edges(energy_edges<energy_channels_red(end,2)+1);
 bounds = energy_midpoints<energy_edges(end);
-energy_midpoints = energy_midpoints(bounds);
-geo_EC = geo_EC(hits_whole_EC>=1,bounds);
-bin_width = bin_width(bounds);
+energy_midpoints_red = energy_midpoints(bounds);
+geo_EC_red = geo_EC(hits_whole_EC_red>=1,bounds);
+bin_width_red = bin_width(bounds);
 flux = flux(bounds);
-energy_max = max(energy_midpoints);
-%bound_plot = energy_midpoints >= 0.5 & energy_midpoints<=7;
+energy_max = max(energy_midpoints_red);
+%bound_plot = energy_midpoints_red >= 0.5 & energy_midpoints_red<=7;
 %indices = find(bound_plot);
 
 %% Simple Multiple Linear Regression Method %%
 %
-A = geo_EC .* bin_width;            % Calculate known/"independent variable"
+A = geo_EC_red .* bin_width_red;            % Calculate known/"independent variable"
 inv_A = pinv(A);                    % take pseudo inverse (not square matrix)
-flux_lin = inv_A * hits_whole_EC;  % find flux from linear algebra
+flux_lin = inv_A * hits_whole_EC_red;  % find flux from linear algebra
 
 % Plot
 %{
@@ -179,8 +180,8 @@ f.Position = [0 0 1200 900];
 hold on
 
 % bound to HERT's acceptable energy range
-plot(energy_midpoints,flux, 'Color', 'black','LineWidth',4);
-plot(energy_midpoints,flux_lin,'.', 'Color', 'r','MarkerSize',12);
+plot(energy_midpoints_red,flux, 'Color', 'black','LineWidth',4);
+plot(energy_midpoints_red,flux_lin,'.', 'Color', 'r','MarkerSize',12);
 xline(0.6, '--','color', [.5 .5 .5],'LineWidth',2);
 
 % Plot Bowtie points
@@ -203,37 +204,37 @@ hold off
 %}
 
 %% Least Squares Function for Energy Channels (Selesnick/Khoo) %%
-if length(hits_whole_EC)>2
+if length(hits_whole_EC_red)>2
     % Initialize variables
     flux_lsqr = 0;
     jsig = 0;
     it_max = 100;   % maximum number of possible iterations 
 
     % FIX 1: Convert simulated total counts back to an observed count rate
-    rate_obs = hits_whole_EC / dt; 
+    rate_obs = hits_whole_EC_red / dt; 
 
     % Setting up constant matrices
-    Cd = zeros(size(energy_channels,1));
-    sigma_d = zeros(size(energy_channels,1),1);
-    for channel = 1:size(energy_channels,1)
+    Cd = zeros(size(energy_channels_red,1));
+    sigma_d = zeros(size(energy_channels_red,1),1);
+    for channel = 1:size(energy_channels_red,1)
         sigma_d(channel) = sqrt(rate_obs(channel)*dt+1)/dt; 
         Cd(channel,channel) = (sigma_d(channel)/(rate_obs(channel))).^2;
     end
     inv_Cd = inv(Cd); 
 
-    Cm = sigma_m.^2 .* exp(-((energy_midpoints' - energy_midpoints).^2) ./ (2 * delta.^2));
+    Cm = sigma_m.^2 .* exp(-((energy_midpoints_red' - energy_midpoints_red).^2) ./ (2 * delta.^2));
     
     % Adds a tiny mathematical floor to the diagonal to prevent matrix singularity
-    Cm = Cm + eye(length(energy_midpoints)) * 1e-4;
+    Cm = Cm + eye(length(energy_midpoints_red)) * 1e-4;
     
     inv_Cm = pinv(Cm);
     
     d_obs = log(rate_obs);
 
     % Find initial exponential guess via pre-fitting
-    mn = zeros(it_max, length(energy_midpoints));
+    mn = zeros(it_max, length(energy_midpoints_red));
 
-    cost_function = @(x) sum( (log(rate_obs) - log( sum(geo_EC .* bin_width .* (exp(x(1)) .* exp(-energy_midpoints ./ x(2))), 2) )) .^ 2 );
+    cost_function = @(x) sum( (log(rate_obs) - log( sum(geo_EC_red .* bin_width_red .* (exp(x(1)) .* exp(-energy_midpoints_red ./ x(2))), 2) )) .^ 2 );
     
     % Initial guess for the optimizer [ln(j0), E0]
     % Based on your documentation, j0 ~ 10^6 and E0 ranges from 0.2 to 2.0 MeV
@@ -246,23 +247,23 @@ if length(hits_whole_EC)>2
     % Extract the mathematically optimal parameters
     j0_opt = exp(best_fit(1));
     E0_opt = best_fit(2);
-    mn(1,:) = log(j0_opt) - (energy_midpoints ./ E0_opt);
-    %mn(1,:) = real(log(k_50) + (b_50 - 1).*log(energy_midpoints) - (energy_midpoints ./ E0_50).^b_50);
+    mn(1,:) = log(j0_opt) - (energy_midpoints_red ./ E0_opt);
+    %mn(1,:) = real(log(k_50) + (b_50 - 1).*log(energy_midpoints_red) - (energy_midpoints_red ./ E0_50).^b_50);
 
     x_edges = log(energy_edges);
-    x = log(energy_midpoints);
+    x = log(energy_midpoints_red);
     dx = x_edges(2:end)-x_edges(1:end-1);
     dx(dx>100) = 100;
     
     % initial count rate guess
-    g_mn = zeros(it_max,size(energy_channels,1));
-    g_mn(1,:) = log(sum(geo_EC .* dx .* exp(mn(1,:)+x),2)); 
+    g_mn = zeros(it_max,size(energy_channels_red,1));
+    g_mn(1,:) = log(sum(geo_EC_red .* dx .* exp(mn(1,:)+x),2)); 
     
-    Gn = 1./exp(g_mn(1,:))' .* geo_EC .* dx .* exp(mn(1,:)+x);
+    Gn = 1./exp(g_mn(1,:))' .* geo_EC_red .* dx .* exp(mn(1,:)+x);
    
     iteration = 2;
     convergence = false;
-    Cmm = zeros(length(energy_midpoints));
+    Cmm = zeros(length(energy_midpoints_red));
 
 %% Begin iterations %%
 while convergence == false && iteration <= it_max
@@ -271,8 +272,8 @@ while convergence == false && iteration <= it_max
     
     mn(iteration,:) = (mn(1,:)' + pinv(Hessian) * Gradient)';
     
-    g_mn(iteration,:) = log(sum(geo_EC .* dx .* exp(mn(iteration,:)+x),2));
-    Gn = 1./exp(g_mn(iteration,:))' .* geo_EC .* dx .* exp(mn(iteration,:)+x);
+    g_mn(iteration,:) = log(sum(geo_EC_red .* dx .* exp(mn(iteration,:)+x),2));
+    Gn = 1./exp(g_mn(iteration,:))' .* geo_EC_red .* dx .* exp(mn(iteration,:)+x);
     
     Cmm = pinv(Hessian);
     
@@ -309,24 +310,24 @@ ax = axes(f);
 hold(ax, 'on');
 
 % 1. Plot simulated flux
-p1 = plot(ax, energy_midpoints, flux, 'LineWidth', 2, 'Color', 'black', 'DisplayName', 'Theoretical Flux');
+p1 = plot(ax, energy_midpoints_red, flux, 'LineWidth', 2, 'Color', 'black', 'DisplayName', 'Theoretical Flux');
 
 % 2. Plot Bowtie points and error
 ypos = j_nom_err;
 yneg = j_nom_err;
-matched_lb = j_nom_lb(1:length(j_nom));
 lower_bound = j_nom - yneg;
-below_one_idx = lower_bound < matched_lb;
-yneg(below_one_idx) = matched_lb(below_one_idx);
-p2 = errorbar(ax, E_eff(1:N_valid), j_nom, yneg, ypos, 'o', 'Color', '#0072BD', ...
+below_zero_idx = lower_bound < 10^-4;
+yneg(below_zero_idx) = j_nom(below_zero_idx) - 10^-4;
+idx_valid(end) = false;
+p2 = errorbar(ax, E_eff(idx_valid), j_nom(idx_valid), yneg(idx_valid), ypos(idx_valid), 'o', 'Color', '#0072BD', ...
     'MarkerSize', 5, 'MarkerFaceColor', '#0072BD', 'LineWidth', 1.5, 'CapSize', 10, 'DisplayName', 'Bowtie Analysis');
 
 % 3. Plot LSQR Selesnick Method Fit
-p3 = plot(ax, energy_midpoints, flux_lsqr, 'Color', 'r', 'LineWidth', 1.5, 'DisplayName', 'GNLSM Fit');
+p3 = plot(ax, energy_midpoints_red, flux_lsqr, 'Color', 'r', 'LineWidth', 1.5, 'DisplayName', 'GNLSM Fit');
 
 % 4. Plot standard deviation from fit (Hidden from legend)
-plot(ax, energy_midpoints, flux_lsqr + jsig, 'r--', 'LineWidth', 1.5, 'HandleVisibility', 'off');
-plot(ax, energy_midpoints, flux_lsqr - jsig, 'r--', 'LineWidth', 1.5, 'HandleVisibility', 'off');
+plot(ax, energy_midpoints_red, flux_lsqr + jsig, 'r--', 'LineWidth', 1.5, 'HandleVisibility', 'off');
+plot(ax, energy_midpoints_red, flux_lsqr - jsig, 'r--', 'LineWidth', 1.5, 'HandleVisibility', 'off');
 
 % Apply Legend
 legend(ax, [p1, p2, p3], 'Location', 'southwest', 'FontSize', textsize - 2);
@@ -346,11 +347,11 @@ xlabel(ax, 'Energy (MeV)', 'FontSize', textsize);
 switch flux_model
     case 'BOT2'
         xlim(ax, [0.5, 10]); 
-        ylim(ax, [40, max(flux_lsqr(energy_midpoints > 0.5) + jsig(energy_midpoints > 0.5)) * 2]);
+        ylim(ax, [40, max(flux_lsqr(energy_midpoints_red > 0.5) + jsig(energy_midpoints_red > 0.5)) * 2]);
     case 'Power Law'
-        xlim(ax, [0.5, min(max(energy_midpoints), 10)]); 
+        xlim(ax, [0.5, min(max(energy_midpoints_red), 10)]); 
         % 1. Calculate the highest power of 10 needed for the upper limit
-        max_flux = max(flux_lsqr(energy_midpoints > 0.5) + jsig(energy_midpoints > 0.5));
+        max_flux = max(flux_lsqr(energy_midpoints_red > 0.5) + jsig(energy_midpoints_red > 0.5));
         max_power = ceil(log10(max_flux));
         % 2. Set the Y-axis limits
         ylim(ax, [10^0, 10^max_power]);
@@ -358,7 +359,7 @@ switch flux_model
         set(ax, 'YTick', 10.^(0:2:max_power));
     otherwise
         xlim(ax, [0.5, 10]); 
-        ylim(ax, [10^0, max(flux_lsqr(energy_midpoints > 0.5) + jsig(energy_midpoints > 0.5)) * 2]);
+        ylim(ax, [10^0, max(flux_lsqr(energy_midpoints_red > 0.5) + jsig(energy_midpoints_red > 0.5)) * 2]);
 end
 
 hold(ax, 'off');

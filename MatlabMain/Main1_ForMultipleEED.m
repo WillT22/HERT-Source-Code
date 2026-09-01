@@ -178,18 +178,18 @@ while choice ~= 1 % Choice 1 is to exit the program
                 
             % Finds energy edges and midpoints based off of bins
             if parttype == 0
-                bins = 400;
-                energy_min = 0.01;
+                bins = 300;
+                energy_min = 0.1;
                 energy_max = 10;
                 energy_edges = logspace(log10(energy_min),log10(energy_max),bins+1);
-                energy_edges(end) = energy_max + 0.01;
+                energy_edges(end) = energy_max + 0.1;
             elseif parttype == 1
-                bins = 600;
+                bins = 400;
                 energy_min = 10;
-                energy_max = 10000;
+                energy_max = 2000;
                 energy_edges = logspace(log10(energy_min),log10(energy_max),bins+1);
             elseif parttype == 2
-                bins = 400;
+                bins = 600;
                 energy_min = 10;
                 energy_max = 100000;
                 energy_edges = logspace(log10(energy_min),log10(energy_max),bins+1);
@@ -257,7 +257,8 @@ while choice ~= 1 % Choice 1 is to exit the program
                     run_interest_back = [run_interest_back, ones(1,length(back_energy_beam))*run_number];
 
                     % Bin the energy for every particle simulated (good hits, back hits, and misses)
-                    [M_energy_bin_temp,~,M_energy_bin_indicies] = histcounts([energy_beam, back_energy_beam, non_energy_beam], energy_edges);
+                    pooled_energies = [energy_beam(:); back_energy_beam(:); non_energy_beam(:)];
+                    [M_energy_bin_temp,~,~] = histcounts(pooled_energies, energy_edges);
                     M_energy_bin = M_energy_bin + M_energy_bin_temp;
 
                     % Find the indices that would sort M_output_energy
@@ -300,13 +301,9 @@ while choice ~= 1 % Choice 1 is to exit the program
                 elseif sim_type == 1
                     % Scales up simulated particles to the total number of particles
                     M_energy_bin = 2 .* M_energy_bin / (1 - cosd(source_angle));
-                    M_back_beam  = 2 .* M_back_beam  / (1 - cosd(source_angle));
-
                     M_energy_bin = M_energy_bin ./ (4 * (pi^2) * (r_source^2));
-                    M_back_beam = M_back_beam ./ (4 * (pi^2) * (r_source^2));
                 elseif sim_type == 2
                     M_energy_bin = M_energy_bin ./ (4 * (pi^2) * (r_source^2));
-                    M_back_beam = M_back_beam ./ (4 * (pi^2) * (r_source^2));
                 else
                     error('Error on Sim Type')
                 end
@@ -345,6 +342,105 @@ while choice ~= 1 % Choice 1 is to exit the program
                 
                 addin = regexprep(addin, '_', ' ');
 
+
+%% Plot and Save Incident Energy (Publication Format)
+bin_widths = diff(energy_edges);
+Inc_hist_per_MeV = M_energy_bin ./ bin_widths;
+
+% 1. Setup Publication Typography & Physical Dimensions
+textsize = 14;              
+fig_width_in  = 7.0;        
+fig_height_in = 2.8;        
+
+% 2. Species-Dependent Plotting Parameters
+if parttype == 0
+    particle_name = 'Electron';
+    plot_color = 'r'; 
+    x_limits = [0.5, 10];
+    x_ticks = [0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+    x_label = 'Kinetic Energy (MeV)';
+elseif parttype == 1
+    particle_name = 'Proton';
+    plot_color = 'b'; 
+    x_limits = [10, 10000];
+    x_ticks = [10, 20, 30, 50, 100, 200, 300, 500, 1000, 2000, 5000, 10000];
+    x_label = 'Kinetic Energy (MeV)';
+elseif parttype == 2
+    particle_name = 'Helium';
+    plot_color = 'g';
+    x_limits = [10, 100000];
+    x_ticks = [10, 20, 30, 50, 100, 200, 300, 500, 1000, 2000, 5000, 10000, 100000];
+    x_label = 'Kinetic Energy (MeV/nuc)';
+else
+    particle_name = 'Unknown';
+    plot_color = 'k';
+    x_limits = [min(energy_edges), max(energy_edges)];
+    x_ticks = logspace(log10(x_limits(1)), log10(x_limits(2)), 5);
+    x_label = 'Kinetic Energy (MeV)';
+end
+
+% 3. Initialize Figure
+f = figure('Units', 'inches', ...
+           'Position', [1, 1, fig_width_in, fig_height_in], ...
+           'PaperUnits', 'inches', ...
+           'PaperPosition', [0, 0, fig_width_in, fig_height_in], ...
+           'PaperPositionMode', 'auto'); 
+ax = axes(f);
+hold(ax, 'on');
+
+% 4. Plot the Data
+histogram(ax, 'BinEdges', energy_edges, 'BinCounts', Inc_hist_per_MeV, ...
+    'FaceColor', plot_color, 'EdgeColor', 'none');
+
+% 5. Apply Publication Formatting
+set(ax, 'FontSize', textsize, 'Layer', 'top');
+set(ax, 'XScale', 'log', 'YScale', 'log');
+
+xlim(ax, x_limits);
+set(ax, 'XTick', x_ticks);
+
+% Dynamic Y-Ticks for every order of magnitude and force limits
+current_ylims = ylim(ax);
+min_power = floor(log10(current_ylims(1)));
+max_power = ceil(log10(current_ylims(2)));
+
+set(ax, 'YTick', 10.^(min_power:max_power));
+ylim(ax, [10.^(min_power), 10.^(max_power)]);
+
+grid(ax, 'on'); 
+ax.YMinorGrid = 'off';
+
+ylabel(ax, 'Counts / MeV', 'FontSize', textsize);
+xlabel(ax, x_label, 'FontSize', textsize);
+title(ax, sprintf('Distribution of Incident Energy (%s)', particle_name), 'FontSize', textsize);
+
+hold(ax, 'off');
+
+% 6. Export Directory Setup
+output_folder = 'D:\HERT_Drive\Matlab Main\Result\Proton_FS\PostProcess_Histograms';
+if ~exist(output_folder, 'dir')
+    mkdir(output_folder);
+end
+
+% 7. Save Figures (.fig and .png)
+timestamp = string(datetime("today"));
+base_filename = fullfile(output_folder, sprintf('%s_Incident_Energy_Counts_%s', particle_name, timestamp));
+
+savefig(f, base_filename);
+print(f, [base_filename, '.png'], '-dpng', '-r300');
+fprintf('Publication figures successfully saved to:\n%s\n', output_folder);
+
+% 8. Save Data to Text File
+export_matrix = [energy_edges(1:end-1)', energy_edges(2:end)', Inc_hist_per_MeV'];
+export_filename = sprintf('%s_Incident_Energy_Histogram.txt', particle_name);
+export_filepath = fullfile(output_folder, export_filename);
+
+export_table = array2table(export_matrix, 'VariableNames', ...
+    {'E_Lower_MeV', 'E_Upper_MeV', 'Counts_per_MeV'});
+
+writetable(export_table, export_filepath, 'Delimiter', '\t');
+fprintf('Saved histogram data to:\n%s\n', export_filepath);
+                
 %% Total Geometric Factor Comparison
 back_bool = exist('geo_back_EC','var');
 
@@ -549,7 +645,7 @@ if parttype == 0
     line_x = [0.62, 5.12, 15.83, 37.41];
     title('Electron Energy Channels')
 elseif parttype == 1
-    set(gca, 'XTick', [10, 20, 30, 50, 100, 200, 300, 500, 1000,2000]);
+    set(gca, 'XTick', [10, 20, 30, 50, 100, 200, 300, 500, 1000, 2000]);
     xlim([10, 2000]);
     %xlim([300, 400]);
     ylim([10^-4, 10^2]);
@@ -811,7 +907,7 @@ end
 % 7. High-Resolution Output
 %plot_name = 'electron_FS_31000_v2_publishable';
 %plot_name = 'proton_FS_17000_v6_rng_publishable';
-plot_name = 'proton_FS_hadrotest_range_18-Aug-2026';
+plot_name = 'proton_FS_hadrotest_range_20-Aug-2026';
 
 % Using bracket concatenation to join the strings
 print(gcf, [plot_name, '.png'], '-dpng', '-r300');
@@ -834,7 +930,8 @@ if parttype == 1
     Effplotcolor_back = winter(size(energy_channels, 1)); 
     
     % 3. Default Channel Selection & Setup Figure
-    back_select = [5, 10, 15, 20, 25, 30, 35, 40];
+    back_select = [];
+    % back_select = [5, 10, 15, 20, 25, 30, 35, 40];
     label_channels = ~isempty(back_select); 
     
     if isempty(back_select)
@@ -985,7 +1082,7 @@ end
     end
     
     % 7. High-Resolution Output
-    plot_name = 'proton_FS_hadrotest_pen_18-Aug-2026';
+    plot_name = 'proton_FS_hadrotest_pen_20-Aug-2026';
     
     % Using bracket concatenation to join the strings
     print(gcf, [plot_name, '.png'], '-dpng', '-r300');

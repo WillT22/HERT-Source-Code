@@ -11,7 +11,7 @@ cd 'D:\HERT_Drive\Matlab Main\Bow Tie'
 %geo_EC = readmatrix('D:\HERT_Drive\Matlab Main\Result\geofactor_EC_FS.txt');
 
 if parttype == 0    % --- ELECTRONS ---
-    energy_max_select = 8; % MeV max for electrons
+    energy_max_select = 10; % MeV max for electrons
     energy_range = energy_midpoints(energy_midpoints < energy_max_select);
     
     % Sets Ei and Range of Eo
@@ -95,7 +95,7 @@ end
 %For Loop for calculating a line for each Eo and finding the average intersection point
 fprintf('Energy Channel Processing: ')
 next_threshold = 10; 
-num_channels = length(energy_channels);
+num_channels = size(energy_channels, 1); % Safer than length() if it is a 2D matrix
 
 for c = 1:num_channels
     % Calculate current completion percentage
@@ -107,30 +107,63 @@ for c = 1:num_channels
         next_threshold = next_threshold + 10;
     end
         
-    %Calculates line for each Eo
+    % Calculates line for each Eo
     for i = 1:length(Eo)
+        % Safely initialize the column with zeros so trapz does not integrate over NaNs
+        G_int(:,i,c) = zeros(length(energy_range), 1); 
+        
         valid_geo = ~isnan(valid_geo_EC(c,:));
-        G_int(valid_geo,i,c) = valid_geo_EC(c,valid_geo)'.*J_e(valid_geo,i);
-        G_term(:,i,c) = trapz(energy_range,G_int(:,i,c));
-        G_E_eff(:,i,c)= G_term(:,i,c).*J_e_inv(:,i);  
+        G_int(valid_geo,i,c) = valid_geo_EC(c,valid_geo)' .* J_e(valid_geo,i);
+        
+        % Isolate the integral to a temporary scalar for clean multiplication
+        integral_val = trapz(energy_range, G_int(:,i,c));
+        G_term(1,i,c) = integral_val;
+        
+        G_E_eff(:,i,c) = integral_val .* J_e_inv(:,i);  
     end
     
-    %Find Intersections of Eo Lines
+    % Find Intersections of Eo Lines
     num = 0;
     for j = 1:(length(Eo)-1)
         for k = 1:(length(Eo)-j)
-            [xi(num+k,c),yi(num+k,c)] = polyxpoly(energy_range,G_E_eff(:,j,c),energy_range,G_E_eff(:,j+k,c),'unique');   
+            % 1. Extract all intersections into temporary arrays
+            [temp_x, temp_y] = polyxpoly(energy_range, G_E_eff(:,j,c), energy_range, G_E_eff(:,j+k,c), 'unique');
+            
+            % 2. Select the correct intersection to save
+            if isempty(temp_x)
+                % No intersection found at all
+                xi(num+k,c) = NaN;
+                yi(num+k,c) = NaN;
+            else
+                % Filter out the fake overlaps occurring exactly at zero efficiency
+                valid_idx = find(temp_y > 1e-12, 1, 'first'); 
+                
+                if isempty(valid_idx)
+                    % If they only intersect at 0, just grab the first one
+                    xi(num+k,c) = temp_x(1);
+                    yi(num+k,c) = temp_y(1);
+                else
+                    % Grab the first real, non-zero intersection
+                    xi(num+k,c) = temp_x(valid_idx);
+                    yi(num+k,c) = temp_y(valid_idx);
+                end
+            end
         end
-        num = num + k;
+        % Explicitly calculate the number of pairs instead of leaking 'k'
+        num = num + (length(Eo) - j);
     end
     
-    %Finds average intersection point
-    E_eff(c) = mean(xi(:,c));
-    G_eff_dE(c) = mean(yi(:,c));
-    % Calculates the Bow Tie systematic error (Standard Deviation)
-    E_eff_err(c) = std(xi(:,c));
-    G_eff_dE_err(c) = std(yi(:,c));
+    % Add 'omitnan' so missing intersections do not poison the average
+    E_eff(c) = mean(xi(:,c), 'omitnan');
+    G_eff_dE(c) = mean(yi(:,c), 'omitnan');
+    
+    % Calculate the Bow Tie systematic error (Standard Deviation)
+    E_eff_err(c) = std(xi(:,c), 'omitnan');
+    G_eff_dE_err(c) = std(yi(:,c), 'omitnan');
 end
+
+% Drop to a new line after the progress bar finishes
+fprintf('\n');
 
 %Calculate Bin Characteristics
 Geff = G_eff_dE./fwhm;
@@ -138,12 +171,11 @@ BinWidth = fwhm;
 Energy_Resolution = 100 * BinWidth ./ E_max;
 
 % Calculate Flux
-N_valid = min(length(hits_whole_EC),40);
-j_nom = hits_whole_EC(1:N_valid)./G_eff_dE(1:N_valid)';
+j_nom = hits_whole_EC./G_eff_dE';
 
 % Assuming C is your count rate matrix
-relative_error_counts = sqrt(hits_whole_EC(1:N_valid)) ./ hits_whole_EC(1:N_valid);
-relative_error_bowtie = (G_eff_dE_err(1:N_valid) ./ G_eff_dE(1:N_valid))';
+relative_error_counts = sqrt(hits_whole_EC) ./ hits_whole_EC;
+relative_error_bowtie = (G_eff_dE_err ./ G_eff_dE)';
 
 % Total fractional uncertainty
 total_relative_error = sqrt(relative_error_counts.^2 + relative_error_bowtie.^2);
