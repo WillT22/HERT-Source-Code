@@ -37,83 +37,33 @@ start_time = time.perf_counter()
 # CONFIGURATION
 # ==========================================
 os.chdir(r"C:\Users\wzt0020\Box\HERT_Box\Particle Classification")
-PROCESS_DATA = True
+PROCESS_DATA = False
 
-num_training_rows = 80000
-num_validation_rows = 10000
-num_test_rows = 10000
-num_points = (num_training_rows + num_validation_rows + num_test_rows) * 2
-
-electron_file = r"D:\HERT_Drive\Matlab Main\Result\Electron_FS\Aggregate Data\Aggregate_Electron_FS_Data_new.txt"
-proton_file   = r"D:\HERT_Drive\Matlab Main\Result\Proton_FS\Aggregate Data\Aggregate_Proton_FS_Data_new.txt"
+electron_file = r"D:\Matlab Main\Results\Electron_FS\Aggregate Data\Aggregate_Electron_FS_Data_new.txt"
+proton_file   = r"D:\Matlab Main\Results\Proton_FS_Hadronic\Aggregate Data\Aggregate_Proton_FS_Hadronic_Data_reduced.txt"
 
 column_names = ["E_Inc", "Detector1", "Detector2", "Detector3",
                 "Detector4", "Detector5", "Detector6",
                 "Detector7", "Detector8", "Detector9"]
 
 # ==========================================
-# HELPER FUNCTIONS
-# ==========================================
-def generate_exponential_counts(e_bins, total_points, E0=0.5):
-    """Generates an exact integer array of particle counts following an exponential spectrum."""
-    e_lower = e_bins[:-1]
-    e_upper = e_bins[1:]
-    
-    raw_probs = np.exp(-e_lower / E0) - np.exp(-e_upper / E0)
-    probs = raw_probs / np.sum(raw_probs)
-    
-    exact_counts = probs * total_points
-    int_counts = np.floor(exact_counts).astype(int)
-    
-    shortfall = int(total_points - np.sum(int_counts))
-    remainders = exact_counts - int_counts
-    
-    largest_remainder_indices = np.argsort(remainders)[::-1]
-    for i in range(shortfall):
-        int_counts[largest_remainder_indices[i]] += 1
-        
-    return int_counts
-
-# Based on Wang & Guo 2024
-def generate_powerlaw_counts(p_bins, total_points, gamma=4.0):
-    """Generates an exact integer array of particle counts following a power-law spectrum (E^-gamma)."""
-    p_lower = p_bins[:-1]
-    p_upper = p_bins[1:]
-    
-    # Integrate E^-gamma across each bin depending on the spectral index
-    if gamma == 1.0:
-        raw_probs = np.log(p_upper / p_lower)
-    else:
-        raw_probs = (p_upper**(1.0 - gamma) - p_lower**(1.0 - gamma)) / (1.0 - gamma)
-        
-    probs = raw_probs / np.sum(raw_probs)
-    
-    exact_counts = probs * total_points
-    int_counts = np.floor(exact_counts).astype(int)
-    
-    shortfall = int(total_points - np.sum(int_counts))
-    remainders = exact_counts - int_counts
-    
-    largest_remainder_indices = np.argsort(remainders)[::-1]
-    for i in range(shortfall):
-        int_counts[largest_remainder_indices[i]] += 1
-        
-    return int_counts
-
-# ==========================================
 # MAIN EXECUTION
 # ==========================================
 if PROCESS_DATA:
-    print("Processing raw data...")
-    
+    # ==========================================
     # 1. Load Data
+    # ==========================================
+    print("Processing raw data...")
+
     imported_electron_data = pd.read_csv(electron_file, delim_whitespace=True, skiprows=1, names=column_names)
     imported_proton_data   = pd.read_csv(proton_file, delim_whitespace=True, skiprows=1, names=column_names)
 
     imported_electron_data['Particle_Type'] = "Electron"
     imported_proton_data['Particle_Type']   = "Proton"
-
+    
+    # ==========================================
     # 2. Filter & Clean
+    # ==========================================
     # Apply baseline threshold
     electron_data_filtered = imported_electron_data[imported_electron_data['Detector1'] >= 0.1].copy()
     proton_data_filtered   = imported_proton_data[imported_proton_data['Detector1'] >= 0.1].copy()
@@ -135,124 +85,136 @@ if PROCESS_DATA:
     electron_data_filtered[cols_to_modify] = electron_data_filtered[cols_to_modify].where(electron_data_filtered[cols_to_modify] >= 0.1, 0)
     proton_data_filtered[cols_to_modify]   = proton_data_filtered[cols_to_modify].where(proton_data_filtered[cols_to_modify] >= 0.1, 0)
 
-    # 3. ELECTRONS: Define Exponential Sampling Targets
-    e_bins_raw = np.logspace(np.log10(0.1), np.log10(10), 301)
-    e_bins = e_bins_raw[e_bins_raw>0.6]
-    e_target_counts = generate_exponential_counts(e_bins, num_points/2, E0=0.5)
+    # ==========================================
+    # 3. Stratified Random Split
+    # ==========================================
+    num_training_rows = 8000
+    num_validation_rows = 1000
+    num_test_rows = 1000
+    num_points = num_training_rows + num_validation_rows + num_test_rows
 
-    # Map & Sample Exponential Spectrum (Electrons)
-    electron_data_filtered['Bin_Index'] = np.digitize(electron_data_filtered['E_Inc'], e_bins) - 1
-    electron_data_filtered['Bin_Index'] = np.clip(electron_data_filtered['Bin_Index'], 0, len(e_target_counts) - 1)
+    print("\nExtracting random samples for Train, Validation, and Test sets...")
 
-    sampled_electrons_list = []
-    
-    print("Sampling exponential distribution for electrons...")
-    for bin_idx, target_n in enumerate(e_target_counts):
-        if target_n == 0:
-            continue
-            
-        particles_in_bin = electron_data_filtered[electron_data_filtered['Bin_Index'] == bin_idx]
-        
-        try:
-            sampled_bin = particles_in_bin.sample(n=target_n, replace=False, random_state=42)
-        except ValueError:
-            print(f"Warning: Bin {bin_idx} needs {target_n} particles but only has {len(particles_in_bin)}. Falling back to replacement.")
-            sampled_bin = particles_in_bin.sample(n=target_n, replace=True, random_state=42)
-            
-        sampled_electrons_list.append(sampled_bin)
+    # Safety Check
+    for name, df in [("Electrons", electron_data_filtered), ("Protons", proton_data_filtered)]:
+        if len(df) < num_points:
+            raise ValueError(f"Not enough {name}! You need {num_points} total, but only have {len(df)}.")
 
-    exponential_electrons = pd.concat(sampled_electrons_list).reset_index(drop=True)
+    # --- ELECTRONS ---
+    e_train = electron_data_filtered.sample(n=num_training_rows, random_state=42)
+    e_remaining = electron_data_filtered[~electron_data_filtered.index.isin(e_train.index)]
+    e_val = e_remaining.sample(n=num_validation_rows, random_state=44)
+    e_remaining = e_remaining[~e_remaining.index.isin(e_val.index)]
+    e_test = e_remaining.sample(n=num_test_rows, random_state=46)
 
-    # 4. PROTONS: Define pwer Law Sampling Targets
-    p_bins_raw = np.logspace(np.log10(10), np.log10(2000), 401)
-    p_bins = p_bins_raw[p_bins_raw>15]
+    # --- PROTONS ---
+    p_train = proton_data_filtered.sample(n=num_training_rows, random_state=43)
+    p_remaining = proton_data_filtered[~proton_data_filtered.index.isin(p_train.index)]
+    p_val = p_remaining.sample(n=num_validation_rows, random_state=45)
+    p_remaining = p_remaining[~p_remaining.index.isin(p_val.index)]
+    p_test = p_remaining.sample(n=num_test_rows, random_state=47)
 
-    p_target_counts = generate_powerlaw_counts(p_bins, num_points/2, gamma=4.0)
+    # --- COMBINE AND SHUFFLE ---
+    # Concatenate the classes and shuffle (frac=1) so the SVM doesn't read all electrons before protons
+    training_data   = pd.concat([e_train, p_train], ignore_index=True).sample(frac=1, random_state=48).reset_index(drop=True)
+    validation_data = pd.concat([e_val, p_val], ignore_index=True).sample(frac=1, random_state=49).reset_index(drop=True)
+    test_data       = pd.concat([e_test, p_test], ignore_index=True).sample(frac=1, random_state=50).reset_index(drop=True)
 
-    # Map & Sample Power Law Spectrum (Protons)
-    proton_data_filtered['Bin_Index'] = np.digitize(proton_data_filtered['E_Inc'], p_bins) - 1
-    proton_data_filtered['Bin_Index'] = np.clip(proton_data_filtered['Bin_Index'], 0, len(p_target_counts) - 1)
+    print(f"Combined Training Set:   {len(training_data):,} rows")
+    print(f"Combined Validation Set: {len(validation_data):,} rows")
+    print(f"Combined Test Set:       {len(test_data):,} rows")
 
-    sampled_protons_list = []
-    
-    print("Sampling powerlaw distribution for protons...")
-    for bin_idx, target_n in enumerate(e_target_counts):
-        if target_n == 0:
-            continue
-            
-        particles_in_bin = proton_data_filtered[proton_data_filtered['Bin_Index'] == bin_idx]
-        
-        try:
-            sampled_bin = particles_in_bin.sample(n=target_n, replace=False, random_state=42)
-        except ValueError:
-            print(f"Warning: Bin {bin_idx} needs {target_n} particles but only has {len(particles_in_bin)}. Falling back to replacement.")
-            sampled_bin = particles_in_bin.sample(n=target_n, replace=True, random_state=42)
-            
-        sampled_protons_list.append(sampled_bin)
 
-    powerlaw_protons = pd.concat(sampled_protons_list).reset_index(drop=True)
-
-    # 5. Stratified Split (Train, Validation, Test)
-    num_exponential_rows = len(exponential_electrons)
-    
-    np.random.seed(42)
-    all_e_indices = np.random.permutation(num_exponential_rows)
-
-    e_training_indices   = all_e_indices[:num_training_rows]
-    e_validation_indices = all_e_indices[num_training_rows : num_training_rows + num_validation_rows]
-    e_test_indices       = all_e_indices[num_training_rows + num_validation_rows : num_training_rows + num_validation_rows + num_test_rows]
-
-    e_training_set   = exponential_electrons.iloc[e_training_indices].drop(columns=['Bin_Index'])
-    e_validation_set = exponential_electrons.iloc[e_validation_indices].drop(columns=['Bin_Index'])
-    e_test_set       = exponential_electrons.iloc[e_test_indices].drop(columns=['Bin_Index'])
-    
-    print(f"Electron Datasets Created: Train({len(e_training_set)}), Val({len(e_validation_set)}), Test({len(e_test_set)})")
-
-    # For Protons: Shuffle all indices, then slice
-    num_powerlaw_rows = len(powerlaw_protons)
-    
-    np.random.seed(43)
-    all_p_indices = np.random.permutation(num_powerlaw_rows)
-
-    p_training_indices   = all_p_indices[:num_training_rows]
-    p_validation_indices = all_p_indices[num_training_rows : num_training_rows + num_validation_rows]
-    p_test_indices       = all_p_indices[num_training_rows + num_validation_rows : num_training_rows + num_validation_rows + num_test_rows]
-
-    p_training_set   = powerlaw_protons.iloc[p_training_indices].drop(columns=['Bin_Index'])
-    p_validation_set = powerlaw_protons.iloc[p_validation_indices].drop(columns=['Bin_Index'])
-    p_test_set       = powerlaw_protons.iloc[p_test_indices].drop(columns=['Bin_Index'])
-
-    # Select the random rows and combine datasets
-    training_data = pd.concat([
-        electron_data_filtered.iloc[e_training_indices], 
-        proton_data_filtered.iloc[p_training_indices]
-    ], ignore_index=True)
-
-    validation_data = pd.concat([
-        electron_data_filtered.iloc[e_validation_indices], 
-        proton_data_filtered.iloc[p_validation_indices]
-    ], ignore_index=True)
-
-    test_data = pd.concat([
-        electron_data_filtered.iloc[e_test_indices], 
-        proton_data_filtered.iloc[p_test_indices]
-    ], ignore_index=True)
-
-    # Save each data frame to a separate text file (.csv)
-    training_data.to_csv("training_data2.csv", index=False)
-    validation_data.to_csv("validation_data2.csv", index=False)
-    test_data.to_csv("test_data2.csv", index=False)
-
+    # Optional: Free up RAM
     del electron_data_filtered
     del proton_data_filtered
+    del e_remaining
+    del p_remaining
+
+    # Define energy bins for histogramming and flat spectrum sampling
+    e_bins = np.logspace(np.log10(0.1), np.log10(10), 301)
+    p_bins = np.logspace(np.log10(10), np.log10(2000), 401)
+    
+    e_train_counts, _ = np.histogram(training_data[training_data['Particle_Type'] == 'Electron']['E_Inc'], bins=e_bins)
+    e_val_counts, _   = np.histogram(validation_data[validation_data['Particle_Type'] == 'Electron']['E_Inc'], bins=e_bins)
+    e_test_counts, _  = np.histogram(test_data[test_data['Particle_Type'] == 'Electron']['E_Inc'], bins=e_bins)
+
+    p_train_counts, _ = np.histogram(training_data[training_data['Particle_Type'] == 'Proton']['E_Inc'], bins=p_bins)
+    p_val_counts, _   = np.histogram(validation_data[validation_data['Particle_Type'] == 'Proton']['E_Inc'], bins=p_bins)
+    p_test_counts, _  = np.histogram(test_data[test_data['Particle_Type'] == 'Proton']['E_Inc'], bins=p_bins)
+
+    def assign_flat_weights(df, particle_type, bins, actual_counts):
+        # Locate the particles
+        mask = df['Particle_Type'] == particle_type
+        
+        # Map each particle's incident energy to its respective bin index
+        bin_indices = np.digitize(df.loc[mask, 'E_Inc'], bins) - 1
+        
+        # Define the mathematically flat target: total particles spread perfectly evenly across all active bins
+        active_bins = (actual_counts > 0).sum()
+        target_per_bin = actual_counts.sum() / active_bins if active_bins > 0 else 0
+        
+        # Create the lookup array: Weight = Target Environment / Actual Simulated Counts
+        weight_lookup = np.zeros(len(actual_counts))
+        for i, count in enumerate(actual_counts):
+            if count > 0:
+                weight_lookup[i] = target_per_bin / count
+                
+        # Return the mapped weights for the specific rows
+        return weight_lookup[bin_indices]
+
+    # Apply the weights to the Training Data
+    training_data['Flat_Weight'] = 0.0
+
+    e_train_mask = training_data['Particle_Type'] == 'Electron'
+    p_train_mask = training_data['Particle_Type'] == 'Proton'
+
+    training_data.loc[e_train_mask, 'Flat_Weight'] = assign_flat_weights(training_data, 'Electron', e_bins, e_train_counts)
+    training_data.loc[p_train_mask, 'Flat_Weight'] = assign_flat_weights(training_data, 'Proton', p_bins, p_train_counts)
+
+    # Apply the weights to the Validation Data
+    validation_data['Flat_Weight'] = 0.0
+
+    e_val_mask = validation_data['Particle_Type'] == 'Electron'
+    p_val_mask = validation_data['Particle_Type'] == 'Proton'
+
+    validation_data.loc[e_val_mask, 'Flat_Weight'] = assign_flat_weights(validation_data, 'Electron', e_bins, e_val_counts)
+    validation_data.loc[p_val_mask, 'Flat_Weight'] = assign_flat_weights(validation_data, 'Proton', p_bins, p_val_counts)
+
+    # Class-Level Normalization (Critical for SVM Balance)
+    # This forces the sum of all electron weights to equal the sum of all proton weights (1.0), 
+    # preventing the SVM from simply guessing the class that happens to have a higher total weight sum.
+    def normalize_50_50(df, weight_col):
+        e_sum = df.loc[df['Particle_Type'] == 'Electron', weight_col].sum()
+        p_sum = df.loc[df['Particle_Type'] == 'Proton', weight_col].sum()
+        
+        if e_sum > 0:
+            df.loc[df['Particle_Type'] == 'Electron', weight_col] /= e_sum
+        if p_sum > 0:
+            df.loc[df['Particle_Type'] == 'Proton', weight_col] /= p_sum
+            
+        return df
+
+    training_data = normalize_50_50(training_data, 'Flat_Weight')
+    validation_data = normalize_50_50(validation_data, 'Flat_Weight')
+
+    # 5. Extract the array for the SVM
+    w_train = training_data['Flat_Weight'].values
+
+    # Save each data frame to a separate text file (.csv)
+    training_data.to_csv("training_data_hadronic_red.csv", index=False)
+    validation_data.to_csv("validation_data_hadronic_red.csv", index=False)
+    test_data.to_csv("test_data_hadronic_red.csv", index=False)
+
     print("Data processed and saved to CSVs.")
 
 else:
     # Load directly from CSVs to save time
     print("Loading data from pre-processed CSVs...")
-    training_data = pd.read_csv("training_data2.csv")
-    validation_data = pd.read_csv("validation_data2.csv")
-    test_data = pd.read_csv("test_data2.csv")
+    training_data = pd.read_csv("training_data_hadronic_red.csv")
+    w_train = training_data['Flat_Weight'].values
+    validation_data = pd.read_csv("validation_data_hadronic_red.csv")
+    test_data = pd.read_csv("test_data_hadronic_red.csv")
     print("Data loaded.")
 
 # ==========================================
@@ -316,7 +278,7 @@ if SVM_MODE != "skip":
     print("\n### Linear SVM ###")
     # In scikit-learn, setting class_weight works identically to class.weights in R
     svm_linear = SVC(kernel='linear', C=10, class_weight={'Electron': 1, 'Proton': 1})
-    svm_linear.fit(X_train, y_train)
+    svm_linear.fit(X_train, y_train, sample_weight=w_train)
     
     # Get the support vectors and coefficients of the hyperplane (Intercept is prepended to match R output)
     linear_suppvec = svm_linear.n_support_
@@ -463,16 +425,16 @@ print("\n--- Initiating Visualization Pipeline ---")
 # Define exactly what columns go into the PairGrid matrix
 columns_to_keep = ["Detector1", "Detector2", "Detector3", "Detector4", 
                    "Detector5", "Detector6", "Detector7_8_sum", "Detector9", "Particle_Type"]
-test_data = test_data[columns_to_keep].copy()
+test_data_plot = test_data[columns_to_keep].copy()
 
 # Features for tracking weights/indices
 features_only = ["Detector1", "Detector2", "Detector3", "Detector4", 
                  "Detector5", "Detector6", "Detector7_8_sum", "Detector9"]
-create_and_save_pairgrid(test_data, features_only, 
+create_and_save_pairgrid(test_data_plot, features_only, 
                          output="square_pairs_plot_with_horizontal_legends.png")
 
 features_only_reduced = ["Detector1", "Detector2", "Detector3", "Detector9"]
-create_and_save_pairgrid_reduced(test_data, features_only_reduced,
+create_and_save_pairgrid_reduced(test_data_plot, features_only_reduced,
                          output="square_pairs_plot_reduced.png")                    
 
 #%% Save workspace
@@ -555,10 +517,8 @@ total_electrons = test_data[test_data['Particle_Type'] == 'Electron']
 max_edep_e = electrons_as_protons[features_mc_plot].max().max()
 d_bins_e = np.linspace(0, max_edep_e, 101)
 
-e_totals_df = pd.read_csv('D:/HERT_Drive/Matlab Main/Result/Electron_FS/PostProcess_Histograms/Electron_Incident_Energy_Histogram.txt', sep='\t')
+e_totals_df = pd.read_csv('D:/Matlab Main/Results/Electron_FS/PostProcess_Histograms/Electron_Incident_Energy_Histogram.txt', sep='\t')
 total_per_MeV_e = e_totals_df['Counts_per_MeV'].values
-total_per_MeV_e = total_per_MeV_e[e_bins_raw>0.6]
-e_bins = np.logspace(np.log10(0.1), np.log10(10), 301)
 e_ticks = [0.5, 1, 2, 3, 4, 5, 6, 7, 8, 10]
 
 fig_e, axes_e = plt.subplots(3, 3, figsize=(20, 18))
@@ -578,7 +538,7 @@ for i, feature in enumerate(features_mc_plot + ['E_Inc']):
         
     else:
         mc_counts, _ = np.histogram(electrons_as_protons['E_Inc'], bins=e_bins)
-        tot_counts_e = total_per_MeV_e * np.diff(e_bins_raw)
+        tot_counts_e = total_per_MeV_e * np.diff(e_bins)
         
         corrected_mc = np.divide(mc_counts, tot_counts_e, out=np.zeros_like(mc_counts, dtype=float), where=tot_counts_e!=0)
         prob = (corrected_mc / np.sum(corrected_mc)) * 100
@@ -606,9 +566,8 @@ total_protons = test_data[test_data['Particle_Type'] == 'Proton']
 max_edep_p = protons_as_electrons[features_mc_plot].max().max()
 d_bins_p = np.linspace(0, max_edep_p, 101)
 
-p_totals_df = pd.read_csv('D:/HERT_Drive/Matlab Main/Result/Proton_FS/PostProcess_Histograms/Proton_Incident_Energy_Histogram.txt', sep='\t')
+p_totals_df = pd.read_csv('D:/Matlab Main/Results/Proton_FS_Hadronic/PostProcess_Results/Proton_Incident_Energy_Histogram.txt', sep='\t')
 total_per_MeV_p = p_totals_df['Counts_per_MeV'].values
-p_bins = np.logspace(np.log10(10), np.log10(2000), 401)
 p_ticks = [10, 100, 1000, 2000]
 
 fig_p, axes_p = plt.subplots(3, 3, figsize=(20, 18))
@@ -635,7 +594,7 @@ for i, feature in enumerate(features_mc_plot + ['E_Inc']):
         
         ax.hist(p_bins[:-1], bins=p_bins, weights=prob, color='darkblue', alpha=0.9)
         ax.set_xscale('log')
-        ax.set_xlim(10, 10000)
+        ax.set_xlim(10, 2000)
         ax.set_xticks(p_ticks, labels=[str(v) for v in p_ticks])
         ax.set_xlabel('Incident Energy (MeV)', fontsize=24)
         
