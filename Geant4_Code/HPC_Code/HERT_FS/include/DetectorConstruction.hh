@@ -36,6 +36,17 @@ class DetectorConstruction : public G4VUserDetectorConstruction
     G4Material*      windowMaterialBe;
     G4Material*      windowMaterial;
 	G4Material*		 AlAlloy;
+
+	// Material pointers
+    G4Material* Aluminum;
+    G4Material* Mylar;
+    G4Material* source_material;
+
+	// Logical volume pointers for the source
+    G4LogicalVolume* logic_Holder;
+    G4LogicalVolume* logic_Washers;
+    G4LogicalVolume* logic_Mylar;
+    G4LogicalVolume* logic_Deposit;
     
 	G4LogicalVolume* logic_w;
 	G4LogicalVolume* logic_alHousing;

@@ -39,6 +39,10 @@ class DetectorConstruction : public G4VUserDetectorConstruction
     
 	G4LogicalVolume* logic_w;
 	G4LogicalVolume* logic_alHousing;
+	G4LogicalVolume* logic_Holder;
+    G4LogicalVolume* logic_Washers;
+    G4LogicalVolume* logic_Mylar;
+    G4LogicalVolume* logic_Deposit;
 	G4LogicalVolume* logic_BeWin;
 	G4LogicalVolume* logic_TaTooth5;
 	G4LogicalVolume* logic_TaTooth4;
